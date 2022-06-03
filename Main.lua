@@ -171,6 +171,7 @@ local createTableRow = function (player)
                 return '?'
             end
 
+            columnData.color = nil
             local remaining = player.mercenaryExpiry - GetTime()
             if remaining < 1 then
                 return L['no']
