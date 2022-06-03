@@ -23,7 +23,6 @@ local UnitExists = UnitExists
 local UnitGUID = UnitGUID
 local GetTime = GetTime
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
-local BUFF_MAX_DISPLAY = BUFF_MAX_DISPLAY
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local ceil = math.ceil
 local format = string.format
@@ -39,13 +38,6 @@ local ReadyCheckState = {
     Waiting = 1,
     Ready = 2,
     Declined = 3,
-}
-
-local MercenaryState = {
-    Unknown = 0,
-    Waiting = 1,
-    Yes = 2,
-    No = 3,
 }
 
 local tableStructure = {
@@ -126,7 +118,7 @@ local notifyMercenaryDuration = function (expirationTime)
 end
 
 local getPlayerDataByUnit = function (unit)
-    for playerName, data in pairs(playerData) do
+    for _, data in pairs(playerData) do
         if data.unit == unit then return data end
     end
 
@@ -300,7 +292,7 @@ local triggerStateUpdates = function ()
             triggerDeserterUpdate(player)
 
             index = index + 1
-            tableCache[index] = createTableRow(playerData[name])
+            tableCache[index] = createTableRow(player)
         end
     end
 
@@ -392,9 +384,9 @@ function BattlegroundCommander:COMBAT_LOG_EVENT_UNFILTERED()
     end
 end
 
-function BattlegroundCommander:READY_CHECK(_, name)
-    if playerData[name] then
-        playerData[name].readyState = ReadyCheckState.Ready
+function BattlegroundCommander:READY_CHECK(_, initiatedByName)
+    for name, data in pairs(playerData) do
+        data.readyState = initiatedByName == name and ReadyCheckState.Ready or ReadyCheckState.Waiting
     end
 
     refreshPlayerTable()
