@@ -15,5 +15,7 @@ externals:
     Libs/LibCompress: https://repos.wowace.com/wow/libcompress/trunk
 
 ignore:
+    - .github
+    - .gitignore
     - .previews
     - README.md
