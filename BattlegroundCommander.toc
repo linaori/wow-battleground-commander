@@ -2,7 +2,8 @@
 ## Title: Battleground Commander
 ## Notes: Teamwork is dreamwork
 ## Author: Linaori
-## Version: 0.1
+## Version: @project-version@
+## X-Repository: https://github.com/linaori/wow-battleground-commander
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
