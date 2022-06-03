@@ -4,6 +4,8 @@
 ## Author: Linaori
 ## Version: @project-version@
 ## X-Repository: https://github.com/linaori/wow-battleground-commander
+## X-Curse-Project-ID: 630409
+## X-Wago-ID: rkGrx76y
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
