@@ -1,4 +1,4 @@
-local AddonName, Namespace = ...
+local _, Namespace = ...
 
 Namespace.Debug = {}
 
@@ -6,7 +6,7 @@ Namespace.Debug = {}
 Namespace.Debug.enabled = true
 --@end-debug@
 
-local type, pairs, tostring, print = type, pairs, tostring, print
+local type, pairs, tostring, print, concat = type, pairs, tostring, print, table.concat
 function Namespace.Debug.toString(o)
     if type(o) == 'table' then
         local s = '{ '
@@ -20,12 +20,14 @@ function Namespace.Debug.toString(o)
     end
 end
 
-local printId = 0
 function Namespace.Debug.print(...)
     if not Namespace.Debug.enabled then return end
 
-    for _, data in (...) do
-        printId = printId + 1
-        print(AddonName, printId, Namespace.Debug.toString(data))
-    end
+    print(Namespace.Debug.toString({...}))
+end
+
+function Namespace.Debug.log(...)
+    if not Namespace.Debug.enabled then return end
+
+    print(concat({...}, ' '))
 end

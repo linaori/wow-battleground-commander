@@ -1,6 +1,6 @@
-local AddonName, Namespace = ...
+local ModuleName, AddonName, Namespace = 'QueueTools', ...
 
-local QueueTools = Namespace.Addon:NewModule('QueueTools', 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
+local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local ScrollingTable = Namespace.Libs.ScrollingTable
@@ -73,6 +73,11 @@ local showGroupQueueFrame = false
 local playerTableCache = {}
 local readyCheckClearTimeout
 
+local function setGroupQueueVisibility(newValue)
+    showGroupQueueFrame = newValue
+    Namespace.Database.profile.QueueTools.showGroupQueueFrame = newValue
+end
+
 local CommunicationEvent = {
     NotifyMercenaryDuration = 'Bgc:notifyMerc',
     RequestMercenaryDuration = 'Bgc:requestMerc',
@@ -81,14 +86,10 @@ local CommunicationEvent = {
     end,
     unpackData = function (raw)
         local decompressed = LibCompress:Decompress(Encoder:Decode(raw))
-        if not decompressed then
-            return
-        end
+        if not decompressed then return end
 
         local success, data = AceSerializer:Deserialize(decompressed)
-        if not success then
-            return
-        end
+        if not success then return end
 
         return data
     end
@@ -114,7 +115,7 @@ local playerData = {
 }
 
 local function notifyMercenaryDuration(expirationTime)
-    QueueTools:SendCommMessage(
+    Module:SendCommMessage(
         CommunicationEvent.NotifyMercenaryDuration,
         CommunicationEvent.packData({ remaining = expirationTime - GetTime() }),
         'PARTY'
@@ -302,14 +303,13 @@ local function updateQueuesFrameVisibility()
 end
 
 local function initializeBattlegroundModeCheckbox()
+    local PVPUIFrame = _G.PVPUIFrame
     local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundModeCheckbox', PVPUIFrame, 'UICheckButtonTemplate')
-    checkbox:SetPoint('BOTTOMRIGHT', PVEFrame, 'BOTTOMRIGHT', -2, 2)
+    checkbox:SetPoint('BOTTOMRIGHT', _G.PVEFrame, 'BOTTOMRIGHT', -2, 2)
     checkbox:SetSize(24, 24)
     checkbox:SetChecked(showGroupQueueFrame)
     checkbox:HookScript('OnClick', function (self)
-        if not BgcQueueFrame then return end
-
-        showGroupQueueFrame = self:GetChecked()
+        setGroupQueueVisibility(self:GetChecked())
         updateQueuesFrameVisibility()
 
         if showGroupQueueFrame then
@@ -320,7 +320,7 @@ local function initializeBattlegroundModeCheckbox()
     end)
     checkbox:Show()
 
-    PVEFrame.BattlegroundModeCheckbox = checkbox
+    PVPUIFrame.BattlegroundModeCheckbox = checkbox
 
     local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
     text:SetText(L['Group Mode'])
@@ -330,7 +330,24 @@ local function initializeBattlegroundModeCheckbox()
     checkbox.Text = text
 end
 
-function QueueTools:OnInitialize()
+local function onNotifyMercenaryDuration(_, text, _, sender)
+    local data = CommunicationEvent.unpackData(text);
+    if not data or data.remaining == nil or not playerData[sender] then return end
+
+    playerData[sender].hasAddon = true
+    playerData[sender].mercenaryExpiry = data.remaining + GetTime()
+
+    refreshPlayerTable()
+end
+
+local function onRequestMercenaryDuration()
+    local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(SpellIds.MercenaryContractBuff)
+    notifyMercenaryDuration(expirationTime or -1)
+end
+
+function Module:OnInitialize()
+    Namespace.Debug.log(AddonName, ModuleName, 'Initialized')
+
     self:RegisterEvent('ADDON_LOADED')
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
@@ -340,27 +357,24 @@ function QueueTools:OnInitialize()
     self:RegisterEvent('GROUP_ROSTER_UPDATE', triggerStateUpdates);
     self:RegisterEvent('PLAYER_ENTERING_WORLD', triggerStateUpdates);
 
-    self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, function (_, text, _, sender)
-        local data = CommunicationEvent.unpackData(text);
-        if not data or data.remaining == nil or not playerData[sender] then return end
-
-        playerData[sender].hasAddon = true
-        playerData[sender].mercenaryExpiry = data.remaining + GetTime()
-
-        refreshPlayerTable()
-    end)
-
-    self:RegisterComm(CommunicationEvent.RequestMercenaryDuration, function ()
-        local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(SpellIds.MercenaryContractBuff)
-        notifyMercenaryDuration(expirationTime or -1)
-    end)
+    self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, onNotifyMercenaryDuration)
+    self:RegisterComm(CommunicationEvent.RequestMercenaryDuration, onRequestMercenaryDuration)
 
     self:ScheduleTimer(function ()
-        QueueTools:SendCommMessage(CommunicationEvent.RequestMercenaryDuration, '1', 'PARTY')
+        Module:SendCommMessage(CommunicationEvent.RequestMercenaryDuration, '1', 'PARTY')
     end, requestMercenaryDurationDelay)
+
+    showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
+    Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
+    Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
+    Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 end
 
-function QueueTools:COMBAT_LOG_EVENT_UNFILTERED()
+function Module:RefreshConfig(...)
+    Namespace.Debug.print(...)
+end
+
+function Module:COMBAT_LOG_EVENT_UNFILTERED()
     local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
     if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
 
@@ -372,7 +386,7 @@ function QueueTools:COMBAT_LOG_EVENT_UNFILTERED()
     end
 end
 
-function QueueTools:READY_CHECK(_, initiatedByName)
+function Module:READY_CHECK(_, initiatedByName)
     for name, data in pairs(playerData) do
         data.readyState = initiatedByName == name and ReadyCheckState.Ready or ReadyCheckState.Waiting
     end
@@ -380,7 +394,7 @@ function QueueTools:READY_CHECK(_, initiatedByName)
     refreshPlayerTable()
 end
 
-function QueueTools:READY_CHECK_CONFIRM(_, unit, ready)
+function Module:READY_CHECK_CONFIRM(_, unit, ready)
     local data = getPlayerDataByUnit(unit)
 
     if not data then return end
@@ -395,7 +409,7 @@ function QueueTools:READY_CHECK_CONFIRM(_, unit, ready)
     refreshPlayerTable()
 end
 
-function QueueTools:READY_CHECK_FINISHED()
+function Module:READY_CHECK_FINISHED()
     for _, data in pairs(playerData) do
         if data.readyState == ReadyCheckState.Waiting then
             -- in case of expired ready check no confirmation means declined
@@ -420,7 +434,7 @@ local initializeGroupQueueFrame = function()
     queueFrame.TitleText:SetText(L['Group Information'])
     queueFrame.CloseButton:HookScript('OnClick', function ()
         PlaySound(CharacterPanelCloseSound)
-        showGroupQueueFrame = false
+        setGroupQueueVisibility(false)
         BgcBattlegroundModeCheckbox:SetChecked(false)
     end)
     queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]]);
@@ -432,10 +446,10 @@ local initializeGroupQueueFrame = function()
     playerTable:RegisterEvents({}, true)
 
     playerTable.frame:HookScript('OnShow', function (self)
-        self.refreshTimer = QueueTools:ScheduleRepeatingTimer(refreshPlayerTable, tableRefreshSeconds)
+        self.refreshTimer = Module:ScheduleRepeatingTimer(refreshPlayerTable, tableRefreshSeconds)
     end)
     playerTable.frame:HookScript('OnHide', function (self)
-        QueueTools:CancelTimer(self.refreshTimer)
+        Module:CancelTimer(self.refreshTimer)
     end)
 
     queueFrame.PlayerTable = playerTable
@@ -451,7 +465,7 @@ local initializeGroupQueueFrame = function()
     triggerStateUpdates()
 end
 
-function QueueTools:ADDON_LOADED(_, addonName)
+function Module:ADDON_LOADED(_, addonName)
     if addonName == 'Blizzard_PVPUI' then
         initializeBattlegroundModeCheckbox()
         initializeGroupQueueFrame()

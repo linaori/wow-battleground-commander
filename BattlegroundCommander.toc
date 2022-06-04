@@ -3,6 +3,7 @@
 ## Notes: Teamwork is dreamwork
 ## Author: Linaori
 ## Version: @project-version@
+## SavedVariables: BattlegroundCommanderDatabase
 ## X-Repository: https://github.com/linaori/wow-battleground-commander
 ## X-Curse-Project-ID: 630409
 ## X-Wago-ID: rkGrx76y
@@ -10,6 +11,7 @@
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceDB-3.0\AceDB-3.0.lua
 Libs\AceGUI-3.0\AceGUI-3.0.xml
 Libs\AceEvent-3.0\AceEvent-3.0.xml
 Libs\AceTimer-3.0\AceTimer-3.0.xml

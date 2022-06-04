@@ -6,6 +6,7 @@ externals:
     Libs/AceAddon-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceAddon-3.0
     Libs/AceComm-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceComm-3.0
     Libs/AceEvent-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceEvent-3.0
+    Libs/AceDb-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceDb-3.0
     Libs/AceGUI-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0
     Libs/AceHook-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceHook-3.0
     Libs/AceLocale-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceLocale-3.0
