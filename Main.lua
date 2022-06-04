@@ -399,6 +399,7 @@ function BattlegroundCommander:READY_CHECK_CONFIRM(_, unit, ready)
 
     if readyCheckClearTimeout then
         self:CancelTimer(readyCheckClearTimeout)
+        readyCheckClearTimeout = nil
     end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
@@ -407,6 +408,13 @@ function BattlegroundCommander:READY_CHECK_CONFIRM(_, unit, ready)
 end
 
 function BattlegroundCommander:READY_CHECK_FINISHED()
+    for _, data in pairs(playerData) do
+        if data.readyState == ReadyCheckState.Waiting then
+            -- in case of expired ready check no confirmation means declined
+            data.readyState = ReadyCheckState.Declined
+        end
+    end
+
     readyCheckClearTimeout = self:ScheduleTimer(function ()
         resetPlayersReadyState()
         refreshPlayerTable()
