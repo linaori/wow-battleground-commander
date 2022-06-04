@@ -24,9 +24,11 @@ local UnitDebuff = UnitDebuff
 local UnitIsPlayer = UnitIsPlayer
 local UnitExists = UnitExists
 local UnitGUID = UnitGUID
+local IsInGroup = IsInGroup
 local GetTime = GetTime
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
+local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local ceil = math.ceil
 local format = string.format
 local pairs = pairs
@@ -68,7 +70,7 @@ local tableStructure = {
 
 local tableRefreshSeconds = 10
 local readyCheckStateResetSeconds = 10
-local requestMercenaryDurationDelay = 5
+local requestMercenaryDurationDelay = 1
 local showGroupQueueFrame = false
 local playerTableCache = {}
 local readyCheckClearTimeout
@@ -92,7 +94,17 @@ local CommunicationEvent = {
         if not success then return end
 
         return data
-    end
+    end,
+    getMessageDestination = function ()
+        local channel, player = 'PARTY', nil
+        if not IsInGroup(LE_PARTY_CATEGORY_HOME) then
+            -- handle communication over whisper to self when PARTY is not available
+            channel = 'WHISPER'
+            player = UnitName('player')
+        end
+
+        return channel, player
+    end,
 }
 
 local ColorList = {
@@ -115,11 +127,10 @@ local playerData = {
 }
 
 local function notifyMercenaryDuration(expirationTime)
-    Module:SendCommMessage(
-        CommunicationEvent.NotifyMercenaryDuration,
-        CommunicationEvent.packData({ remaining = expirationTime - GetTime() }),
-        'PARTY'
-    )
+    local channel, player = CommunicationEvent.getMessageDestination()
+    local data = CommunicationEvent.packData({ remaining = expirationTime - GetTime() })
+
+    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, data, channel, player)
 end
 
 local function getPlayerDataByUnit(unit)
@@ -291,12 +302,12 @@ local function triggerStateUpdates()
 end
 
 local function updateQueuesFrameVisibility()
-    if not BgcQueueFrame then return end
+    if not _G.BgcQueueFrame then return end
 
     if showGroupQueueFrame then
-        BgcQueueFrame:Show()
+        _G.BgcQueueFrame:Show()
     else
-        BgcQueueFrame:Hide()
+        _G.BgcQueueFrame:Hide()
     end
 
     updatePlayerTableData()
@@ -349,6 +360,11 @@ function Module:OnInitialize()
     Namespace.Debug.log(AddonName, ModuleName, 'Initialized')
 
     self:RegisterEvent('ADDON_LOADED')
+end
+
+function Module:OnEnable()
+    Namespace.Debug.log(AddonName, ModuleName, 'Enabled')
+
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
     self:RegisterEvent('READY_CHECK_FINISHED')
@@ -361,7 +377,8 @@ function Module:OnInitialize()
     self:RegisterComm(CommunicationEvent.RequestMercenaryDuration, onRequestMercenaryDuration)
 
     self:ScheduleTimer(function ()
-        Module:SendCommMessage(CommunicationEvent.RequestMercenaryDuration, '1', 'PARTY')
+        local channel, player = CommunicationEvent.getMessageDestination()
+        Module:SendCommMessage(CommunicationEvent.RequestMercenaryDuration, CommunicationEvent.packData({}), channel, player)
     end, requestMercenaryDurationDelay)
 
     showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
