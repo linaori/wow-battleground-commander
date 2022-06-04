@@ -91,10 +91,11 @@ local CommunicationEvent = {
     end
 }
 
-local ColumnColor = {
-    Red = { r = 1.0, g = 0, b = 0, a = 1.0 },
-    Green = { r = 0, g = 1.0, b = 0, a = 1.0 },
-    Yellow = { r = 1.0, g = 1.0, b = 0, a = 1.0 },
+local ColorList = {
+    Bad = { r = 1.0, g = 0, b = 0, a = 1.0 },
+    Good = { r = 0, g = 1.0, b = 0, a = 1.0 },
+    Warning = { r = 1.0, g = 1.0, b = 0, a = 1.0 },
+    UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1.0 },
 }
 
 local playerData = {
@@ -157,7 +158,8 @@ local canDoReadyCheck = function ()
 end
 
 local createTableRow = function (player)
-    local colors = RAID_CLASS_COLORS[player.class]
+    local _, class = UnitClass(player.unit)
+    local colors = class and RAID_CLASS_COLORS[class] or ColorList.UnknownClass
     local nameColumn = {
         value = player.name,
         color = { r = colors.r, g = colors.g, b = colors.b, a = colors.a },
@@ -167,7 +169,7 @@ local createTableRow = function (player)
         value = function(data, _, realRow, column)
             local columnData = data[realRow].cols[column]
             if not player.hasAddon then
-                columnData.color = ColumnColor.Yellow
+                columnData.color = ColorList.Warning
                 return '?'
             end
 
@@ -186,11 +188,11 @@ local createTableRow = function (player)
             local columnData = data[realRow].cols[column]
             local remaining = player.deserterExpiry - GetTime()
             if remaining < 1 then
-                columnData.color = ColumnColor.Green
+                columnData.color = ColorList.Good
                 return L['no']
             end
 
-            columnData.color = ColumnColor.Red
+            columnData.color = ColorList.Bad
             return format('<%dm', ceil(remaining / 60))
         end,
     }
@@ -205,12 +207,12 @@ local createTableRow = function (player)
             end
 
             if readyState == ReadyCheckState.Declined then
-                columnData.color = ColumnColor.Red
+                columnData.color = ColorList.Bad
                 return L['no']
             end
 
             if readyState == ReadyCheckState.Ready then
-                columnData.color = ColumnColor.Green
+                columnData.color = ColorList.Good
                 return L['yes']
             end
 
@@ -274,12 +276,9 @@ local triggerStateUpdates = function ()
             end
 
             if not playerData[name] then
-                local _, class = UnitClass(unit)
-
                 playerData[name] = {
                     name = name,
                     unit = unit,
-                    class = class,
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     mercenaryExpiry = -1,
