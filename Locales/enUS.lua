@@ -1,4 +1,5 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("BattlegroundCommander", "enUS", true)
+local AddonName, Namespace = ...
+local L = Namespace.Libs.AceLocale:NewLocale(AddonName, 'enUS', true)
 
 L['Group Mode'] = true
 L['Ready Check'] = true

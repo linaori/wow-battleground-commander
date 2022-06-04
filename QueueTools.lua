@@ -1,9 +1,12 @@
-local BattlegroundCommander = LibStub('AceAddon-3.0'):NewAddon('BattlegroundCommander', 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
-local L = LibStub('AceLocale-3.0'):GetLocale('BattlegroundCommander')
-local ScrollingTable = LibStub('ScrollingTable')
-local Serializer = LibStub:GetLibrary("AceSerializer-3.0")
-local Compressor = LibStub:GetLibrary("LibCompress")
-local libCE = Compressor:GetAddonEncodeTable()
+local AddonName, Namespace = ...
+
+local QueueTools = Namespace.Addon:NewModule('QueueTools', 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
+
+local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
+local ScrollingTable = Namespace.Libs.ScrollingTable
+local AceSerializer = Namespace.Libs.AceSerializer
+local LibCompress = Namespace.Libs.LibCompress
+local Encoder = LibCompress:GetAddonEncodeTable()
 
 local DoReadyCheck = DoReadyCheck
 local UnitIsGroupLeader = UnitIsGroupLeader
@@ -74,15 +77,15 @@ local CommunicationEvent = {
     NotifyMercenaryDuration = 'Bgc:notifyMerc',
     RequestMercenaryDuration = 'Bgc:requestMerc',
     packData = function (data)
-        return libCE:Encode(Compressor:CompressHuffman(Serializer:Serialize(data)))
+        return Encoder:Encode(LibCompress:CompressHuffman(AceSerializer:Serialize(data)))
     end,
     unpackData = function (raw)
-        local decompressed = Compressor:Decompress(libCE:Decode(raw))
+        local decompressed = LibCompress:Decompress(Encoder:Decode(raw))
         if not decompressed then
             return
         end
 
-        local success, data = Serializer:Deserialize(decompressed)
+        local success, data = AceSerializer:Deserialize(decompressed)
         if not success then
             return
         end
@@ -110,15 +113,15 @@ local playerData = {
     --},
 }
 
-local notifyMercenaryDuration = function (expirationTime)
-    BattlegroundCommander:SendCommMessage(
+local function notifyMercenaryDuration(expirationTime)
+    QueueTools:SendCommMessage(
         CommunicationEvent.NotifyMercenaryDuration,
         CommunicationEvent.packData({ remaining = expirationTime - GetTime() }),
         'PARTY'
     )
 end
 
-local getPlayerDataByUnit = function (unit)
+local function getPlayerDataByUnit(unit)
     for _, data in pairs(playerData) do
         if data.unit == unit then return data end
     end
@@ -126,28 +129,13 @@ local getPlayerDataByUnit = function (unit)
     return nil
 end
 
-local resetPlayersReadyState = function ()
+local function resetPlayersReadyState()
     for _, player in pairs(playerData) do
         player.readyState = ReadyCheckState.Nothing
     end
 end
 
---@debug@
-function dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k,v in pairs(o) do
-            if type(k) ~= 'number' then k = '\''..k..'\'' end
-            s = s .. '['..k..'] = ' .. dump(v) .. ','
-        end
-        return s .. '} '
-    else
-        return tostring(o)
-    end
-end
---@end-debug@
-
-local canDoReadyCheck = function ()
+local function canDoReadyCheck()
     if not UnitIsGroupLeader('player') and not UnitIsGroupAssistant('player') then
         return false
     end
@@ -157,7 +145,7 @@ local canDoReadyCheck = function ()
     return instanceType ~= 'pvp' and instanceType ~= 'arena'
 end
 
-local createTableRow = function (player)
+local function createTableRow(player)
     local _, class = UnitClass(player.unit)
     local colors = class and RAID_CLASS_COLORS[class] or ColorList.UnknownClass
     local nameColumn = {
@@ -229,19 +217,19 @@ local createTableRow = function (player)
     }}
 end
 
-local refreshPlayerTable = function ()
+local function refreshPlayerTable()
     if not BgcQueueFrame or not showGroupQueueFrame then return end
 
     BgcQueueFrame.PlayerTable:Refresh()
 end
 
-local updatePlayerTableData = function ()
+local function updatePlayerTableData()
     if not BgcQueueFrame or not showGroupQueueFrame then return end
 
     BgcQueueFrame.PlayerTable:SetData(playerTableCache)
 end
 
-local triggerDeserterUpdate = function (player)
+local function triggerDeserterUpdate(player)
     if player.deserterExpiry > 0 and player.deserterExpiry <= GetTime() then
         player.deserterExpiry = -1
     end
@@ -262,7 +250,7 @@ local triggerDeserterUpdate = function (player)
 end
 
 local unitOrder = { 'player', 'party1', 'party2', 'party3', 'party4' }
-local triggerStateUpdates = function ()
+local function triggerStateUpdates()
     if BgcReadyCheckButton then BgcReadyCheckButton:SetEnabled(canDoReadyCheck()) end
 
     local tableCache = {}
@@ -301,7 +289,7 @@ local triggerStateUpdates = function ()
     updatePlayerTableData()
 end
 
-local updateQueuesFrameVisibility = function ()
+local function updateQueuesFrameVisibility()
     if not BgcQueueFrame then return end
 
     if showGroupQueueFrame then
@@ -313,7 +301,7 @@ local updateQueuesFrameVisibility = function ()
     updatePlayerTableData()
 end
 
-local initializeBattlegroundModeCheckbox = function ()
+local function initializeBattlegroundModeCheckbox()
     local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundModeCheckbox', PVPUIFrame, 'UICheckButtonTemplate')
     checkbox:SetPoint('BOTTOMRIGHT', PVEFrame, 'BOTTOMRIGHT', -2, 2)
     checkbox:SetSize(24, 24)
@@ -342,7 +330,7 @@ local initializeBattlegroundModeCheckbox = function ()
     checkbox.Text = text
 end
 
-function BattlegroundCommander:OnInitialize()
+function QueueTools:OnInitialize()
     self:RegisterEvent('ADDON_LOADED')
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
@@ -368,11 +356,11 @@ function BattlegroundCommander:OnInitialize()
     end)
 
     self:ScheduleTimer(function ()
-        BattlegroundCommander:SendCommMessage(CommunicationEvent.RequestMercenaryDuration, '1', 'PARTY')
+        QueueTools:SendCommMessage(CommunicationEvent.RequestMercenaryDuration, '1', 'PARTY')
     end, requestMercenaryDurationDelay)
 end
 
-function BattlegroundCommander:COMBAT_LOG_EVENT_UNFILTERED()
+function QueueTools:COMBAT_LOG_EVENT_UNFILTERED()
     local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
     if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
 
@@ -384,7 +372,7 @@ function BattlegroundCommander:COMBAT_LOG_EVENT_UNFILTERED()
     end
 end
 
-function BattlegroundCommander:READY_CHECK(_, initiatedByName)
+function QueueTools:READY_CHECK(_, initiatedByName)
     for name, data in pairs(playerData) do
         data.readyState = initiatedByName == name and ReadyCheckState.Ready or ReadyCheckState.Waiting
     end
@@ -392,7 +380,7 @@ function BattlegroundCommander:READY_CHECK(_, initiatedByName)
     refreshPlayerTable()
 end
 
-function BattlegroundCommander:READY_CHECK_CONFIRM(_, unit, ready)
+function QueueTools:READY_CHECK_CONFIRM(_, unit, ready)
     local data = getPlayerDataByUnit(unit)
 
     if not data then return end
@@ -407,7 +395,7 @@ function BattlegroundCommander:READY_CHECK_CONFIRM(_, unit, ready)
     refreshPlayerTable()
 end
 
-function BattlegroundCommander:READY_CHECK_FINISHED()
+function QueueTools:READY_CHECK_FINISHED()
     for _, data in pairs(playerData) do
         if data.readyState == ReadyCheckState.Waiting then
             -- in case of expired ready check no confirmation means declined
@@ -423,6 +411,8 @@ function BattlegroundCommander:READY_CHECK_FINISHED()
 end
 
 local initializeGroupQueueFrame = function()
+    local PVPUIFrame = _G.PVPUIFrame
+
     local queueFrame = CreateFrame('Frame', 'BgcQueueFrame', PVPUIFrame, 'ButtonFrameTemplate')
     queueFrame:SetSize(350, PVPUIFrame:GetHeight() - 2)
     queueFrame:SetPoint('TOPLEFT', PVPUIFrame, 'TOPRIGHT', 11, 0)
@@ -436,19 +426,19 @@ local initializeGroupQueueFrame = function()
     queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]]);
     PVPUIFrame.QueueFrame = queueFrame
 
-    local table = ScrollingTable:CreateST(tableStructure, nil, 24, nil, queueFrame)
-    table.frame:SetBackdropColor(0, 0, 0, 0)
-    table.frame:SetBackdropBorderColor(0, 0, 0, 0)
-    table:RegisterEvents({}, true)
+    local playerTable = ScrollingTable:CreateST(tableStructure, nil, 24, nil, queueFrame)
+    playerTable.frame:SetBackdropColor(0, 0, 0, 0)
+    playerTable.frame:SetBackdropBorderColor(0, 0, 0, 0)
+    playerTable:RegisterEvents({}, true)
 
-    table.frame:HookScript('OnShow', function (self)
-        self.refreshTimer = BattlegroundCommander:ScheduleRepeatingTimer(refreshPlayerTable, tableRefreshSeconds)
+    playerTable.frame:HookScript('OnShow', function (self)
+        self.refreshTimer = QueueTools:ScheduleRepeatingTimer(refreshPlayerTable, tableRefreshSeconds)
     end)
-    table.frame:HookScript('OnHide', function (self)
-        BattlegroundCommander:CancelTimer(self.refreshTimer)
+    playerTable.frame:HookScript('OnHide', function (self)
+        QueueTools:CancelTimer(self.refreshTimer)
     end)
 
-    queueFrame.PlayerTable = table
+    queueFrame.PlayerTable = playerTable
 
     local readyCheckButton = CreateFrame('Button', 'BgcReadyCheckButton', queueFrame, 'UIPanelButtonTemplate')
     readyCheckButton:SetText(L['Ready Check'])
@@ -461,10 +451,10 @@ local initializeGroupQueueFrame = function()
     triggerStateUpdates()
 end
 
-function BattlegroundCommander:ADDON_LOADED(_, addonName)
+function QueueTools:ADDON_LOADED(_, addonName)
     if addonName == 'Blizzard_PVPUI' then
         initializeBattlegroundModeCheckbox()
         initializeGroupQueueFrame()
-        PVPUIFrame:HookScript('OnShow', function () updateQueuesFrameVisibility() end)
+        _G.PVPUIFrame:HookScript('OnShow', function () updateQueuesFrameVisibility() end)
     end
 end
