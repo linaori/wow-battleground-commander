@@ -7,4 +7,4 @@ the mercenary contract is invisible to other players, the players you want to se
 addon installed.
 
 ## Official Download Locations
-You can find this addon on: [CurseForge.com](https://www.curseforge.com/wow/addons/battleground-commander), [Wago.io](https://addons.wago.io/addons/wow-battleground-commander), and (soon) WowUpHub. You can find the releases on [GitHub](https://github.com/linaori/wow-battleground-commander/releases).
+You can find this addon on: [CurseForge.com](https://www.curseforge.com/wow/addons/battleground-commander), [Wago.io](https://addons.wago.io/addons/wow-battleground-commander), and [WowUp.io](https://wowup.io/addons/1792745). You can find the releases on [GitHub](https://github.com/linaori/wow-battleground-commander/releases).
