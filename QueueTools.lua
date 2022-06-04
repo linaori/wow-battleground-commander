@@ -20,6 +20,7 @@ local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitName = UnitName
+local GetRealmName = GetRealmName
 local UnitDebuff = UnitDebuff
 local UnitIsPlayer = UnitIsPlayer
 local UnitExists = UnitExists
@@ -271,6 +272,10 @@ local function triggerStateUpdates()
     for _, unit in pairs(unitOrder) do
         if UnitExists(unit) and UnitIsPlayer(unit) then
             local name, realm = UnitName(unit)
+            if realm == nil and unit:lower() ~= 'player' then
+                realm = GetRealmName(unit)
+            end
+
             if realm ~= '' and realm ~= nil then
                 name = name .. '-' .. realm
             end
