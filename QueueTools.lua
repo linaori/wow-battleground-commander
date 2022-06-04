@@ -21,6 +21,7 @@ local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitName = UnitName
 local GetRealmName = GetRealmName
+local GetNumGroupMembers = GetNumGroupMembers
 local UnitDebuff = UnitDebuff
 local UnitIsPlayer = UnitIsPlayer
 local UnitExists = UnitExists
@@ -71,7 +72,6 @@ local tableStructure = {
 
 local tableRefreshSeconds = 10
 local readyCheckStateResetSeconds = 10
-local requestMercenaryDurationDelay = 1
 local showGroupQueueFrame = false
 local playerTableCache = {}
 local readyCheckClearTimeout
@@ -83,7 +83,6 @@ end
 
 local CommunicationEvent = {
     NotifyMercenaryDuration = 'Bgc:notifyMerc',
-    RequestMercenaryDuration = 'Bgc:requestMerc',
     packData = function (data)
         return Encoder:Encode(LibCompress:CompressHuffman(AceSerializer:Serialize(data)))
     end,
@@ -262,15 +261,20 @@ local function triggerDeserterUpdate(player)
     end
 end
 
+local previousGroupSize = 0
 local unitOrder = { 'player', 'party1', 'party2', 'party3', 'party4' }
 local function triggerStateUpdates()
     if BgcReadyCheckButton then BgcReadyCheckButton:SetEnabled(canDoReadyCheck()) end
 
-    local tableCache = {}
-    local index = 0
+    local newGroupSize = GetNumGroupMembers(LE_PARTY_CATEGORY_HOME)
 
-    for _, unit in pairs(unitOrder) do
-        if UnitExists(unit) and UnitIsPlayer(unit) then
+    -- player is solo
+    if newGroupSize == 0 then newGroupSize = 1 end
+    if newGroupSize == previousGroupSize then return end
+
+    local tableCache = {}
+    for index, unit in pairs(unitOrder) do
+        if index <= newGroupSize and UnitExists(unit) and UnitIsPlayer(unit)then
             local name, realm = UnitName(unit)
             if realm == nil and unit:lower() ~= 'player' then
                 realm = GetRealmName(unit)
@@ -296,12 +300,14 @@ local function triggerStateUpdates()
 
             triggerDeserterUpdate(player)
 
-            index = index + 1
             tableCache[index] = createTableRow(player)
         end
     end
 
     playerTableCache = tableCache
+
+    local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(SpellIds.MercenaryContractBuff)
+    notifyMercenaryDuration(expirationTime ~= nil and expirationTime or -1)
 
     updatePlayerTableData()
 end
@@ -356,11 +362,6 @@ local function onNotifyMercenaryDuration(_, text, _, sender)
     refreshPlayerTable()
 end
 
-local function onRequestMercenaryDuration()
-    local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(SpellIds.MercenaryContractBuff)
-    notifyMercenaryDuration(expirationTime or -1)
-end
-
 function Module:OnInitialize()
     Namespace.Debug.log(AddonName, ModuleName, 'Initialized')
 
@@ -379,12 +380,6 @@ function Module:OnEnable()
     self:RegisterEvent('PLAYER_ENTERING_WORLD', triggerStateUpdates);
 
     self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, onNotifyMercenaryDuration)
-    self:RegisterComm(CommunicationEvent.RequestMercenaryDuration, onRequestMercenaryDuration)
-
-    self:ScheduleTimer(function ()
-        local channel, player = CommunicationEvent.getMessageDestination()
-        Module:SendCommMessage(CommunicationEvent.RequestMercenaryDuration, CommunicationEvent.packData({}), channel, player)
-    end, requestMercenaryDurationDelay)
 
     showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
