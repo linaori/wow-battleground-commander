@@ -32,9 +32,11 @@ local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
+local max = math.max
 local ceil = math.ceil
 local format = string.format
 local pairs = pairs
+--local print, log = Namespace.Debug.print, Namespace.Debug.log
 
 local SpellIds = {
     DeserterDebuff = 26013,
@@ -71,12 +73,17 @@ local tableStructure = {
     }
 }
 
+-- seems like you can't do a second ready check for about 5~6 seconds, even if the "finished" event is faster
+local readyCheckGracePeriod = 6
+local lastReadyCheckTime = 0
+local lastReadyCheckDuration = 0
+local readyCheckButtonTicker
+local readyCheckClearTimeout
 local tableRefreshSeconds = 10
 local readyCheckStateResetSeconds = 10
 local sendMercenaryDurationDelay = 1
 local showGroupQueueFrame = false
 local playerTableCache = {}
-local readyCheckClearTimeout
 
 local function setGroupQueueVisibility(newValue)
     showGroupQueueFrame = newValue
@@ -186,6 +193,10 @@ local function resetPlayersReadyState()
 end
 
 local function canDoReadyCheck()
+    if lastReadyCheckTime + lastReadyCheckDuration > GetTime() then
+        return false
+    end
+
     if not UnitIsGroupLeader('player') and not UnitIsGroupAssistant('player') then
         return false
     end
@@ -285,15 +296,15 @@ local function createTableRow(data)
 end
 
 local function refreshPlayerTable()
-    if not BgcQueueFrame or not showGroupQueueFrame then return end
+    if not _G.BgcQueueFrame or not showGroupQueueFrame then return end
 
-    BgcQueueFrame.PlayerTable:Refresh()
+    _G.BgcQueueFrame.PlayerTable:Refresh()
 end
 
 local function updatePlayerTableData()
-    if not BgcQueueFrame or not showGroupQueueFrame then return end
+    if not _G.BgcQueueFrame or not showGroupQueueFrame then return end
 
-    BgcQueueFrame.PlayerTable:SetData(playerTableCache)
+    _G.BgcQueueFrame.PlayerTable:SetData(playerTableCache)
 end
 
 local function triggerDeserterUpdate(player)
@@ -325,7 +336,7 @@ end
 local previousGroupSize = 0
 local unitOrder = { 'player', 'party1', 'party2', 'party3', 'party4' }
 local function triggerStateUpdates(forceSync)
-    if BgcReadyCheckButton then BgcReadyCheckButton:SetEnabled(canDoReadyCheck()) end
+    if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(canDoReadyCheck()) end
 
     local newGroupSize = GetNumGroupMembers(LE_PARTY_CATEGORY_HOME)
 
@@ -458,10 +469,28 @@ function Module:COMBAT_LOG_EVENT_UNFILTERED()
     end
 end
 
-function Module:READY_CHECK(_, initiatedByName)
+function Module:READY_CHECK(_, initiatedByName, duration)
+    lastReadyCheckTime = GetTime()
+    lastReadyCheckDuration = duration + 1
+
     for _, data in pairs(playerData) do
         data.readyState = initiatedByName == data.name and ReadyCheckState.Ready or ReadyCheckState.Waiting
     end
+
+    readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
+        local readyCheckButton = _G.BgcReadyCheckButton
+        if not readyCheckButton then return end
+
+        readyCheckButton:SetEnabled(canDoReadyCheck())
+        local timeLeft = max(0, ceil(lastReadyCheckTime + lastReadyCheckDuration - GetTime()))
+        if timeLeft > 0 then
+            return readyCheckButton:SetText(L['Ready Check'] .. ' ' .. timeLeft)
+        end
+
+        readyCheckButton:SetText(L['Ready Check'])
+        Module:CancelTimer(readyCheckButtonTicker)
+        readyCheckButtonTicker = nil
+    end, 0.1)
 
     triggerStateUpdates(true)
     refreshPlayerTable()
@@ -471,17 +500,20 @@ function Module:READY_CHECK_CONFIRM(_, unit, ready)
     local data = getPlayerDataByUnit(unit)
     if not data then return end
 
-    if readyCheckClearTimeout then
-        self:CancelTimer(readyCheckClearTimeout)
-        readyCheckClearTimeout = nil
-    end
-
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
 
     refreshPlayerTable()
 end
 
 function Module:READY_CHECK_FINISHED()
+    if lastReadyCheckTime + readyCheckGracePeriod >= GetTime() then
+        -- finish was before grace period, should still count down until this is passed
+        lastReadyCheckDuration = readyCheckGracePeriod
+    else
+        lastReadyCheckDuration = 0
+        lastReadyCheckTime = 0
+    end
+
     for _, data in pairs(playerData) do
         if data.readyState == ReadyCheckState.Waiting then
             -- in case of expired ready check no confirmation means declined
@@ -489,7 +521,10 @@ function Module:READY_CHECK_FINISHED()
         end
     end
 
-    readyCheckClearTimeout = self:ScheduleTimer(function ()
+    self:ScheduleTimer(function ()
+        -- new ready check has been initiated, don't do anything anymore
+        if lastReadyCheckTime > 0 then return end
+
         resetPlayersReadyState()
         refreshPlayerTable()
         readyCheckClearTimeout = nil
