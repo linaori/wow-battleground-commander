@@ -34,6 +34,8 @@ local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local ceil = math.ceil
 local format = string.format
 local pairs = pairs
+local print = Namespace.Debug.print
+local log = Namespace.Debug.log
 
 local SpellIds = {
     DeserterDebuff = 26013,
@@ -179,7 +181,7 @@ local function createTableRow(player)
                 return L['no']
             end
 
-            return format('<%dm', ceil(remaining / 60))
+            return format('%dm', ceil(remaining / 60))
         end,
     }
 
@@ -193,7 +195,7 @@ local function createTableRow(player)
             end
 
             columnData.color = ColorList.Bad
-            return format('<%dm', ceil(remaining / 60))
+            return format('%dm', ceil(remaining / 60))
         end,
     }
 
@@ -261,16 +263,29 @@ local function triggerDeserterUpdate(player)
     end
 end
 
+local function getPlayerAuraExpiryTime(auraId)
+    local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(auraId)
+
+    return expirationTime ~= nil and expirationTime or -1
+end
+
 local previousGroupSize = 0
 local unitOrder = { 'player', 'party1', 'party2', 'party3', 'party4' }
-local function triggerStateUpdates()
+local function triggerStateUpdates(forceSync)
     if BgcReadyCheckButton then BgcReadyCheckButton:SetEnabled(canDoReadyCheck()) end
 
     local newGroupSize = GetNumGroupMembers(LE_PARTY_CATEGORY_HOME)
 
     -- player is solo
     if newGroupSize == 0 then newGroupSize = 1 end
-    if newGroupSize == previousGroupSize then return end
+
+    -- when leader is passed around, no need to re-sync
+    if not forceSync and newGroupSize == previousGroupSize then return end
+    if previousGroupSize > 1 and newGroupSize == 1 then
+        -- player left the group, clear up data
+        playerData = {}
+    end
+    previousGroupSize = newGroupSize
 
     local tableCache = {}
     for index, unit in pairs(unitOrder) do
@@ -306,8 +321,7 @@ local function triggerStateUpdates()
 
     playerTableCache = tableCache
 
-    local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(SpellIds.MercenaryContractBuff)
-    notifyMercenaryDuration(expirationTime ~= nil and expirationTime or -1)
+    notifyMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
 
     updatePlayerTableData()
 end
@@ -363,21 +377,22 @@ local function onNotifyMercenaryDuration(_, text, _, sender)
 end
 
 function Module:OnInitialize()
-    Namespace.Debug.log(AddonName, ModuleName, 'Initialized')
+    log(AddonName, ModuleName, 'Initialized')
 
     self:RegisterEvent('ADDON_LOADED')
 end
 
 function Module:OnEnable()
-    Namespace.Debug.log(AddonName, ModuleName, 'Enabled')
+    log(AddonName, ModuleName, 'Enabled')
 
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
     self:RegisterEvent('READY_CHECK_FINISHED')
     self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
 
-    self:RegisterEvent('GROUP_ROSTER_UPDATE', triggerStateUpdates);
-    self:RegisterEvent('PLAYER_ENTERING_WORLD', triggerStateUpdates);
+    local update = function () triggerStateUpdates(false) end
+    self:RegisterEvent('GROUP_ROSTER_UPDATE', update);
+    self:RegisterEvent('PLAYER_ENTERING_WORLD', update);
 
     self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, onNotifyMercenaryDuration)
 
@@ -388,18 +403,15 @@ function Module:OnEnable()
 end
 
 function Module:RefreshConfig(...)
-    Namespace.Debug.print(...)
+    print(...)
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
     local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
     if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
 
-    if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' then
-        local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(SpellIds.MercenaryContractBuff)
-        notifyMercenaryDuration(expirationTime)
-    elseif  subEvent == 'SPELL_AURA_REMOVED' then
-        notifyMercenaryDuration(-1)
+    if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
+        notifyMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
     end
 end
 
@@ -408,6 +420,7 @@ function Module:READY_CHECK(_, initiatedByName)
         data.readyState = initiatedByName == name and ReadyCheckState.Ready or ReadyCheckState.Waiting
     end
 
+    triggerStateUpdates(true)
     refreshPlayerTable()
 end
 
@@ -479,7 +492,7 @@ local initializeGroupQueueFrame = function()
 
     queueFrame.ReadyCheckButton = readyCheckButton
 
-    triggerStateUpdates()
+    triggerStateUpdates(false)
 end
 
 function Module:ADDON_LOADED(_, addonName)
