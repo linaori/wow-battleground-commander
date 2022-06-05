@@ -134,6 +134,7 @@ local playerData = {
     --    hasAddon = false,
     --},
 }
+
 local sendMercenaryDataPayload
 local function doSendMercenaryDuration()
     if sendMercenaryDataPayload == nil then return end
@@ -206,6 +207,26 @@ local function canDoReadyCheck()
     return instanceType ~= 'pvp' and instanceType ~= 'arena'
 end
 
+local function triggerDeserterUpdate(player)
+    if player.deserterExpiry > 0 and player.deserterExpiry <= GetTime() then
+        player.deserterExpiry = -1
+    end
+
+    if player.deserterExpiry > -1 then
+        -- only re-check if the player doesn't have it already
+        return
+    end
+
+    for i = 1, DEBUFF_MAX_DISPLAY do
+        local _, _, _, _, _, expirationTime, _, _, _, spellId = UnitDebuff(player.unit, i)
+        if spellId == SpellIds.DeserterDebuff then
+            player.deserterExpiry = expirationTime
+
+            return
+        end
+    end
+end
+
 local function createTableRow(data)
     local nameColumn = {
         value = function(tableData, _, realRow, column)
@@ -252,6 +273,7 @@ local function createTableRow(data)
     local deserterColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
+            triggerDeserterUpdate(data)
             local remaining = data.deserterExpiry - GetTime()
             if remaining < 1 then
                 columnData.color = ColorList.Good
@@ -307,26 +329,6 @@ local function updatePlayerTableData()
     _G.BgcQueueFrame.PlayerTable:SetData(playerTableCache)
 end
 
-local function triggerDeserterUpdate(player)
-    if player.deserterExpiry > 0 and player.deserterExpiry <= GetTime() then
-        player.deserterExpiry = -1
-    end
-
-    if player.deserterExpiry > -1 then
-        -- only re-check if the player doesn't have it already
-        return
-    end
-
-    for i = 1, DEBUFF_MAX_DISPLAY do
-        local _, _, _, _, _, expirationTime, _, _, _, spellId = UnitDebuff(player.unit, i)
-        if spellId == SpellIds.DeserterDebuff then
-            player.deserterExpiry = expirationTime
-
-            return
-        end
-    end
-end
-
 local function getPlayerAuraExpiryTime(auraId)
     local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(auraId)
 
@@ -368,8 +370,6 @@ local function triggerStateUpdates(forceSync)
             end
 
             data.unit = unit
-
-            triggerDeserterUpdate(data)
 
             tableCache[index] = createTableRow(data)
         end
@@ -471,7 +471,7 @@ end
 
 function Module:READY_CHECK(_, initiatedByName, duration)
     lastReadyCheckTime = GetTime()
-    lastReadyCheckDuration = duration + 1
+    lastReadyCheckDuration = duration
 
     for _, data in pairs(playerData) do
         data.readyState = initiatedByName == data.name and ReadyCheckState.Ready or ReadyCheckState.Waiting
