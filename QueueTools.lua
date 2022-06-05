@@ -30,12 +30,11 @@ local IsInGroup = IsInGroup
 local GetTime = GetTime
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
+local UNKNOWNOBJECT = UNKNOWNOBJECT
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local ceil = math.ceil
 local format = string.format
 local pairs = pairs
-local print = Namespace.Debug.print
-local log = Namespace.Debug.log
 
 local SpellIds = {
     DeserterDebuff = 26013,
@@ -74,6 +73,7 @@ local tableStructure = {
 
 local tableRefreshSeconds = 10
 local readyCheckStateResetSeconds = 10
+local sendMercenaryDurationDelay = 1
 local showGroupQueueFrame = false
 local playerTableCache = {}
 local readyCheckClearTimeout
@@ -127,17 +127,53 @@ local playerData = {
     --    hasAddon = false,
     --},
 }
-
-local function notifyMercenaryDuration(expirationTime)
+local sendMercenaryDataPayload
+local function doSendMercenaryDuration()
+    if sendMercenaryDataPayload == nil then return end
     local channel, player = CommunicationEvent.getMessageDestination()
-    local data = CommunicationEvent.packData({ remaining = expirationTime - GetTime() })
+    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, sendMercenaryDataPayload, channel, player)
+    sendMercenaryDataPayload = nil
+end
 
-    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, data, channel, player)
+local function scheduleSendMercenaryDuration(expirationTime)
+    local shouldSchedule = sendMercenaryDataPayload == nil
+    local remaining = expirationTime == -1 and -1 or expirationTime - GetTime()
+    sendMercenaryDataPayload = CommunicationEvent.packData({ remaining = remaining })
+
+    if not shouldSchedule then return end
+    Module:ScheduleTimer(doSendMercenaryDuration, sendMercenaryDurationDelay)
+end
+
+local function getUnitName(unit)
+    local name, realm = UnitName(unit)
+    if name == UNKNOWNOBJECT then return UNKNOWNOBJECT end
+
+    if realm == nil and unit:lower() ~= 'player' then
+        realm = GetRealmName(unit)
+    end
+
+    if realm ~= '' and realm ~= nil then
+        name = name .. '-' .. realm
+    end
+
+    return name
 end
 
 local function getPlayerDataByUnit(unit)
     for _, data in pairs(playerData) do
         if data.unit == unit then return data end
+    end
+
+    return nil
+end
+
+local function getPlayerDataByName(name)
+    for _, data in pairs(playerData) do
+        if data.name == UNKNOWNOBJECT then
+            data.name = getUnitName(data.unit)
+        end
+
+        if data.name == name then return data end
     end
 
     return nil
@@ -159,24 +195,41 @@ local function canDoReadyCheck()
     return instanceType ~= 'pvp' and instanceType ~= 'arena'
 end
 
-local function createTableRow(player)
-    local _, class = UnitClass(player.unit)
-    local colors = class and RAID_CLASS_COLORS[class] or ColorList.UnknownClass
+local function createTableRow(data)
     local nameColumn = {
-        value = player.name,
-        color = { r = colors.r, g = colors.g, b = colors.b, a = colors.a },
+        value = function(tableData, _, realRow, column)
+            local columnData = tableData[realRow].cols[column]
+
+            if data.name == UNKNOWNOBJECT then
+                -- try to update the name as it wasn't available on initial check
+                data.name = getUnitName(data.unit)
+            end
+
+            local name, color
+            if data.name == UNKNOWNOBJECT then
+                name = '...'
+                color = ColorList.UnknownClass
+            else
+                local _, class = UnitClass(data.unit)
+                name = data.name
+                color = class and RAID_CLASS_COLORS[class] or ColorList.UnknownClass
+            end
+
+            columnData.color = { r = color.r, g = color.g, b = color.b, a = color.a }
+            return name
+        end,
     }
 
     local mercenaryColumn = {
-        value = function(data, _, realRow, column)
-            local columnData = data[realRow].cols[column]
-            if not player.hasAddon then
+        value = function(tableData, _, realRow, column)
+            local columnData = tableData[realRow].cols[column]
+            if not data.hasAddon then
                 columnData.color = ColorList.Warning
                 return '?'
             end
 
             columnData.color = nil
-            local remaining = player.mercenaryExpiry - GetTime()
+            local remaining = data.mercenaryExpiry - GetTime()
             if remaining < 1 then
                 return L['no']
             end
@@ -186,9 +239,9 @@ local function createTableRow(player)
     }
 
     local deserterColumn = {
-        value = function(data, _, realRow, column)
-            local columnData = data[realRow].cols[column]
-            local remaining = player.deserterExpiry - GetTime()
+        value = function(tableData, _, realRow, column)
+            local columnData = tableData[realRow].cols[column]
+            local remaining = data.deserterExpiry - GetTime()
             if remaining < 1 then
                 columnData.color = ColorList.Good
                 return L['no']
@@ -200,9 +253,9 @@ local function createTableRow(player)
     }
 
     local readyCheckColumn = {
-        value = function(data, _, realRow, column)
-            local columnData = data[realRow].cols[column]
-            local readyState = player.readyState;
+        value = function(tableData, _, realRow, column)
+            local columnData = tableData[realRow].cols[column]
+            local readyState = data.readyState;
             if readyState == ReadyCheckState.Waiting then
                 columnData.color = nil
                 return '...'
@@ -290,38 +343,30 @@ local function triggerStateUpdates(forceSync)
     local tableCache = {}
     for index, unit in pairs(unitOrder) do
         if index <= newGroupSize and UnitExists(unit) and UnitIsPlayer(unit)then
-            local name, realm = UnitName(unit)
-            if realm == nil and unit:lower() ~= 'player' then
-                realm = GetRealmName(unit)
-            end
-
-            if realm ~= '' and realm ~= nil then
-                name = name .. '-' .. realm
-            end
-
-            if not playerData[name] then
-                playerData[name] = {
-                    name = name,
-                    unit = unit,
+            local dataIndex = UnitGUID(unit)
+            local data = playerData[dataIndex]
+            if not data then
+                playerData[dataIndex] = {
+                    name = UNKNOWNOBJECT,
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     mercenaryExpiry = -1,
                 }
-            else
-                playerData[name].unit = unit
+
+                data = playerData[dataIndex]
             end
 
-            local player = playerData[name]
+            data.unit = unit
 
-            triggerDeserterUpdate(player)
+            triggerDeserterUpdate(data)
 
-            tableCache[index] = createTableRow(player)
+            tableCache[index] = createTableRow(data)
         end
     end
 
     playerTableCache = tableCache
 
-    notifyMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+    scheduleSendMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
 
     updatePlayerTableData()
 end
@@ -367,24 +412,23 @@ local function initializeBattlegroundModeCheckbox()
 end
 
 local function onNotifyMercenaryDuration(_, text, _, sender)
-    local data = CommunicationEvent.unpackData(text);
-    if not data or data.remaining == nil or not playerData[sender] then return end
+    local payload = CommunicationEvent.unpackData(text);
+    if not payload or payload.remaining == nil then return end
 
-    playerData[sender].hasAddon = true
-    playerData[sender].mercenaryExpiry = data.remaining + GetTime()
+    local data = getPlayerDataByName(sender)
+    if not data then return end
+
+    data.hasAddon = true
+    data.mercenaryExpiry = payload.remaining + GetTime()
 
     refreshPlayerTable()
 end
 
 function Module:OnInitialize()
-    log(AddonName, ModuleName, 'Initialized')
-
     self:RegisterEvent('ADDON_LOADED')
 end
 
 function Module:OnEnable()
-    log(AddonName, ModuleName, 'Enabled')
-
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
     self:RegisterEvent('READY_CHECK_FINISHED')
@@ -403,7 +447,6 @@ function Module:OnEnable()
 end
 
 function Module:RefreshConfig(...)
-    print(...)
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
@@ -411,13 +454,13 @@ function Module:COMBAT_LOG_EVENT_UNFILTERED()
     if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
 
     if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
-        notifyMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+        scheduleSendMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
     end
 end
 
 function Module:READY_CHECK(_, initiatedByName)
-    for name, data in pairs(playerData) do
-        data.readyState = initiatedByName == name and ReadyCheckState.Ready or ReadyCheckState.Waiting
+    for _, data in pairs(playerData) do
+        data.readyState = initiatedByName == data.name and ReadyCheckState.Ready or ReadyCheckState.Waiting
     end
 
     triggerStateUpdates(true)
@@ -426,7 +469,6 @@ end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
     local data = getPlayerDataByUnit(unit)
-
     if not data then return end
 
     if readyCheckClearTimeout then
@@ -452,6 +494,8 @@ function Module:READY_CHECK_FINISHED()
         refreshPlayerTable()
         readyCheckClearTimeout = nil
     end, readyCheckStateResetSeconds)
+
+    refreshPlayerTable()
 end
 
 local initializeGroupQueueFrame = function()

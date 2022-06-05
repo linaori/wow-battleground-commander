@@ -20,7 +20,5 @@ local defaultConfig = {
 Namespace.Addon = Namespace.Libs.AceAddon:NewAddon(AddonName)
 
 function Namespace.Addon:OnInitialize()
-    Namespace.Debug.log(AddonName, 'Initialized')
-
     Namespace.Database = Namespace.Libs.AceDB:New('BattlegroundCommanderDatabase', defaultConfig, true)
 end
