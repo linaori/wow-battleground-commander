@@ -1,4 +1,4 @@
-local ModuleName, AddonName, Namespace = 'QueueTools', ...
+local ModuleName, Private, AddonName, Namespace = 'QueueTools', {}, ...
 
 local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 
@@ -73,20 +73,45 @@ local tableStructure = {
     }
 }
 
--- seems like you can't do a second ready check for about 5~6 seconds, even if the "finished" event is faster
-local readyCheckGracePeriod = 6
-local lastReadyCheckTime = 0
-local lastReadyCheckDuration = 0
-local readyCheckButtonTicker
-local readyCheckClearTimeout
-local tableRefreshSeconds = 10
-local readyCheckStateResetSeconds = 10
-local sendMercenaryDurationDelay = 1
-local showGroupQueueFrame = false
-local playerTableCache = {}
+local Config = {
+    tableRefreshSeconds = 10,
+    readyCheckStateResetSeconds = 10,
+    sendMercenaryDurationDelay = 1,
+}
 
-local function setGroupQueueVisibility(newValue)
-    showGroupQueueFrame = newValue
+local Memory = {
+    -- seems like you can't do a second ready check for about 5~6 seconds, even if the "finished" event is faster
+    readyCheckGracePeriod = 6,
+
+    -- keep track of last ready check and when it finished to update the button and icons properly
+    lastReadyCheckTime = 0,
+    lastReadyCheckDuration = 0,
+    readyCheckButtonTicker = nil,
+    readyCheckClearTimeout = nil,
+
+    showGroupQueueFrame = false,
+    playerTableCache = {},
+    playerData = {
+        --[playerName] = {
+        --    name = playerName,
+        --    unit = 'unit',
+        --    class = 'CLASS',
+        --    readyState = ReadyCheckState.Nothing,
+        --    deserterExpiry = -1,
+        --    mercenaryExpiry = -1,
+        --    hasAddon = false,
+        --},
+    },
+
+    -- the data that should be send next mercenary sync event
+    sendMercenaryDataPayloadBuffer = nil,
+
+    -- used to reduce the amount of hidden chat calls
+    previousGroupSize = 0,
+}
+
+function Private.SetGroupQueueVisibility(newValue)
+    Memory.showGroupQueueFrame = newValue
     Namespace.Database.profile.QueueTools.showGroupQueueFrame = newValue
 end
 
@@ -123,36 +148,24 @@ local ColorList = {
     UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1.0 },
 }
 
-local playerData = {
-    --[playerName] = {
-    --    name = playerName,
-    --    unit = 'unit',
-    --    class = 'CLASS',
-    --    readyState = ReadyCheckState.Nothing,
-    --    deserterExpiry = -1,
-    --    mercenaryExpiry = -1,
-    --    hasAddon = false,
-    --},
-}
+function Private.DoSendMercenaryDuration()
+    if Memory.sendMercenaryDataPayloadBuffer == nil then return end
 
-local sendMercenaryDataPayload
-local function doSendMercenaryDuration()
-    if sendMercenaryDataPayload == nil then return end
     local channel, player = CommunicationEvent.getMessageDestination()
-    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, sendMercenaryDataPayload, channel, player)
-    sendMercenaryDataPayload = nil
+    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, CommunicationEvent.packData(Memory.sendMercenaryDataPayloadBuffer), channel, player)
+    Memory.sendMercenaryDataPayloadBuffer = nil
 end
 
-local function scheduleSendMercenaryDuration(expirationTime)
-    local shouldSchedule = sendMercenaryDataPayload == nil
+local function ScheduleSendMercenaryDuration(expirationTime)
+    local shouldSchedule = Memory.sendMercenaryDataPayloadBuffer == nil
     local remaining = expirationTime == -1 and -1 or expirationTime - GetTime()
-    sendMercenaryDataPayload = CommunicationEvent.packData({ remaining = remaining })
+    Memory.sendMercenaryDataPayloadBuffer = { remaining = remaining }
 
     if not shouldSchedule then return end
-    Module:ScheduleTimer(doSendMercenaryDuration, sendMercenaryDurationDelay)
+    Module:ScheduleTimer(Private.DoSendMercenaryDuration, Config.sendMercenaryDurationDelay)
 end
 
-local function getUnitName(unit)
+function Private.GetUnitName(unit)
     local name, realm = UnitName(unit)
     if name == UNKNOWNOBJECT then return UNKNOWNOBJECT end
 
@@ -167,18 +180,18 @@ local function getUnitName(unit)
     return name
 end
 
-local function getPlayerDataByUnit(unit)
-    for _, data in pairs(playerData) do
+function Private.GetPlayerDataByUnit(unit)
+    for _, data in pairs(Memory.playerData) do
         if data.unit == unit then return data end
     end
 
     return nil
 end
 
-local function getPlayerDataByName(name)
-    for _, data in pairs(playerData) do
+function Private.GetPlayerDataByName(name)
+    for _, data in pairs(Memory.playerData) do
         if data.name == UNKNOWNOBJECT then
-            data.name = getUnitName(data.unit)
+            data.name = Private.GetUnitName(data.unit)
         end
 
         if data.name == name then return data end
@@ -187,14 +200,8 @@ local function getPlayerDataByName(name)
     return nil
 end
 
-local function resetPlayersReadyState()
-    for _, player in pairs(playerData) do
-        player.readyState = ReadyCheckState.Nothing
-    end
-end
-
-local function canDoReadyCheck()
-    if lastReadyCheckTime + lastReadyCheckDuration > GetTime() then
+function Private.CanDoReadyCheck()
+    if Memory.lastReadyCheckTime + Memory.lastReadyCheckDuration > GetTime() then
         return false
     end
 
@@ -207,7 +214,7 @@ local function canDoReadyCheck()
     return instanceType ~= 'pvp' and instanceType ~= 'arena'
 end
 
-local function triggerDeserterUpdate(player)
+function Private.TriggerDeserterUpdate(player)
     if player.deserterExpiry > 0 and player.deserterExpiry <= GetTime() then
         player.deserterExpiry = -1
     end
@@ -227,14 +234,14 @@ local function triggerDeserterUpdate(player)
     end
 end
 
-local function createTableRow(data)
+function Private.CreateTableRow(data)
     local nameColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
 
             if data.name == UNKNOWNOBJECT then
                 -- try to update the name as it wasn't available on initial check
-                data.name = getUnitName(data.unit)
+                data.name = Private.GetUnitName(data.unit)
             end
 
             local name, color
@@ -273,7 +280,7 @@ local function createTableRow(data)
     local deserterColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
-            triggerDeserterUpdate(data)
+            Private.TriggerDeserterUpdate(data)
             local remaining = data.deserterExpiry - GetTime()
             if remaining < 1 then
                 columnData.color = ColorList.Good
@@ -317,28 +324,26 @@ local function createTableRow(data)
     }}
 end
 
-local function refreshPlayerTable()
-    if not _G.BgcQueueFrame or not showGroupQueueFrame then return end
+function Private.RefreshPlayerTable()
+    if not _G.BgcQueueFrame or not Memory.showGroupQueueFrame then return end
 
     _G.BgcQueueFrame.PlayerTable:Refresh()
 end
 
-local function updatePlayerTableData()
-    if not _G.BgcQueueFrame or not showGroupQueueFrame then return end
+function Private.UpdatePlayerTableData()
+    if not _G.BgcQueueFrame or not Memory.showGroupQueueFrame then return end
 
-    _G.BgcQueueFrame.PlayerTable:SetData(playerTableCache)
+    _G.BgcQueueFrame.PlayerTable:SetData(Memory.playerTableCache)
 end
 
-local function getPlayerAuraExpiryTime(auraId)
+function Private.GetPlayerAuraExpiryTime(auraId)
     local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(auraId)
 
     return expirationTime ~= nil and expirationTime or -1
 end
 
-local previousGroupSize = 0
-local unitOrder = { 'player', 'party1', 'party2', 'party3', 'party4' }
-local function triggerStateUpdates(forceSync)
-    if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(canDoReadyCheck()) end
+function Private.TriggerStateUpdates(forceSync)
+    if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
 
     local newGroupSize = GetNumGroupMembers(LE_PARTY_CATEGORY_HOME)
 
@@ -346,65 +351,65 @@ local function triggerStateUpdates(forceSync)
     if newGroupSize == 0 then newGroupSize = 1 end
 
     -- when leader is passed around, no need to re-sync
-    if not forceSync and newGroupSize == previousGroupSize then return end
-    if previousGroupSize > 1 and newGroupSize == 1 then
+    if not forceSync and newGroupSize == Memory.previousGroupSize then return end
+    if Memory.previousGroupSize > 1 and newGroupSize == 1 then
         -- player left the group, clear up data
-        playerData = {}
+        Memory.playerData = {}
     end
-    previousGroupSize = newGroupSize
+    Memory.previousGroupSize = newGroupSize
 
     local tableCache = {}
-    for index, unit in pairs(unitOrder) do
+    for index, unit in pairs({ 'player', 'party1', 'party2', 'party3', 'party4' }) do
         if index <= newGroupSize and UnitExists(unit) and UnitIsPlayer(unit)then
             local dataIndex = UnitGUID(unit)
-            local data = playerData[dataIndex]
+            local data = Memory.playerData[dataIndex]
             if not data then
-                playerData[dataIndex] = {
+                Memory.playerData[dataIndex] = {
                     name = UNKNOWNOBJECT,
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     mercenaryExpiry = -1,
                 }
 
-                data = playerData[dataIndex]
+                data = Memory.playerData[dataIndex]
             end
 
             data.unit = unit
 
-            tableCache[index] = createTableRow(data)
+            tableCache[index] = Private.CreateTableRow(data)
         end
     end
 
-    playerTableCache = tableCache
+    Memory.playerTableCache = tableCache
 
-    scheduleSendMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+    ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
 
-    updatePlayerTableData()
+    Private.UpdatePlayerTableData()
 end
 
-local function updateQueuesFrameVisibility()
+function Private.UpdateQueuesFrameVisibility()
     if not _G.BgcQueueFrame then return end
 
-    if showGroupQueueFrame then
+    if Memory.showGroupQueueFrame then
         _G.BgcQueueFrame:Show()
     else
         _G.BgcQueueFrame:Hide()
     end
 
-    updatePlayerTableData()
+    Private.UpdatePlayerTableData()
 end
 
-local function initializeBattlegroundModeCheckbox()
+function Private.InitializeBattlegroundModeCheckbox()
     local PVPUIFrame = _G.PVPUIFrame
     local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundModeCheckbox', PVPUIFrame, 'UICheckButtonTemplate')
     checkbox:SetPoint('BOTTOMRIGHT', _G.PVEFrame, 'BOTTOMRIGHT', -2, 2)
     checkbox:SetSize(24, 24)
-    checkbox:SetChecked(showGroupQueueFrame)
+    checkbox:SetChecked(Memory.showGroupQueueFrame)
     checkbox:HookScript('OnClick', function (self)
-        setGroupQueueVisibility(self:GetChecked())
-        updateQueuesFrameVisibility()
+        Private.SetGroupQueueVisibility(self:GetChecked())
+        Private.UpdateQueuesFrameVisibility()
 
-        if showGroupQueueFrame then
+        if Memory.showGroupQueueFrame then
             PlaySound(CharacterPanelOpenSound)
         else
             PlaySound(CharacterPanelCloseSound)
@@ -422,17 +427,17 @@ local function initializeBattlegroundModeCheckbox()
     checkbox.Text = text
 end
 
-local function onNotifyMercenaryDuration(_, text, _, sender)
+function Private.OnNotifyMercenaryDuration(_, text, _, sender)
     local payload = CommunicationEvent.unpackData(text);
     if not payload or payload.remaining == nil then return end
 
-    local data = getPlayerDataByName(sender)
+    local data = Private.GetPlayerDataByName(sender)
     if not data then return end
 
     data.hasAddon = true
     data.mercenaryExpiry = payload.remaining + GetTime()
 
-    refreshPlayerTable()
+    Private.RefreshPlayerTable()
 end
 
 function Module:OnInitialize()
@@ -445,13 +450,13 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK_FINISHED')
     self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
 
-    local update = function () triggerStateUpdates(false) end
+    local update = function () Private.TriggerStateUpdates(false) end
     self:RegisterEvent('GROUP_ROSTER_UPDATE', update);
     self:RegisterEvent('PLAYER_ENTERING_WORLD', update);
 
-    self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, onNotifyMercenaryDuration)
+    self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, Private.OnNotifyMercenaryDuration)
 
-    showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
+    Memory.showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
@@ -465,56 +470,56 @@ function Module:COMBAT_LOG_EVENT_UNFILTERED()
     if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
 
     if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
-        scheduleSendMercenaryDuration(getPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+        ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
     end
 end
 
 function Module:READY_CHECK(_, initiatedByName, duration)
-    lastReadyCheckTime = GetTime()
-    lastReadyCheckDuration = duration
+    Memory.lastReadyCheckTime = GetTime()
+    Memory.lastReadyCheckDuration = duration
 
-    for _, data in pairs(playerData) do
+    for _, data in pairs(Memory.playerData) do
         data.readyState = initiatedByName == data.name and ReadyCheckState.Ready or ReadyCheckState.Waiting
     end
 
-    readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
+    Memory.readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
         local readyCheckButton = _G.BgcReadyCheckButton
         if not readyCheckButton then return end
 
-        readyCheckButton:SetEnabled(canDoReadyCheck())
-        local timeLeft = max(0, ceil(lastReadyCheckTime + lastReadyCheckDuration - GetTime()))
+        readyCheckButton:SetEnabled(Private.CanDoReadyCheck())
+        local timeLeft = max(0, ceil(Memory.lastReadyCheckTime + Memory.lastReadyCheckDuration - GetTime()))
         if timeLeft > 0 then
             return readyCheckButton:SetText(L['Ready Check'] .. ' ' .. timeLeft)
         end
 
         readyCheckButton:SetText(L['Ready Check'])
-        Module:CancelTimer(readyCheckButtonTicker)
-        readyCheckButtonTicker = nil
+        Module:CancelTimer(Memory.readyCheckButtonTicker)
+        Memory.readyCheckButtonTicker = nil
     end, 0.1)
 
-    triggerStateUpdates(true)
-    refreshPlayerTable()
+    Private.TriggerStateUpdates(true)
+    Private.RefreshPlayerTable()
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
-    local data = getPlayerDataByUnit(unit)
+    local data = Private.GetPlayerDataByUnit(unit)
     if not data then return end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
 
-    refreshPlayerTable()
+    Private.RefreshPlayerTable()
 end
 
 function Module:READY_CHECK_FINISHED()
-    if lastReadyCheckTime + readyCheckGracePeriod >= GetTime() then
+    if Memory.lastReadyCheckTime + Memory.readyCheckGracePeriod >= GetTime() then
         -- finish was before grace period, should still count down until this is passed
-        lastReadyCheckDuration = readyCheckGracePeriod
+        Memory.lastReadyCheckDuration = Memory.readyCheckGracePeriod
     else
-        lastReadyCheckDuration = 0
-        lastReadyCheckTime = 0
+        Memory.lastReadyCheckDuration = 0
+        Memory.lastReadyCheckTime = 0
     end
 
-    for _, data in pairs(playerData) do
+    for _, data in pairs(Memory.playerData) do
         if data.readyState == ReadyCheckState.Waiting then
             -- in case of expired ready check no confirmation means declined
             data.readyState = ReadyCheckState.Declined
@@ -523,17 +528,20 @@ function Module:READY_CHECK_FINISHED()
 
     self:ScheduleTimer(function ()
         -- new ready check has been initiated, don't do anything anymore
-        if lastReadyCheckTime > 0 then return end
+        if Memory.lastReadyCheckTime > 0 then return end
 
-        resetPlayersReadyState()
-        refreshPlayerTable()
-        readyCheckClearTimeout = nil
-    end, readyCheckStateResetSeconds)
+        for _, player in pairs(Memory.playerData) do
+            player.readyState = ReadyCheckState.Nothing
+        end
 
-    refreshPlayerTable()
+        Private.RefreshPlayerTable()
+        Memory.readyCheckClearTimeout = nil
+    end, Config.readyCheckStateResetSeconds)
+
+    Private.RefreshPlayerTable()
 end
 
-local initializeGroupQueueFrame = function()
+function Private.InitializeGroupQueueFrame()
     local PVPUIFrame = _G.PVPUIFrame
 
     local queueFrame = CreateFrame('Frame', 'BgcQueueFrame', PVPUIFrame, 'ButtonFrameTemplate')
@@ -543,7 +551,7 @@ local initializeGroupQueueFrame = function()
     queueFrame.TitleText:SetText(L['Group Information'])
     queueFrame.CloseButton:HookScript('OnClick', function ()
         PlaySound(CharacterPanelCloseSound)
-        setGroupQueueVisibility(false)
+        Private.SetGroupQueueVisibility(false)
         BgcBattlegroundModeCheckbox:SetChecked(false)
     end)
     queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]]);
@@ -555,7 +563,7 @@ local initializeGroupQueueFrame = function()
     playerTable:RegisterEvents({}, true)
 
     playerTable.frame:HookScript('OnShow', function (self)
-        self.refreshTimer = Module:ScheduleRepeatingTimer(refreshPlayerTable, tableRefreshSeconds)
+        self.refreshTimer = Module:ScheduleRepeatingTimer(Private.RefreshPlayerTable, Config.tableRefreshSeconds)
     end)
     playerTable.frame:HookScript('OnHide', function (self)
         Module:CancelTimer(self.refreshTimer)
@@ -571,13 +579,13 @@ local initializeGroupQueueFrame = function()
 
     queueFrame.ReadyCheckButton = readyCheckButton
 
-    triggerStateUpdates(false)
+    Private.TriggerStateUpdates(false)
 end
 
 function Module:ADDON_LOADED(_, addonName)
     if addonName == 'Blizzard_PVPUI' then
-        initializeBattlegroundModeCheckbox()
-        initializeGroupQueueFrame()
-        _G.PVPUIFrame:HookScript('OnShow', function () updateQueuesFrameVisibility() end)
+        Private.InitializeBattlegroundModeCheckbox()
+        Private.InitializeGroupQueueFrame()
+        _G.PVPUIFrame:HookScript('OnShow', function () Private.UpdateQueuesFrameVisibility() end)
     end
 end
