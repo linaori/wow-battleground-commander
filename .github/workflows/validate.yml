@@ -1,0 +1,22 @@
+name: Validate
+
+on:
+    push:
+        branches:
+            - main
+            - test
+    pull_request:
+        branches:
+            - main
+            - test
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v1
+              with:
+                  fetch-depth: 0
+            - name: Install and run Luacheck
+              uses: nebularg/actions-luacheck@v1

@@ -152,11 +152,13 @@ function Private.DoSendMercenaryDuration()
     if Memory.sendMercenaryDataPayloadBuffer == nil then return end
 
     local channel, player = CommunicationEvent.getMessageDestination()
-    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, CommunicationEvent.packData(Memory.sendMercenaryDataPayloadBuffer), channel, player)
+    local payload = CommunicationEvent.packData(Memory.sendMercenaryDataPayloadBuffer)
+
+    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, payload, channel, player)
     Memory.sendMercenaryDataPayloadBuffer = nil
 end
 
-local function ScheduleSendMercenaryDuration(expirationTime)
+function Private.ScheduleSendMercenaryDuration(expirationTime)
     local shouldSchedule = Memory.sendMercenaryDataPayloadBuffer == nil
     local remaining = expirationTime == -1 and -1 or expirationTime - GetTime()
     Memory.sendMercenaryDataPayloadBuffer = { remaining = remaining }
@@ -382,7 +384,7 @@ function Private.TriggerStateUpdates(forceSync)
 
     Memory.playerTableCache = tableCache
 
-    ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+    Private.ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
 
     Private.UpdatePlayerTableData()
 end
@@ -457,20 +459,20 @@ function Module:OnEnable()
     self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, Private.OnNotifyMercenaryDuration)
 
     Memory.showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
-    Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
-    Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
-    Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
+    --Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
+    --Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
+    --Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 end
 
-function Module:RefreshConfig(...)
-end
+--function Module:RefreshConfig()
+--end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
     local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
     if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
 
     if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
-        ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+        Private.ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
     end
 end
 
@@ -501,7 +503,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     Private.RefreshPlayerTable()
 end
 
-function Module:READY_CHECK_CONFIRM(_, unit, ready)
+function Module.READY_CHECK_CONFIRM(_, unit, ready)
     local data = Private.GetPlayerDataByUnit(unit)
     if not data then return end
 
@@ -552,7 +554,7 @@ function Private.InitializeGroupQueueFrame()
     queueFrame.CloseButton:HookScript('OnClick', function ()
         PlaySound(CharacterPanelCloseSound)
         Private.SetGroupQueueVisibility(false)
-        BgcBattlegroundModeCheckbox:SetChecked(false)
+        _G.BgcBattlegroundModeCheckbox:SetChecked(false)
     end)
     queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]]);
     PVPUIFrame.QueueFrame = queueFrame
