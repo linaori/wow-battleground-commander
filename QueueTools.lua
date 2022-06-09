@@ -1,7 +1,5 @@
 local ModuleName, Private, AddonName, Namespace = 'QueueTools', {}, ...
-
 local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
-
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local ScrollingTable = Namespace.Libs.ScrollingTable
 local AceSerializer = Namespace.Libs.AceSerializer
@@ -216,20 +214,20 @@ function Private.CanDoReadyCheck()
     return instanceType ~= 'pvp' and instanceType ~= 'arena'
 end
 
-function Private.TriggerDeserterUpdate(player)
-    if player.deserterExpiry > 0 and player.deserterExpiry <= GetTime() then
-        player.deserterExpiry = -1
+function Private.TriggerDeserterUpdate(data)
+    if data.deserterExpiry > 0 and data.deserterExpiry <= GetTime() then
+        data.deserterExpiry = -1
     end
 
-    if player.deserterExpiry > -1 then
+    if data.deserterExpiry > -1 then
         -- only re-check if the player doesn't have it already
         return
     end
 
     for i = 1, DEBUFF_MAX_DISPLAY do
-        local _, _, _, _, _, expirationTime, _, _, _, spellId = UnitDebuff(player.unit, i)
+        local _, _, _, _, _, expirationTime, _, _, _, spellId = UnitDebuff(data.unit, i)
         if spellId == SpellIds.DeserterDebuff then
-            player.deserterExpiry = expirationTime
+            data.deserterExpiry = expirationTime
 
             return
         end
@@ -503,7 +501,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     Private.RefreshPlayerTable()
 end
 
-function Module.READY_CHECK_CONFIRM(_, unit, ready)
+function Module:READY_CHECK_CONFIRM(_, unit, ready)
     local data = Private.GetPlayerDataByUnit(unit)
     if not data then return end
 
@@ -518,7 +516,6 @@ function Module:READY_CHECK_FINISHED()
         Memory.lastReadyCheckDuration = Memory.readyCheckGracePeriod
     else
         Memory.lastReadyCheckDuration = 0
-        Memory.lastReadyCheckTime = 0
     end
 
     for _, data in pairs(Memory.playerData) do
@@ -530,7 +527,7 @@ function Module:READY_CHECK_FINISHED()
 
     self:ScheduleTimer(function ()
         -- new ready check has been initiated, don't do anything anymore
-        if Memory.lastReadyCheckTime > 0 then return end
+        if Memory.lastReadyCheckTime + Memory.lastReadyCheckDuration > GetTime() then return end
 
         for _, player in pairs(Memory.playerData) do
             player.readyState = ReadyCheckState.Nothing
@@ -589,5 +586,6 @@ function Module:ADDON_LOADED(_, addonName)
         Private.InitializeBattlegroundModeCheckbox()
         Private.InitializeGroupQueueFrame()
         _G.PVPUIFrame:HookScript('OnShow', function () Private.UpdateQueuesFrameVisibility() end)
+        self:UnregisterEvent('ADDON_LOADED')
     end
 end
