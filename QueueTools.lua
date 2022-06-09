@@ -167,7 +167,7 @@ end
 
 function Private.GetUnitName(unit)
     local name, realm = UnitName(unit)
-    if name == UNKNOWNOBJECT then return UNKNOWNOBJECT end
+    if name == UNKNOWNOBJECT or name == nil then return UNKNOWNOBJECT end
 
     if realm == nil and unit:lower() ~= 'player' then
         realm = GetRealmName(unit)
