@@ -273,7 +273,14 @@ function Private.CreateTableRow(data)
                 return L['no']
             end
 
-            return format('%dm', ceil(remaining / 60))
+            remaining = ceil(remaining / 60)
+            if remaining < 4 then
+                columnData.color = ColorList.Bad
+            elseif remaining < 9 then
+                columnData.color = ColorList.Warning
+            end
+
+            return format('%dm', remaining)
         end,
     }
 
