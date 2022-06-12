@@ -17,8 +17,7 @@ local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
-local UnitName = UnitName
-local GetRealmName = GetRealmName
+local UnitFullName = UnitFullName
 local GetNumGroupMembers = GetNumGroupMembers
 local UnitDebuff = UnitDebuff
 local UnitIsPlayer = UnitIsPlayer
@@ -78,6 +77,10 @@ local Config = {
 }
 
 local Memory = {
+    me = {
+        name = nil,
+        realm = nil,
+    },
     -- seems like you can't do a second ready check for about 5~6 seconds, even if the "finished" event is faster
     readyCheckGracePeriod = 6,
 
@@ -90,8 +93,9 @@ local Memory = {
     showGroupQueueFrame = false,
     playerTableCache = {},
     playerData = {
-        --[playerName] = {
+        --[GUID] = {
         --    name = playerName,
+        --    realm = playerRealm,
         --    unit = 'unit',
         --    class = 'CLASS',
         --    readyState = ReadyCheckState.Nothing,
@@ -132,7 +136,7 @@ local CommunicationEvent = {
         if not IsInGroup(LE_PARTY_CATEGORY_HOME) then
             -- handle communication over whisper to self when PARTY is not available
             channel = 'WHISPER'
-            player = UnitName('player')
+            player = Memory.me.name
         end
 
         return channel, player
@@ -165,21 +169,6 @@ function Private.ScheduleSendMercenaryDuration(expirationTime)
     Module:ScheduleTimer(Private.DoSendMercenaryDuration, Config.sendMercenaryDurationDelay)
 end
 
-function Private.GetUnitName(unit)
-    local name, realm = UnitName(unit)
-    if name == UNKNOWNOBJECT or name == nil then return UNKNOWNOBJECT end
-
-    if realm == nil and unit:lower() ~= 'player' then
-        realm = GetRealmName(unit)
-    end
-
-    if realm ~= '' and realm ~= nil then
-        name = name .. '-' .. realm
-    end
-
-    return name
-end
-
 function Private.GetPlayerDataByUnit(unit)
     for _, data in pairs(Memory.playerData) do
         if data.unit == unit then return data end
@@ -188,13 +177,38 @@ function Private.GetPlayerDataByUnit(unit)
     return nil
 end
 
-function Private.GetPlayerDataByName(name)
+--- can be used as
+--- - GetPlayerDataByName('Linaori')
+--- - GetPlayerDataByName('Linaori-Ragnaros)
+--- - GetPlayerDataByName('Linaori', 'Ragnaros)
+function Private.GetPlayerDataByName(name, realm)
+    if realm == nil then
+        local splitName, splitRealm = name:match('(.-)-(.+)')
+        if splitName ~= nil then
+            name = splitName
+            realm = splitRealm
+        end
+    end
+
+    local totalPotentialMatches, potentialMatch = 0
+
     for _, data in pairs(Memory.playerData) do
-        if data.name == UNKNOWNOBJECT then
-            data.name = Private.GetUnitName(data.unit)
+        if data.name == UNKNOWNOBJECT or data.name == nil or data.realm == nil then
+            data.name, data.realm = UnitFullName(data.unit)
         end
 
-        if data.name == name then return data end
+        if data.name == name then
+            if realm == nil then
+                potentialMatch = data
+                totalPotentialMatches = totalPotentialMatches + 1
+            elseif data.realm == realm then
+                return data
+            end
+        end
+    end
+
+    if totalPotentialMatches == 1 then
+        return potentialMatch
     end
 
     return nil
@@ -239,9 +253,9 @@ function Private.CreateTableRow(data)
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
 
-            if data.name == UNKNOWNOBJECT then
+            if data.name == UNKNOWNOBJECT or data.name == nil or data.realm == nil then
                 -- try to update the name as it wasn't available on initial check
-                data.name = Private.GetUnitName(data.unit)
+                data.name, data.realm = UnitFullName(data.unit)
             end
 
             local name, color
@@ -251,6 +265,10 @@ function Private.CreateTableRow(data)
             else
                 local _, class = UnitClass(data.unit)
                 name = data.name
+                if data.realm ~= nil and data.realm ~= Memory.me.realm then
+                    name = name .. '-' .. data.realm
+                end
+
                 color = class and RAID_CLASS_COLORS[class] or ColorList.UnknownClass
             end
 
@@ -351,6 +369,7 @@ end
 
 function Private.TriggerStateUpdates(forceSync)
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
+    if Memory.me.realm == nil then Memory.me.name, Memory.me.realm = UnitFullName('player') end
 
     local newGroupSize = GetNumGroupMembers(LE_PARTY_CATEGORY_HOME)
 
@@ -463,14 +482,16 @@ function Module:OnEnable()
 
     self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, Private.OnNotifyMercenaryDuration)
 
-    Memory.showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
-    --Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
-    --Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
-    --Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
+    Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
+    Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
+    Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
+
+    self:RefreshConfig()
 end
 
---function Module:RefreshConfig()
---end
+function Module:RefreshConfig()
+    Memory.showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
+end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
     local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
@@ -486,7 +507,12 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     Memory.lastReadyCheckDuration = duration
 
     for _, data in pairs(Memory.playerData) do
-        data.readyState = initiatedByName == data.name and ReadyCheckState.Ready or ReadyCheckState.Waiting
+        data.readyState = ReadyCheckState.Waiting
+    end
+
+    local initiatedByData = Private.GetPlayerDataByName(initiatedByName)
+    if initiatedByData ~= nil then
+        initiatedByData.readyState = ReadyCheckState.Ready
     end
 
     Memory.readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
