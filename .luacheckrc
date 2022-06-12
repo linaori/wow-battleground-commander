@@ -6,6 +6,7 @@ exclude_files = {
 
 ignore = {
     '212/self',
+    '631',
 }
 
 globals = {
