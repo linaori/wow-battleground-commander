@@ -1,4 +1,4 @@
-local _, Namespace = ...
+local Private, _, Namespace = {}, ...
 
 Namespace.Debug = {}
 
@@ -6,13 +6,13 @@ Namespace.Debug = {}
 Namespace.Debug.enabled = true
 --@end-debug@
 
-local type, pairs, tostring, print, concat = type, pairs, tostring, print, table.concat
-function Namespace.Debug.toString(o)
+local type, pairs, tostring, print, concat, select = type, pairs, tostring, print, table.concat, select
+function Private.toString(o)
     if type(o) == 'table' then
         local s = '{ '
-        for k,v in pairs(o) do
+        for k, v in pairs(o) do
             if type(k) ~= 'number' then k = '\''..k..'\'' end
-            s = s .. '['..k..'] = ' .. Namespace.Debug.toString(v) .. ','
+            s = s .. '['..k..'] = ' .. Private.toString(v) .. ','
         end
         return s .. '} '
     else
@@ -20,10 +20,24 @@ function Namespace.Debug.toString(o)
     end
 end
 
+function Private.table_pack(...)
+    return { n = select("#", ...), ... }
+end
+
+
 function Namespace.Debug.print(...)
     if not Namespace.Debug.enabled then return end
+    local args = Private.table_pack(...)
+    local t = {}
+    for i = 1, args.n do
+        if args[i] == nil then
+            t[i] = 'nil'
+        else
+            t[i] = args[i]
+        end
+    end
 
-    print(Namespace.Debug.toString({...}))
+    print(Private.toString(t))
 end
 
 function Namespace.Debug.log(...)
