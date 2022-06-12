@@ -24,11 +24,13 @@ local UnitIsPlayer = UnitIsPlayer
 local UnitExists = UnitExists
 local UnitGUID = UnitGUID
 local IsInGroup = IsInGroup
+local IsInRaid = IsInRaid
 local GetTime = GetTime
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
+local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
 local max = math.max
 local ceil = math.ceil
 local format = string.format
@@ -50,30 +52,53 @@ local ReadyCheckState = {
 local tableStructure = {
     {
         name = '',
-        width = 120,
+        width = 25,
+    },
+    {
+        name = '',
+        width = 110,
         align = 'LEFT',
     },
     {
         name = ' ' .. L['Merc'],
-        width = 60,
+        width = 55,
         align = 'CENTER',
     },
     {
         name = ' ' .. L['Deserter'],
-        width = 60,
+        width = 55,
         align = 'CENTER',
     },
     {
         name = ' ' .. L['Ready'],
-        width = 60,
+        width = 55,
         align = 'CENTER',
     }
+}
+
+local PlayerDataTargets = {
+    solo = {'player'},
+    party = { 'player', 'party1', 'party2', 'party3', 'party4' },
+    raid = {
+        'raid1', 'raid2', 'raid3', 'raid4', 'raid5', 'raid6', 'raid7', 'raid8', 'raid9', 'raid10',
+        'raid11', 'raid12', 'raid13', 'raid14', 'raid15', 'raid16', 'raid17', 'raid18', 'raid19', 'raid20',
+        'raid21', 'raid22', 'raid23', 'raid24', 'raid25', 'raid26', 'raid27', 'raid28', 'raid29', 'raid30',
+        'raid31', 'raid32', 'raid33', 'raid34', 'raid35', 'raid36', 'raid37', 'raid38', 'raid39', 'raid40',
+    },
 }
 
 local Config = {
     tableRefreshSeconds = 10,
     readyCheckStateResetSeconds = 10,
     sendMercenaryDurationDelay = 1,
+}
+
+local GroupType = {
+    Solo = 1,
+    Party = 2,
+    Raid = 3,
+    InstanceParty = 4,
+    InstanceRaid = 5,
 }
 
 local Memory = {
@@ -117,6 +142,18 @@ function Private.SetGroupQueueVisibility(newValue)
     Namespace.Database.profile.QueueTools.showGroupQueueFrame = newValue
 end
 
+function Private.GetGroupType()
+    if IsInRaid() then
+        return (not IsInRaid(LE_PARTY_CATEGORY_HOME) and IsInRaid(LE_PARTY_CATEGORY_INSTANCE)) and GroupType.InstanceRaid or GroupType.Raid
+    end
+
+    if IsInGroup() then
+        return (not IsInGroup(LE_PARTY_CATEGORY_HOME) and IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) and GroupType.InstanceParty or GroupType.Party
+    end
+
+    return GroupType.solo
+end
+
 local CommunicationEvent = {
     NotifyMercenaryDuration = 'Bgc:notifyMerc',
     packData = function (data)
@@ -132,14 +169,13 @@ local CommunicationEvent = {
         return data
     end,
     getMessageDestination = function ()
-        local channel, player = 'PARTY', nil
-        if not IsInGroup(LE_PARTY_CATEGORY_HOME) then
-            -- handle communication over whisper to self when PARTY is not available
-            channel = 'WHISPER'
-            player = Memory.me.name
-        end
+        local groupType = Private.GetGroupType()
 
-        return channel, player
+        if groupType == GroupType.InstanceRaid or groupType == GroupType.InstanceParty then return 'INSTANCE_CHAT', nil end
+        if groupType == GroupType.Raid then return 'RAID', nil end
+        if groupType == GroupType.Party then return 'PARTY', nil end
+
+        return 'WHISPER', Memory.me.name
     end,
 }
 
@@ -248,7 +284,7 @@ function Private.TriggerDeserterUpdate(data)
     end
 end
 
-function Private.CreateTableRow(data)
+function Private.CreateTableRow(index, data)
     local nameColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
@@ -342,6 +378,7 @@ function Private.CreateTableRow(data)
     }
 
     return { cols = {
+        {value = index},
         nameColumn,
         mercenaryColumn,
         deserterColumn,
@@ -371,7 +408,7 @@ function Private.TriggerStateUpdates(forceSync)
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
     if Memory.me.realm == nil then Memory.me.name, Memory.me.realm = UnitFullName('player') end
 
-    local newGroupSize = GetNumGroupMembers(LE_PARTY_CATEGORY_HOME)
+    local newGroupSize = GetNumGroupMembers()
 
     -- player is solo
     if newGroupSize == 0 then newGroupSize = 1 end
@@ -384,8 +421,18 @@ function Private.TriggerStateUpdates(forceSync)
     end
     Memory.previousGroupSize = newGroupSize
 
+    local unitList;
+    local groupType = Private.GetGroupType()
+    if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
+        unitList = PlayerDataTargets.raid
+    elseif groupType == GroupType.InstanceParty or groupType == GroupType.Party then
+        unitList = PlayerDataTargets.party
+    else
+        unitList = PlayerDataTargets.solo
+    end
+
     local tableCache = {}
-    for index, unit in pairs({ 'player', 'party1', 'party2', 'party3', 'party4' }) do
+    for index, unit in pairs(unitList) do
         if index <= newGroupSize and UnitExists(unit) and UnitIsPlayer(unit)then
             local dataIndex = UnitGUID(unit)
             local data = Memory.playerData[dataIndex]
@@ -401,15 +448,12 @@ function Private.TriggerStateUpdates(forceSync)
             end
 
             data.unit = unit
-
-            tableCache[index] = Private.CreateTableRow(data)
+            tableCache[index] = Private.CreateTableRow(index, data)
         end
     end
 
     Memory.playerTableCache = tableCache
-
     Private.ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
-
     Private.UpdatePlayerTableData()
 end
 
@@ -589,9 +633,10 @@ function Private.InitializeGroupQueueFrame()
     queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]]);
     PVPUIFrame.QueueFrame = queueFrame
 
-    local playerTable = ScrollingTable:CreateST(tableStructure, nil, 24, nil, queueFrame)
+    local playerTable = ScrollingTable:CreateST(tableStructure, 14, 24, nil, queueFrame)
     playerTable.frame:SetBackdropColor(0, 0, 0, 0)
     playerTable.frame:SetBackdropBorderColor(0, 0, 0, 0)
+    playerTable.frame:SetPoint('TOPRIGHT', -4, -58)
     playerTable:RegisterEvents({}, true)
 
     playerTable.frame:HookScript('OnShow', function (self)

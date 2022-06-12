@@ -24,7 +24,7 @@ globals = {
     'GetPlayerAuraBySpellID',
     'CombatLogGetCurrentEventInfo',
     'UnitClass',
-    'UnitName',
+    'UnitFullName',
     'GetRealmName',
     'GetNumGroupMembers',
     'UnitDebuff',
@@ -32,6 +32,7 @@ globals = {
     'UnitExists',
     'UnitGUID',
     'IsInGroup',
+    'IsInRaid',
     'GetTime',
 
     'SOUNDKIT',
@@ -39,6 +40,7 @@ globals = {
     'DEBUFF_MAX_DISPLAY',
     'UNKNOWNOBJECT',
     'LE_PARTY_CATEGORY_HOME',
+    'LE_PARTY_CATEGORY_INSTANCE',
 
     'math',
     'tostring',
@@ -47,4 +49,5 @@ globals = {
     'type',
     'print',
     'concat',
+    'select',
 }
