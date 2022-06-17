@@ -18,7 +18,6 @@ local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitFullName = UnitFullName
-local GetNumGroupMembers = GetNumGroupMembers
 local UnitDebuff = UnitDebuff
 local UnitIsPlayer = UnitIsPlayer
 local UnitExists = UnitExists
@@ -35,7 +34,7 @@ local max = math.max
 local ceil = math.ceil
 local format = string.format
 local pairs = pairs
---local print, log = Namespace.Debug.print, Namespace.Debug.log
+local print = Namespace.Debug.print
 
 local SpellIds = {
     DeserterDebuff = 26013,
@@ -84,6 +83,7 @@ local PlayerDataTargets = {
         'raid11', 'raid12', 'raid13', 'raid14', 'raid15', 'raid16', 'raid17', 'raid18', 'raid19', 'raid20',
         'raid21', 'raid22', 'raid23', 'raid24', 'raid25', 'raid26', 'raid27', 'raid28', 'raid29', 'raid30',
         'raid31', 'raid32', 'raid33', 'raid34', 'raid35', 'raid36', 'raid37', 'raid38', 'raid39', 'raid40',
+        'player', 'party1', 'party2', 'party3', 'party4',
     },
 }
 
@@ -121,7 +121,7 @@ local Memory = {
         --[GUID] = {
         --    name = playerName,
         --    realm = playerRealm,
-        --    unit = 'unit',
+        --    units = {[1] => first unit, first unit = true, second unit = true},
         --    class = 'CLASS',
         --    readyState = ReadyCheckState.Nothing,
         --    deserterExpiry = -1,
@@ -132,9 +132,6 @@ local Memory = {
 
     -- the data that should be send next mercenary sync event
     sendMercenaryDataPayloadBuffer = nil,
-
-    -- used to reduce the amount of hidden chat calls
-    previousGroupSize = 0,
 }
 
 function Private.SetGroupQueueVisibility(newValue)
@@ -207,7 +204,7 @@ end
 
 function Private.GetPlayerDataByUnit(unit)
     for _, data in pairs(Memory.playerData) do
-        if data.unit == unit then return data end
+        if data.units[unit] then return data end
     end
 
     return nil
@@ -229,8 +226,8 @@ function Private.GetPlayerDataByName(name, realm)
     local totalPotentialMatches, potentialMatch = 0
 
     for _, data in pairs(Memory.playerData) do
-        if data.name == UNKNOWNOBJECT or data.name == nil or data.realm == nil then
-            data.name, data.realm = UnitFullName(data.unit)
+        if data.units.primary and (data.name == UNKNOWNOBJECT or data.name == nil or data.realm == nil) then
+            data.name, data.realm = UnitFullName(data.units.primary)
         end
 
         if data.name == name then
@@ -275,7 +272,7 @@ function Private.TriggerDeserterUpdate(data)
     end
 
     for i = 1, DEBUFF_MAX_DISPLAY do
-        local _, _, _, _, _, expirationTime, _, _, _, spellId = UnitDebuff(data.unit, i)
+        local _, _, _, _, _, expirationTime, _, _, _, spellId = UnitDebuff(data.units.primary, i)
         if spellId == SpellIds.DeserterDebuff then
             data.deserterExpiry = expirationTime
 
@@ -291,7 +288,7 @@ function Private.CreateTableRow(index, data)
 
             if data.name == UNKNOWNOBJECT or data.name == nil or data.realm == nil then
                 -- try to update the name as it wasn't available on initial check
-                data.name, data.realm = UnitFullName(data.unit)
+                data.name, data.realm = UnitFullName(data.units.primary)
             end
 
             local name, color
@@ -299,7 +296,7 @@ function Private.CreateTableRow(index, data)
                 name = '...'
                 color = ColorList.UnknownClass
             else
-                local _, class = UnitClass(data.unit)
+                local _, class = UnitClass(data.units.primary)
                 name = data.name
                 if data.realm ~= nil and data.realm ~= Memory.me.realm then
                     name = name .. '-' .. data.realm
@@ -404,51 +401,52 @@ function Private.GetPlayerAuraExpiryTime(auraId)
     return expirationTime ~= nil and expirationTime or -1
 end
 
-function Private.TriggerStateUpdates(forceSync)
+function Private.GetUnitListForCurrentGroupType()
+    local groupType = Private.GetGroupType()
+    if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
+        return PlayerDataTargets.raid
+    end
+
+    if groupType == GroupType.InstanceParty or groupType == GroupType.Party then
+        return PlayerDataTargets.party
+    end
+
+    return PlayerDataTargets.solo
+end
+
+function Private.TriggerStateUpdates()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
     if Memory.me.realm == nil then Memory.me.name, Memory.me.realm = UnitFullName('player') end
 
-    local newGroupSize = GetNumGroupMembers()
-
-    -- player is solo
-    if newGroupSize == 0 then newGroupSize = 1 end
-
-    -- when leader is passed around, no need to re-sync
-    if not forceSync and newGroupSize == Memory.previousGroupSize then return end
-    if Memory.previousGroupSize > 1 and newGroupSize == 1 then
-        -- player left the group, clear up data
-        Memory.playerData = {}
-    end
-    Memory.previousGroupSize = newGroupSize
-
-    local unitList;
-    local groupType = Private.GetGroupType()
-    if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
-        unitList = PlayerDataTargets.raid
-    elseif groupType == GroupType.InstanceParty or groupType == GroupType.Party then
-        unitList = PlayerDataTargets.party
-    else
-        unitList = PlayerDataTargets.solo
+    for _, data in pairs(Memory.playerData) do
+        data.units = {}
     end
 
     local tableCache = {}
-    for index, unit in pairs(unitList) do
-        if index <= newGroupSize and UnitExists(unit) and UnitIsPlayer(unit)then
+    for index, unit in pairs(Private.GetUnitListForCurrentGroupType()) do
+        if UnitExists(unit) and UnitIsPlayer(unit)then
             local dataIndex = UnitGUID(unit)
             local data = Memory.playerData[dataIndex]
             if not data then
-                Memory.playerData[dataIndex] = {
+                data = {
                     name = UNKNOWNOBJECT,
+                    realm = nil,
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     mercenaryExpiry = -1,
+                    units = {primary = unit, unit = true},
                 }
 
-                data = Memory.playerData[dataIndex]
-            end
+                Memory.playerData[dataIndex] = data
+                tableCache[index] = Private.CreateTableRow(index, data)
+            else
+                if not data.units.primary then
+                    data.units.primary = unit
+                    tableCache[index] = Private.CreateTableRow(index, data)
+                end
 
-            data.unit = unit
-            tableCache[index] = Private.CreateTableRow(index, data)
+                data.units[unit] = true
+            end
         end
     end
 
@@ -502,7 +500,7 @@ function Private.OnNotifyMercenaryDuration(_, text, _, sender)
     if not payload or payload.remaining == nil then return end
 
     local data = Private.GetPlayerDataByName(sender)
-    if not data then return end
+    if not data then return print('OnNotifyMercenaryDuration', 'Missing player for sender', sender) end
 
     data.hasAddon = true
     data.mercenaryExpiry = payload.remaining + GetTime()
@@ -520,7 +518,7 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK_FINISHED')
     self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
 
-    local update = function () Private.TriggerStateUpdates(false) end
+    local update = function () Private.TriggerStateUpdates() end
     self:RegisterEvent('GROUP_ROSTER_UPDATE', update);
     self:RegisterEvent('PLAYER_ENTERING_WORLD', update);
 
@@ -555,8 +553,10 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     end
 
     local initiatedByData = Private.GetPlayerDataByName(initiatedByName)
-    if initiatedByData ~= nil then
+    if initiatedByData then
         initiatedByData.readyState = ReadyCheckState.Ready
+    else
+        print(_, 'Missing player for initiatedByName', initiatedByName)
     end
 
     Memory.readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
@@ -574,13 +574,13 @@ function Module:READY_CHECK(_, initiatedByName, duration)
         Memory.readyCheckButtonTicker = nil
     end, 0.1)
 
-    Private.TriggerStateUpdates(true)
+    Private.TriggerStateUpdates()
     Private.RefreshPlayerTable()
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
     local data = Private.GetPlayerDataByUnit(unit)
-    if not data then return end
+    if not data then return print(_, 'Missing unit', unit) end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
 
@@ -656,7 +656,7 @@ function Private.InitializeGroupQueueFrame()
 
     queueFrame.ReadyCheckButton = readyCheckButton
 
-    Private.TriggerStateUpdates(false)
+    Private.TriggerStateUpdates()
 end
 
 function Module:ADDON_LOADED(_, addonName)

@@ -24,7 +24,6 @@ function Private.table_pack(...)
     return { n = select("#", ...), ... }
 end
 
-
 function Namespace.Debug.print(...)
     if not Namespace.Debug.enabled then return end
     local args = Private.table_pack(...)
