@@ -30,6 +30,7 @@ local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
+local TimeDiff = Namespace.Utils.TimeDiff
 local max = math.max
 local ceil = math.ceil
 local format = string.format
@@ -319,19 +320,18 @@ function Private.CreateTableRow(index, data)
             end
 
             columnData.color = nil
-            local remaining = data.mercenaryExpiry - GetTime()
-            if remaining < 1 then
+            local timeDiff = TimeDiff(data.mercenaryExpiry, GetTime())
+            if timeDiff.fullSeconds < 1 then
                 return L['no']
             end
 
-            remaining = ceil(remaining / 60)
-            if remaining < 4 then
+            if timeDiff.minutes < 4 then
                 columnData.color = ColorList.Bad
-            elseif remaining < 9 then
+            elseif timeDiff.minutes < 9 then
                 columnData.color = ColorList.Warning
             end
 
-            return format('%dm', remaining)
+            return format('%dm', timeDiff.minutes)
         end,
     }
 
@@ -339,14 +339,15 @@ function Private.CreateTableRow(index, data)
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
             Private.TriggerDeserterUpdate(data)
-            local remaining = data.deserterExpiry - GetTime()
-            if remaining < 1 then
+
+            local timeDiff = TimeDiff(data.deserterExpiry, GetTime())
+            if timeDiff.fullSeconds < 1 then
                 columnData.color = ColorList.Good
                 return L['no']
             end
 
             columnData.color = ColorList.Bad
-            return format('%dm', ceil(remaining / 60))
+            return format('%dm', timeDiff.minutes)
         end,
     }
 

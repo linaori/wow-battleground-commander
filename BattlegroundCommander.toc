@@ -20,10 +20,12 @@ Libs\AceComm-3.0\AceComm-3.0.xml
 Libs\AceSerializer-3.0\AceSerializer-3.0.xml
 Libs\lib-st\lib-st.xml
 Libs\LibCompress\lib.xml
+Libs\LibSharedMedia-3.0\lib.xml
 
 Bootstrap.lua
 Debug.lua
-
+Utils.lua
 Locales\enUS.lua
 
 QueueTools.lua
+BattlegroundTools.lua
