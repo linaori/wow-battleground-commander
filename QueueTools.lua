@@ -325,13 +325,13 @@ function Private.CreateTableRow(index, data)
                 return L['no']
             end
 
-            if timeDiff.minutes < 4 then
+            if timeDiff.fullMinutes < 4 then
                 columnData.color = ColorList.Bad
-            elseif timeDiff.minutes < 9 then
+            elseif timeDiff.fullMinutes < 9 then
                 columnData.color = ColorList.Warning
             end
 
-            return format('%dm', timeDiff.minutes)
+            return format('%dm', timeDiff.fullMinutes)
         end,
     }
 
@@ -347,7 +347,7 @@ function Private.CreateTableRow(index, data)
             end
 
             columnData.color = ColorList.Bad
-            return format('%dm', timeDiff.minutes)
+            return format('%dm', timeDiff.fullMinutes)
         end,
     }
 
