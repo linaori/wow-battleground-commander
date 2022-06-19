@@ -1,5 +1,7 @@
 local LibStub, AddonName, Namespace = LibStub, ...
 
+_G.BattlegroundCommander = Namespace
+
 Namespace.Libs = {
     AceLocale = LibStub('AceLocale-3.0'),
     AceAddon = LibStub('AceAddon-3.0'),
@@ -20,17 +22,18 @@ local defaultConfig = {
                 show = true,
                 move = true,
                 size = { width = 150, height = 50 },
+                position = { anchor = 'CENTER', x = 0, y = 0 },
                 messageCount = 5,
                 font = {
                     family = 'Friz Quadrata TT',
-                    size = 10,
+                    size = 12,
                     flags = '',
                     colorTime = { r = 0.5, g = 0.5, b = 0.5 },
                     colorHighlight = { r = 1, g = 0.28, b = 0 },
                     color = { r = 0.7, g = 0.5, b = 0 },
                     shadowColor = { 0, 0, 0, 1 },
                     shadowOffset = { x = 1, y = -1 },
-                }
+                },
             },
         }
     },
@@ -41,3 +44,4 @@ Namespace.Addon = Namespace.Libs.AceAddon:NewAddon(AddonName)
 function Namespace.Addon:OnInitialize()
     Namespace.Database = Namespace.Libs.AceDB:New('BattlegroundCommanderDatabase', defaultConfig, true)
 end
+

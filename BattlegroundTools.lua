@@ -92,9 +92,8 @@ end
 function Private.InitializeInstructionFrame()
     if Memory.InstructionFrame then return Memory.InstructionFrame end
 
-    local instructionFrame = CreateFrame('Frame', 'bgcInstructionFrame', nil, _G.BackdropTemplateMixin and 'BackdropTemplate')
+    local instructionFrame = CreateFrame('Frame', 'bgcInstructionFrame', _G.UIParent, _G.BackdropTemplateMixin and 'BackdropTemplate')
     instructionFrame:SetFrameStrata('LOW')
-    instructionFrame:SetPoint('CENTER')
     instructionFrame:SetMinResize(100, 50)
     instructionFrame:SetClampedToScreen(true)
     instructionFrame:SetMovable(true)
@@ -106,23 +105,25 @@ function Private.InitializeInstructionFrame()
     instructionFrame:SetBackdropColor(1, 1, 1, 0.8)
     instructionFrame:SetBackdropBorderColor(1, 1, 1, 0.5)
     instructionFrame:RegisterForDrag('LeftButton')
-    instructionFrame:EnableMouse(true)
     instructionFrame:SetResizable(true)
 
     local moveOverlay = CreateFrame('Button', nil, instructionFrame)
     moveOverlay:SetPoint('TOPLEFT')
-    moveOverlay:SetPoint('BOTTOMRIGHT', -12, 0)
+    moveOverlay:SetPoint('BOTTOMRIGHT', -16, 0)
     moveOverlay:SetScript('OnMouseDown', function(self)
         if not Namespace.Database.profile.BattlegroundTools.InstructionFrame.move then return end
         self:GetParent():StartMoving()
     end)
     moveOverlay:SetScript('OnMouseUp', function(self)
-        self:GetParent():StopMovingOrSizing()
+        local parent = self:GetParent()
+        parent:StopMovingOrSizing()
+        local position = Namespace.Database.profile.BattlegroundTools.InstructionFrame.position
+        position.anchor, _, _, position.x, position.y = parent:GetPoint(1)
     end)
 
     local resizeButton = CreateFrame('Button', nil, instructionFrame)
     resizeButton:SetPoint('BOTTOMRIGHT')
-    resizeButton:SetSize(12, 12)
+    resizeButton:SetSize(16, 16)
     resizeButton:SetNormalTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Down]])
     resizeButton:SetHighlightTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Highlight]])
     resizeButton:SetPushedTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Up]])
@@ -132,9 +133,8 @@ function Private.InitializeInstructionFrame()
     resizeButton:SetScript('OnMouseUp', function(self)
         local parent = self:GetParent()
         parent:StopMovingOrSizing()
-        local frameSize = Namespace.Database.profile.BattlegroundTools.InstructionFrame.size
-
-        frameSize.width, frameSize.height = parent:GetSize()
+        local size = Namespace.Database.profile.BattlegroundTools.InstructionFrame.size
+        size.width, size.height = parent:GetSize()
     end)
 
     local text = instructionFrame:CreateFontString(nil, 'OVERLAY')
@@ -178,12 +178,10 @@ end
 function Module:RefreshConfig()
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
 
-    if frameConfig.show then
-        Memory.InstructionFrame:Show()
-    end
-
-    local frameSize = frameConfig.size
-    Memory.InstructionFrame:SetSize(frameSize.width, frameSize.height)
+    Memory.InstructionFrame:SetSize(frameConfig.size.width, frameConfig.size.height)
+    Memory.InstructionFrame:SetShown(frameConfig.show)
+    Memory.InstructionFrame:ClearAllPoints()
+    Memory.InstructionFrame:SetPoint(frameConfig.position.anchor, _G.UIParent, frameConfig.position.anchor, frameConfig.position.x, frameConfig.position.y)
 
     Private.AddLog('Establishing battlefield control, standby...')
 end
