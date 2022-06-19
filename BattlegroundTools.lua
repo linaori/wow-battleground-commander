@@ -10,6 +10,7 @@ local GetTime = GetTime
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
 local concat = table.concat
 local format = string.format
+local floor = math.floor
 local print = Namespace.Debug.print
 local TimeDiff = Namespace.Utils.TimeDiff
 
@@ -43,7 +44,7 @@ end
 function Private.AddLog(message)
     local logs = Memory.RaidWarningLogs
     if message == logs.last then
-        logs.list[logs.size].time = GetTime()
+        logs.list[logs.size].time = floor(GetTime())
         return
     end
 
@@ -62,7 +63,7 @@ function Private.ApplyLogs(textObject)
     local messages = {}
     local count = 0
     local timePrefix = format('|cff%.2x%.2x%.2x', colorTime.r * 255, colorTime.g * 255, colorTime.b * 255)
-    local now = GetTime()
+    local now = floor(GetTime())
 
     for i = Memory.RaidWarningLogs.size, Memory.RaidWarningLogs.size - maxMessages, -1 do
         count = count + 1
@@ -198,4 +199,14 @@ function Module:OnDisable()
 
     self:CancelTimer(Memory.InstructionFrame.timer)
     Memory.InstructionFrame.timer = nil
+end
+
+function Module:SetInstructionFrameState(enableState)
+    local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
+    frameConfig.show = enableState
+    Memory.InstructionFrame:SetShown(frameConfig.show)
+end
+
+function Module:GetInstructionFrameState()
+    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.show
 end

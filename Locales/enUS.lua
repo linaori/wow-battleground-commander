@@ -9,3 +9,7 @@ L['no'] = true
 L['Merc'] = true
 L['Deserter'] = true
 L['Ready'] = true
+L['Addon Information'] = true
+L['Version'] = true
+L['Battleground Tools'] = true
+L['Enable Instructions Frame'] = true

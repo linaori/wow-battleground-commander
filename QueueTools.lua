@@ -534,6 +534,8 @@ end
 
 function Module:RefreshConfig()
     Memory.showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
+
+    Private.UpdateQueuesFrameVisibility()
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
