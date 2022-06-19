@@ -41,6 +41,64 @@ function Private.ApplyFont(textObject, fontConfig)
     textObject:SetShadowOffset(fontConfig.shadowOffset.x, fontConfig.shadowOffset.y)
 end
 
+function Module:SetFontFamily(newFont)
+    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
+    fontConfig.family = newFont
+
+    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
+end
+
+function Module:GetFontFamily()
+    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.family
+end
+
+function Module:SetFontFlags(newFlags)
+    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
+    fontConfig.flags = newFlags
+
+    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
+end
+
+function Module:GetFontFlags()
+    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.flags
+end
+
+function Module:SetFontColor(r, g, b)
+    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
+    fontConfig.color.r, fontConfig.color.g, fontConfig.color.b = r, g, b
+
+    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
+end
+
+function Module:GetFontColor()
+    local color = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.color
+    return color.r, color.g, color.b
+end
+
+function Module:SetHighlightFontColor(r, g, b)
+    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
+    fontConfig.colorHighlight.r, fontConfig.colorHighlight.g, fontConfig.colorHighlight.b = r, g, b
+
+    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
+end
+
+function Module:GetHighlightFontColor()
+    local color = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.colorHighlight
+    return color.r, color.g, color.b
+end
+
+function Module:SetTimerFontColor(r, g, b)
+    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
+    fontConfig.colorTime.r, fontConfig.colorTime.g, fontConfig.colorTime.b = r, g, b
+
+    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
+end
+
+function Module:GetTimerFontColor()
+    local color = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.colorTime
+    return color.r, color.g, color.b
+end
+
 function Private.AddLog(message)
     local logs = Memory.RaidWarningLogs
     if message == logs.last then
@@ -180,13 +238,17 @@ function Module:RefreshConfig()
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
 
     Memory.InstructionFrame:SetSize(frameConfig.size.width, frameConfig.size.height)
-    Memory.InstructionFrame:SetShown(frameConfig.show)
     Memory.InstructionFrame:ClearAllPoints()
     Memory.InstructionFrame:SetPoint(frameConfig.position.anchor, _G.UIParent, frameConfig.position.anchor, frameConfig.position.x, frameConfig.position.y)
 
+    if frameConfig.show then
+        self:ShowInstructionsFrame()
+    else
+        self:HideInstructionsFrame()
+    end
+
     Private.AddLog('Establishing battlefield control, standby...')
 end
-
 
 function Module:OnDisable()
     Memory.InstructionFrame:Hide()
@@ -197,6 +259,22 @@ function Module:OnDisable()
 
     self:UnregisterEvent('CHAT_MSG_RAID_WARNING')
 
+    self:HideInstructionsFrame()
+end
+
+function Module:ShowInstructionsFrame()
+    Memory.InstructionFrame:Show()
+
+    if Memory.InstructionFrame.timer then return end
+    Memory.InstructionFrame.timer = self:ScheduleRepeatingTimer(function ()
+        Private.ApplyLogs(Memory.InstructionFrame.Text)
+    end , 0.2)
+end
+
+function Module:HideInstructionsFrame()
+    Memory.InstructionFrame:Hide()
+
+    if not Memory.InstructionFrame.timer then return end
     self:CancelTimer(Memory.InstructionFrame.timer)
     Memory.InstructionFrame.timer = nil
 end
@@ -204,9 +282,22 @@ end
 function Module:SetInstructionFrameState(enableState)
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
     frameConfig.show = enableState
-    Memory.InstructionFrame:SetShown(frameConfig.show)
+
+    if frameConfig.show then
+        self:ShowInstructionsFrame()
+    else
+        self:HideInstructionsFrame()
+    end
 end
 
 function Module:GetInstructionFrameState()
     return Namespace.Database.profile.BattlegroundTools.InstructionFrame.show
+end
+
+function Module:SetInstructionFrameMoveState(enableState)
+    Namespace.Database.profile.BattlegroundTools.InstructionFrame.move = enableState
+end
+
+function Module:GetInstructionFrameMoveState()
+    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.move
 end
