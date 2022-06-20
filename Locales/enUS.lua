@@ -27,3 +27,5 @@ L['Font Flags'] = true
 L['Adjust the font flags'] = true
 L['Allow Repositioning'] = true
 L['Enable to be able to drag the frame around to reposition'] = true
+L['Font Size'] = true
+L['Adjust the font size for the messages and time'] = true

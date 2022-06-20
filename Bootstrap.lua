@@ -116,8 +116,8 @@ local function getOptions()
                                     type = 'select',
                                     dialogControl = 'LSM30_Font',
                                     values = LibSharedMediaFonts,
-                                    set = function (_, value) Namespace.BattlegroundTools:SetFontFamily(value) end,
-                                    get = function () return Namespace.BattlegroundTools:GetFontFamily() end,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('family', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFontSetting('family') end,
                                     order = 2.121,
                                 },
                                 fontFlags = {
@@ -125,38 +125,63 @@ local function getOptions()
                                     desc = L['Adjust the font flags'],
                                     type = 'select',
                                     values = fontFlagList,
-                                    set = function (_, value) Namespace.BattlegroundTools:SetFontFlags(value) end,
-                                    get = function () return Namespace.BattlegroundTools:GetFontFlags() end,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('flags', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFontSetting('flags') end,
                                     order = 2.122,
+                                },
+                                fontSize = {
+                                    name = L['Font Size'],
+                                    desc = L['Adjust the font size for the messages and time'],
+                                    type = 'range',
+                                    min = 4,
+                                    max = 50,
+                                    softMin = 8,
+                                    softMax = 20,
+                                    step = 1,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('size', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFontSetting('size') end,
+                                    order = 2.123,
+
                                 },
                                 fontFiller = {
                                     name = ' ',
                                     type = 'description',
                                     width = 'full',
-                                    order = 2.123,
+                                    order = 2.124,
                                 },
                                 highlightColor = {
                                     name = L['Highlight Color'],
                                     desc = L['Color of the most recent text message'],
                                     type = 'color',
-                                    set = function (_, r, g, b) Namespace.BattlegroundTools:SetHighlightFontColor(r, g, b) end,
-                                    get = function () return Namespace.BattlegroundTools:GetHighlightFontColor() end,
+                                    set = function (_, r, g, b)
+                                        Namespace.BattlegroundTools:SetFontSetting('colorHighlight', { r = r, g = g, b = b })
+                                    end,
+                                    get = function ()
+                                        local color = Namespace.BattlegroundTools:GetFontSetting('colorHighlight')
+                                        return color.r, color.g, color.b
+                                    end,
                                     order = 2.131,
                                 },
                                 color = {
                                     name = L['Text Color'],
                                     desc = L['Color of the remaining text messages'],
                                     type = 'color',
-                                    set = function (_, r, g, b) Namespace.BattlegroundTools:SetFontColor(r, g, b) end,
-                                    get = function () return Namespace.BattlegroundTools:GetFontColor() end,
+                                    set = function (_, r, g, b) Namespace.BattlegroundTools:SetFontSetting('color', { r = r, g = g, b = b }) end,
+                                    get = function ()
+                                        local color = Namespace.BattlegroundTools:GetFontSetting('color')
+                                        return color.r, color.g, color.b
+                                    end,
                                     order = 2.132,
                                 },
                                 timerColor = {
                                     name = L['Time Color'],
                                     desc = L['Color of the time text'],
                                     type = 'color',
-                                    set = function (_, r, g, b) Namespace.BattlegroundTools:SetTimerFontColor(r, g, b) end,
-                                    get = function () return Namespace.BattlegroundTools:GetTimerFontColor() end,
+                                    set = function (_, r, g, b )Namespace.BattlegroundTools:SetFontSetting('colorTime', { r = r, g = g, b = b }) end,
+                                    get = function ()
+                                        local color = Namespace.BattlegroundTools:GetFontSetting('colorTime')
+                                        return color.r, color.g, color.b
+                                    end,
                                     order = 2.133,
                                 },
                             },

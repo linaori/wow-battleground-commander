@@ -41,62 +41,15 @@ function Private.ApplyFont(textObject, fontConfig)
     textObject:SetShadowOffset(fontConfig.shadowOffset.x, fontConfig.shadowOffset.y)
 end
 
-function Module:SetFontFamily(newFont)
+function Module:SetFontSetting(setting, value)
     local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
-    fontConfig.family = newFont
+    fontConfig[setting] = value
 
     Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
 end
 
-function Module:GetFontFamily()
-    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.family
-end
-
-function Module:SetFontFlags(newFlags)
-    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
-    fontConfig.flags = newFlags
-
-    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
-end
-
-function Module:GetFontFlags()
-    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.flags
-end
-
-function Module:SetFontColor(r, g, b)
-    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
-    fontConfig.color.r, fontConfig.color.g, fontConfig.color.b = r, g, b
-
-    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
-end
-
-function Module:GetFontColor()
-    local color = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.color
-    return color.r, color.g, color.b
-end
-
-function Module:SetHighlightFontColor(r, g, b)
-    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
-    fontConfig.colorHighlight.r, fontConfig.colorHighlight.g, fontConfig.colorHighlight.b = r, g, b
-
-    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
-end
-
-function Module:GetHighlightFontColor()
-    local color = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.colorHighlight
-    return color.r, color.g, color.b
-end
-
-function Module:SetTimerFontColor(r, g, b)
-    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
-    fontConfig.colorTime.r, fontConfig.colorTime.g, fontConfig.colorTime.b = r, g, b
-
-    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
-end
-
-function Module:GetTimerFontColor()
-    local color = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font.colorTime
-    return color.r, color.g, color.b
+function Module:GetFontSetting(setting)
+    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.font[setting]
 end
 
 function Private.AddLog(message)
@@ -240,6 +193,7 @@ function Module:RefreshConfig()
     Memory.InstructionFrame:SetSize(frameConfig.size.width, frameConfig.size.height)
     Memory.InstructionFrame:ClearAllPoints()
     Memory.InstructionFrame:SetPoint(frameConfig.position.anchor, _G.UIParent, frameConfig.position.anchor, frameConfig.position.x, frameConfig.position.y)
+    Memory.InstructionFrame.ResizeButton:SetShown(frameConfig.move)
 
     if frameConfig.show then
         self:ShowInstructionsFrame()
@@ -296,6 +250,7 @@ end
 
 function Module:SetInstructionFrameMoveState(enableState)
     Namespace.Database.profile.BattlegroundTools.InstructionFrame.move = enableState
+    Memory.InstructionFrame.ResizeButton:SetShown(enableState)
 end
 
 function Module:GetInstructionFrameMoveState()
