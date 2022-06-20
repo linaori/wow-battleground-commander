@@ -1,5 +1,5 @@
 local ModuleName, Private, AddonName, Namespace = 'BattlegroundTools', {}, ...
-local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
+local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local LSM = Namespace.Libs.LibSharedMedia
 
@@ -8,21 +8,15 @@ Namespace.BattlegroundTools = Module
 local CreateFrame = CreateFrame
 local GetTime = GetTime
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
+local GetInstanceInfo = GetInstanceInfo
 local concat = table.concat
 local format = string.format
 local floor = math.floor
-local print = Namespace.Debug.print
+--local print = Namespace.Debug.print
 local TimeDiff = Namespace.Utils.TimeDiff
 
-local Zone = {
-    AlteracValley = 30,
-    KorraksRevenge = 2197,
-    Ashran = 1191,
-    IsleOfConquest = 628,
-    Wintergrasp = 2118,
-}
-
 local Memory = {
+    currentZoneId = nil,
     InstructionFrame = nil,
     RaidWarningLogs = {
         last = nil,
@@ -32,6 +26,30 @@ local Memory = {
         size = 0,
         timer = nil,
     },
+}
+
+Namespace.BattlegroundTools.Zones = {
+    [0]    = L['Open World'],
+    [30]   = L['Alterac Valley'],
+    [2197] = L['Alterac Valley (Korrak\'s Revenge)'],
+    [1191] = L['Ashran'],
+    [2118] = L['Battle for Wintergrasp'],
+    [628]  = L['Isle of Conquest'],
+    [2107] = L['Arathi Basin'],
+    [529]  = L['Arathi Basin (Classic)'],
+    [1681] = L['Arathi Basin (Winter)'],
+    [2177] = L['Arathi Basin Comp Stomp'],
+    [1105] = L['Deepwind Gorge'],
+    [566]  = L['Eye of the Storm'],
+    [968]  = L['Eye of the Storm (Rated)'],
+    [628]  = L['Isle of Conquest'],
+    [1803] = L['Seething Shore'],
+    [727]  = L['Silvershard Mines'],
+    [607]  = L['Strand of the Ancients'],
+    [998]  = L['Temple of Kotmogu'],
+    [761]  = L['The Battle for Gilneas'],
+    [726]  = L['Twin Peaks'],
+    [489]  = L['Warsong Gulch'],
 }
 
 function Private.ApplyFont(textObject, fontConfig)
@@ -167,8 +185,27 @@ function Module:OnInitialize()
     Private.InitializeInstructionFrame()
 end
 
+function Private.TriggerUpdateInstructionFrame()
+    local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
+    if frameConfig.show and frameConfig.zones[Memory.currentZoneId] then
+        Module:ShowInstructionsFrame()
+    else
+        Module:HideInstructionsFrame()
+    end
+end
+
+function Private.EnterZone()
+    local name, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
+    if instanceType == 'none' then currentZoneId = 0 end
+    Memory.currentZoneId = currentZoneId
+
+    Private.TriggerUpdateInstructionFrame()
+    Private.AddLog('Entered zone: ' .. name)
+end
+
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
+    self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
@@ -177,10 +214,6 @@ function Module:OnEnable()
     self:RefreshConfig()
 
     Private.ApplyLogs(Memory.InstructionFrame.Text)
-
-    Memory.InstructionFrame.timer = self:ScheduleRepeatingTimer(function ()
-        Private.ApplyLogs(Memory.InstructionFrame.Text)
-    end , 0.2)
 end
 
 function Module:CHAT_MSG_RAID_WARNING(_, message)
@@ -195,13 +228,7 @@ function Module:RefreshConfig()
     Memory.InstructionFrame:SetPoint(frameConfig.position.anchor, _G.UIParent, frameConfig.position.anchor, frameConfig.position.x, frameConfig.position.y)
     Memory.InstructionFrame.ResizeButton:SetShown(frameConfig.move)
 
-    if frameConfig.show then
-        self:ShowInstructionsFrame()
-    else
-        self:HideInstructionsFrame()
-    end
-
-    Private.AddLog('Establishing battlefield control, standby...')
+    Private.TriggerUpdateInstructionFrame()
 end
 
 function Module:OnDisable()
@@ -237,11 +264,7 @@ function Module:SetInstructionFrameState(enableState)
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
     frameConfig.show = enableState
 
-    if frameConfig.show then
-        self:ShowInstructionsFrame()
-    else
-        self:HideInstructionsFrame()
-    end
+    Private.TriggerUpdateInstructionFrame()
 end
 
 function Module:GetInstructionFrameState()
@@ -255,4 +278,14 @@ end
 
 function Module:GetInstructionFrameMoveState()
     return Namespace.Database.profile.BattlegroundTools.InstructionFrame.move
+end
+
+function Module:SetZoneId(zoneId, value)
+    Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[zoneId] = value
+
+    Private.TriggerUpdateInstructionFrame()
+end
+
+function Module:GetZoneId(zoneId)
+    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[zoneId]
 end

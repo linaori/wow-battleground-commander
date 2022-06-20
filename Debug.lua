@@ -11,6 +11,7 @@ function Private.toString(o)
     if type(o) == 'table' then
         local s = '{ '
         for k, v in pairs(o) do
+            if k == nil then k = 'nil' end
             if type(k) ~= 'number' then k = '\''..k..'\'' end
             s = s .. '['..k..'] = ' .. Private.toString(v) .. ','
         end
