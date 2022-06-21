@@ -35,6 +35,17 @@ L['Select the zones where the frame should appear when enabled'] = true
 L['Frame Text Configuration'] = true
 L['Maximum instructions'] = true
 L['The maximum amount of instructions to show'] = true
+L['Frame Design'] = true
+L['Background Texture'] = true
+L['Changes the background texture of the frame'] = true
+L['Border Texture'] = true
+L['Changes the border texture of the frame'] = true
+L['Border Size'] = true
+L['Changes the border size'] = true
+L['Background Inset'] = true
+L['Reduces the size of the background texture'] = true
+L['Background Color'] = true
+L['Border Color'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

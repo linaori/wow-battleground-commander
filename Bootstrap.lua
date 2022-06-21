@@ -34,7 +34,7 @@ local defaultConfig = {
             InstructionFrame = {
                 show = true,
                 move = true,
-                size = { width = 150, height = 50 },
+                size = { width = 200, height = 100 },
                 position = { anchor = 'CENTER', x = 0, y = 0 },
                 zones = {
                     [0]    = false,
@@ -60,6 +60,12 @@ local defaultConfig = {
                 },
                 settings = {
                     maxInstructions = 5,
+                    backgroundTexture = 'Blizzard Dialog Background Dark',
+                    backgroundColor = { r = 1, g = 1, b = 1, a = 0.8 },
+                    borderTexture = 'Blizzard Dialog',
+                    borderColor = { r = 1, g = 1, b = 1, a = 0.5 },
+                    borderSize = 12,
+                    backgroundInset = 3,
                 },
                 font = {
                     family = Namespace.Libs.LibSharedMedia:GetDefault('font'),
@@ -82,6 +88,8 @@ local function getOptions()
         local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
         local fontFlagList = { [''] = 'None', ['OUTLINE'] = 'Outline', ['OUTLINE, MONOCHROME'] = 'Outline Monochrome' }
         local LibSharedMediaFonts = Namespace.Libs.LibSharedMedia:HashTable('font')
+        local LibSharedMediaBackgrounds = Namespace.Libs.LibSharedMedia:HashTable('background')
+        local LibSharedMediaBorders = Namespace.Libs.LibSharedMedia:HashTable('border')
 
         addonOptions = {
             name = Namespace.Meta.name,
@@ -117,7 +125,7 @@ local function getOptions()
                                     type = 'toggle',
                                     set = function (_, value) Namespace.BattlegroundTools:SetInstructionFrameState(value) end,
                                     get = function () return Namespace.BattlegroundTools:GetInstructionFrameState() end,
-                                    order = 2.111,
+                                    order = 1,
                                 },
                                 reposition = {
                                     name = L['Allow Repositioning'],
@@ -125,7 +133,7 @@ local function getOptions()
                                     type = 'toggle',
                                     set = function (_, value) Namespace.BattlegroundTools:SetInstructionFrameMoveState(value) end,
                                     get = function () return Namespace.BattlegroundTools:GetInstructionFrameMoveState() end,
-                                    order = 2.112,
+                                    order = 2,
                                 },
                                 messageCount = {
                                     name = L['Maximum instructions'],
@@ -136,14 +144,14 @@ local function getOptions()
                                     step = 1,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('maxInstructions', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFrameSetting('maxInstructions') end,
-                                    order = 2.113,
+                                    order = 3,
                                 },
                                 fontDescription = {
                                     name = L['Frame Text Configuration'],
                                     type = 'description',
                                     width = 'full',
                                     fontSize = 'large',
-                                    order = 2.121,
+                                    order = 4,
                                 },
                                 font = {
                                     name = L['Font'],
@@ -153,7 +161,7 @@ local function getOptions()
                                     values = LibSharedMediaFonts,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('family', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFontSetting('family') end,
-                                    order = 2.131,
+                                    order = 5,
                                 },
                                 fontFlags = {
                                     name = L['Font Flags'],
@@ -162,7 +170,7 @@ local function getOptions()
                                     values = fontFlagList,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('flags', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFontSetting('flags') end,
-                                    order = 2.132,
+                                    order = 6,
                                 },
                                 fontSize = {
                                     name = L['Font Size'],
@@ -175,13 +183,13 @@ local function getOptions()
                                     step = 1,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('size', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFontSetting('size') end,
-                                    order = 2.133,
+                                    order = 7,
                                 },
                                 fontFiller = {
                                     name = ' ',
                                     type = 'description',
                                     width = 'full',
-                                    order = 2.134,
+                                    order = 8,
                                 },
                                 highlightColor = {
                                     name = L['Highlight Color'],
@@ -194,7 +202,7 @@ local function getOptions()
                                         local color = Namespace.BattlegroundTools:GetFontSetting('colorHighlight')
                                         return color.r, color.g, color.b
                                     end,
-                                    order = 2.141,
+                                    order = 9,
                                 },
                                 color = {
                                     name = L['Text Color'],
@@ -205,32 +213,103 @@ local function getOptions()
                                         local color = Namespace.BattlegroundTools:GetFontSetting('color')
                                         return color.r, color.g, color.b
                                     end,
-                                    order = 2.142,
+                                    order = 10,
                                 },
                                 timerColor = {
                                     name = L['Time Color'],
                                     desc = L['Color of the time text'],
                                     type = 'color',
-                                    set = function (_, r, g, b )Namespace.BattlegroundTools:SetFontSetting('colorTime', { r = r, g = g, b = b }) end,
+                                    set = function (_, r, g, b) Namespace.BattlegroundTools:SetFontSetting('colorTime', { r = r, g = g, b = b }) end,
                                     get = function ()
                                         local color = Namespace.BattlegroundTools:GetFontSetting('colorTime')
                                         return color.r, color.g, color.b
                                     end,
-                                    order = 2.143,
+                                    order = 11,
                                 },
                                 colorMargin = {
                                     name = ' ',
                                     type = 'description',
                                     width = 'full',
                                     fontSize = 'large',
-                                    order = 2.151,
+                                    order = 12,
+                                },
+                                frameDesignDescription = {
+                                    name = L['Frame Design'],
+                                    type = 'description',
+                                    width = 'full',
+                                    fontSize = 'large',
+                                    order = 13,
+                                },
+                                backgroundTexture = {
+                                    name = L['Background Texture'],
+                                    desc = L['Changes the background texture of the frame'],
+                                    type = 'select',
+                                    dialogControl = 'LSM30_Background',
+                                    values = LibSharedMediaBackgrounds,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('backgroundTexture', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('backgroundTexture') end,
+                                    order = 14,
+                                },
+                                backgroundInset = {
+                                    name = L['Background Inset'],
+                                    desc = L['Reduces the size of the background texture'],
+                                    type = 'range',
+                                    min = 0,
+                                    max = 20,
+                                    step = 1,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('backgroundInset', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('backgroundInset') end,
+                                    order = 15,
+                                },
+                                backgroundColor = {
+                                    name = L['Background Color'],
+                                    type = 'color',
+                                    hasAlpha = true,
+                                    set = function (_, r, g, b, a) Namespace.BattlegroundTools:SetFrameSetting('backgroundColor', { r = r, g = g, b = b, a = a }) end,
+                                    get = function ()
+                                        local color = Namespace.BattlegroundTools:GetFrameSetting('backgroundColor')
+                                        return color.r, color.g, color.b, color.a
+                                    end,
+                                    order = 16,
+                                },
+                                borderTexture = {
+                                    name = L['Border Texture'],
+                                    desc = L['Changes the border texture of the frame'],
+                                    type = 'select',
+                                    dialogControl = 'LSM30_Border',
+                                    values = LibSharedMediaBorders,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('borderTexture', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('borderTexture') end,
+                                    order = 17,
+                                },
+                                borderSize = {
+                                    name = L['Border Size'],
+                                    desc = L['Changes the border size'],
+                                    type = 'range',
+                                    min = 0,
+                                    max = 20,
+                                    step = 1,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('borderSize', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('borderSize') end,
+                                    order = 18,
+                                },
+                                borderColor = {
+                                    name = L['Border Color'],
+                                    type = 'color',
+                                    hasAlpha = true,
+                                    set = function (_, r, g, b, a) Namespace.BattlegroundTools:SetFrameSetting('borderColor', { r = r, g = g, b = b, a = a }) end,
+                                    get = function ()
+                                        local color = Namespace.BattlegroundTools:GetFrameSetting('borderColor')
+                                        return color.r, color.g, color.b, color.a
+                                    end,
+                                    order = 19,
                                 },
                                 zoneDescription = {
                                     name = L['Enabled in Zones'],
                                     type = 'description',
                                     width = 'full',
                                     fontSize = 'large',
-                                    order = 2.161,
+                                    order = 20,
                                 },
                                 zones = {
                                     name = L['Select Zones'],
@@ -239,8 +318,8 @@ local function getOptions()
                                     values = Namespace.BattlegroundTools.Zones,
                                     set = function (_, zoneId, value) Namespace.BattlegroundTools:SetZoneId(zoneId, value) end,
                                     get = function (_, zoneId) return Namespace.BattlegroundTools:GetZoneId(zoneId) end,
-                                    order = 2.171,
-                                }
+                                    order = 21,
+                                },
                             },
                         },
                     },

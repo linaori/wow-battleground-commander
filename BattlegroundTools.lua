@@ -12,7 +12,6 @@ local GetInstanceInfo = GetInstanceInfo
 local concat = table.concat
 local format = string.format
 local floor = math.floor
---local print = Namespace.Debug.print
 local TimeDiff = Namespace.Utils.TimeDiff
 
 local Memory = {
@@ -59,7 +58,25 @@ function Private.ApplyFont(textObject, fontConfig)
 end
 
 function Private.ApplyFrameSettings()
+    local settings = Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings
 
+    Memory.InstructionFrame:SetBackdrop({
+        bgFile = LSM:Fetch('background', settings.backgroundTexture),
+        edgeFile = LSM:Fetch('border', settings.borderTexture),
+        edgeSize = settings.borderSize,
+        insets = {
+            left = settings.backgroundInset,
+            right = settings.backgroundInset,
+            top = settings.backgroundInset,
+            bottom = settings.backgroundInset,
+        }
+    })
+
+    local bgColor = settings.backgroundColor
+    local borderColor = settings.borderColor
+
+    Memory.InstructionFrame:SetBackdropColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
+    Memory.InstructionFrame:SetBackdropBorderColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
 end
 
 function Module:SetFontSetting(setting, value)
@@ -142,13 +159,6 @@ function Private.InitializeInstructionFrame()
     instructionFrame:SetMinResize(100, 50)
     instructionFrame:SetClampedToScreen(true)
     instructionFrame:SetMovable(true)
-    instructionFrame:SetBackdrop({
-        bgFile = LSM:Fetch('background', 'Blizzard Dialog Background Dark'),
-        edgeFile = LSM:Fetch('border', 'Blizzard Dialog'),
-        edgeSize = 4,
-    })
-    instructionFrame:SetBackdropColor(1, 1, 1, 0.8)
-    instructionFrame:SetBackdropBorderColor(1, 1, 1, 0.5)
     instructionFrame:RegisterForDrag('LeftButton')
     instructionFrame:SetResizable(true)
 
@@ -187,8 +197,8 @@ function Private.InitializeInstructionFrame()
 
     local text = instructionFrame:CreateFontString(nil, 'OVERLAY')
     Private.ApplyFont(text, Namespace.Database.profile.BattlegroundTools.InstructionFrame.font)
-    text:SetPoint('TOPLEFT', 5, -5)
-    text:SetPoint('BOTTOMRIGHT', -17, 5)
+    text:SetPoint('TOPLEFT', 7, -7)
+    text:SetPoint('BOTTOMRIGHT', -17, 7)
     text:SetJustifyH('LEFT')
     text:SetJustifyV('TOP')
 
@@ -262,6 +272,8 @@ function Module:OnDisable()
 end
 
 function Module:ShowInstructionsFrame()
+    Private.ApplyFont(Memory.InstructionFrame.Text, Namespace.Database.profile.BattlegroundTools.InstructionFrame.font)
+    Private.ApplyFrameSettings()
     Memory.InstructionFrame:Show()
 
     if Memory.InstructionFrame.timer then return end
