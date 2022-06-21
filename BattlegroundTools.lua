@@ -58,6 +58,10 @@ function Private.ApplyFont(textObject, fontConfig)
     textObject:SetShadowOffset(fontConfig.shadowOffset.x, fontConfig.shadowOffset.y)
 end
 
+function Private.ApplyFrameSettings()
+
+end
+
 function Module:SetFontSetting(setting, value)
     local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
     fontConfig[setting] = value
@@ -69,6 +73,15 @@ function Module:GetFontSetting(setting)
     return Namespace.Database.profile.BattlegroundTools.InstructionFrame.font[setting]
 end
 
+function Module:SetFrameSetting(setting, value)
+    Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings[setting] = value
+    Private.ApplyFrameSettings()
+end
+
+function Module:GetFrameSetting(setting)
+    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings[setting]
+end
+
 function Private.AddLog(message)
     local logs = Memory.RaidWarningLogs
     if message == logs.last then
@@ -77,7 +90,10 @@ function Private.AddLog(message)
     end
 
     logs.size = logs.size + 1
-    logs.list[logs.size] = { time = GetTime(), message = message }
+    logs.list[logs.size] = {
+        time = GetTime(),
+        message = ReplaceIconAndGroupExpressions(message),
+    }
     logs.last = message
 end
 
@@ -85,7 +101,7 @@ function Private.ApplyLogs(textObject)
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
     local colorHighlight = frameConfig.font.colorHighlight
     local colorTime = frameConfig.font.colorTime
-    local maxInstructions = frameConfig.font.maxInstructions
+    local maxInstructions = frameConfig.settings.maxInstructions
 
     local list = Memory.RaidWarningLogs.list
     local messages = {}
@@ -93,7 +109,7 @@ function Private.ApplyLogs(textObject)
     local timePrefix = format('|cff%.2x%.2x%.2x', colorTime.r * 255, colorTime.g * 255, colorTime.b * 255)
     local now = floor(GetTime())
 
-    for i = Memory.RaidWarningLogs.size, Memory.RaidWarningLogs.size - maxInstructions, -1 do
+    for i = Memory.RaidWarningLogs.size, Memory.RaidWarningLogs.size - maxInstructions + 1, -1 do
         count = count + 1
         local log = list[i]
         if not log then break end
@@ -112,7 +128,7 @@ function Private.ApplyLogs(textObject)
             log = concat({ timePrefix, diff.format(), '|r ', log.message })
         end
 
-        messages[count] = ReplaceIconAndGroupExpressions(log)
+        messages[count] = log
     end
 
     textObject:SetText(concat(messages, "\n"))

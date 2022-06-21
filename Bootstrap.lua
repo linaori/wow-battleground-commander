@@ -58,6 +58,9 @@ local defaultConfig = {
                     [726]  = true,
                     [489]  = true,
                 },
+                settings = {
+                    maxInstructions = 5,
+                },
                 font = {
                     family = Namespace.Libs.LibSharedMedia:GetDefault('font'),
                     size = 12,
@@ -67,7 +70,6 @@ local defaultConfig = {
                     color = { r = 0.7, g = 0.5, b = 0 },
                     shadowColor = { 0, 0, 0, 1 },
                     shadowOffset = { x = 1, y = -1 },
-                    maxInstructions = 5,
                 },
             },
         }
@@ -132,8 +134,8 @@ local function getOptions()
                                     min = 1,
                                     max = 10,
                                     step = 1,
-                                    set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('maxInstructions', value) end,
-                                    get = function () return Namespace.BattlegroundTools:GetFontSetting('maxInstructions') end,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('maxInstructions', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('maxInstructions') end,
                                     order = 2.113,
                                 },
                                 fontDescription = {
