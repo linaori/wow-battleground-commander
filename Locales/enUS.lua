@@ -46,6 +46,8 @@ L['Background Inset'] = true
 L['Reduces the size of the background texture'] = true
 L['Background Color'] = true
 L['Border Color'] = true
+L['Battleground Commander loaded'] = true
+L['You can access the configuration via /bgc or through the interface options'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

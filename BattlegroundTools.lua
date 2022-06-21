@@ -223,12 +223,11 @@ function Private.TriggerUpdateInstructionFrame()
 end
 
 function Private.EnterZone()
-    local name, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
+    local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
     if instanceType == 'none' then currentZoneId = 0 end
     Memory.currentZoneId = currentZoneId
 
     Private.TriggerUpdateInstructionFrame()
-    Private.AddLog('Entered zone: ' .. name)
 end
 
 function Module:OnEnable()
@@ -241,6 +240,11 @@ function Module:OnEnable()
 
     self:RefreshConfig()
 
+    Private.AddLog(L['Battleground Commander loaded'])
+    if Namespace.Database.profile.BattlegroundTools.InstructionFrame.firstTime then
+        Private.AddLog(L['You can access the configuration via /bgc or through the interface options'])
+        Namespace.Database.profile.BattlegroundTools.InstructionFrame.firstTime = false
+    end
     Private.ApplyLogs(Memory.InstructionFrame.Text)
 end
 

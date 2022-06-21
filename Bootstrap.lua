@@ -31,13 +31,14 @@ local defaultConfig = {
             showGroupQueueFrame = false,
         },
         BattlegroundTools = {
+            firstTime = true,
             InstructionFrame = {
                 show = true,
                 move = true,
                 size = { width = 200, height = 100 },
                 position = { anchor = 'CENTER', x = 0, y = 0 },
                 zones = {
-                    [0]    = false,
+                    [0]    = true,
                     [30]   = true,
                     [2197] = true,
                     [1191] = true,
