@@ -85,7 +85,7 @@ function Private.ApplyLogs(textObject)
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
     local colorHighlight = frameConfig.font.colorHighlight
     local colorTime = frameConfig.font.colorTime
-    local maxMessages = frameConfig.messageCount
+    local maxInstructions = frameConfig.font.maxInstructions
 
     local list = Memory.RaidWarningLogs.list
     local messages = {}
@@ -93,7 +93,7 @@ function Private.ApplyLogs(textObject)
     local timePrefix = format('|cff%.2x%.2x%.2x', colorTime.r * 255, colorTime.g * 255, colorTime.b * 255)
     local now = floor(GetTime())
 
-    for i = Memory.RaidWarningLogs.size, Memory.RaidWarningLogs.size - maxMessages, -1 do
+    for i = Memory.RaidWarningLogs.size, Memory.RaidWarningLogs.size - maxInstructions, -1 do
         count = count + 1
         local log = list[i]
         if not log then break end

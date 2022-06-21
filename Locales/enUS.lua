@@ -26,11 +26,15 @@ L['Color of the time text'] = true
 L['Font Flags'] = true
 L['Adjust the font flags'] = true
 L['Allow Repositioning'] = true
-L['Enable to be able to drag the frame around to reposition'] = true
+L['Enable to reposition or resize the frame'] = true
 L['Font Size'] = true
 L['Adjust the font size for the messages and time'] = true
 L['Enabled in Zones'] = true
-L['Select the battlegrounds where the frame should appear'] = true
+L['Select Zones'] = true
+L['Select the zones where the frame should appear when enabled'] = true
+L['Frame Text Configuration'] = true
+L['Maximum instructions'] = true
+L['The maximum amount of instructions to show'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
