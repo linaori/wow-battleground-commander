@@ -35,6 +35,9 @@ globals = {
     'IsInGroup',
     'IsInRaid',
     'GetTime',
+    'GetInstanceInfo',
+    'C_ChatInfo',
+    'InterfaceOptionsFrame_OpenToCategory',
 
     'SOUNDKIT',
     'RAID_CLASS_COLORS',

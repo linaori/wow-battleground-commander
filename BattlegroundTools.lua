@@ -1,4 +1,4 @@
-local ModuleName, Private, AddonName, Namespace = 'BattlegroundTools', {}, ...
+local _G, ModuleName, Private, AddonName, Namespace = _G, 'BattlegroundTools', {}, ...
 local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local LSM = Namespace.Libs.LibSharedMedia
@@ -42,7 +42,6 @@ Namespace.BattlegroundTools.Zones = {
     [1105] = L['Deepwind Gorge'],
     [566]  = L['Eye of the Storm'],
     [968]  = L['Eye of the Storm (Rated)'],
-    [628]  = L['Isle of Conquest'],
     [1803] = L['Seething Shore'],
     [727]  = L['Silvershard Mines'],
     [607]  = L['Strand of the Ancients'],
@@ -147,8 +146,11 @@ function Private.InitializeInstructionFrame()
     moveOverlay:SetScript('OnMouseUp', function(self)
         local parent = self:GetParent()
         parent:StopMovingOrSizing()
+
         local position = Namespace.Database.profile.BattlegroundTools.InstructionFrame.position
-        position.anchor, _, _, position.x, position.y = parent:GetPoint(1)
+        local anchor, _, _, x, y = parent:GetPoint(1)
+
+        position.anchor, position.x, position.y = anchor, x, y
     end)
 
     local resizeButton = CreateFrame('Button', nil, instructionFrame)

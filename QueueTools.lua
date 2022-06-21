@@ -1,4 +1,4 @@
-local ModuleName, Private, AddonName, Namespace = 'QueueTools', {}, ...
+local _G, ModuleName, Private, AddonName, Namespace = _G, 'QueueTools', {}, ...
 local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local ScrollingTable = Namespace.Libs.ScrollingTable
@@ -116,7 +116,6 @@ local Memory = {
     readyCheckButtonTicker = nil,
     readyCheckClearTimeout = nil,
 
-    showGroupQueueFrame = false,
     playerTableCache = {},
     playerData = {
         --[GUID] = {
@@ -134,11 +133,6 @@ local Memory = {
     -- the data that should be send next mercenary sync event
     sendMercenaryDataPayloadBuffer = nil,
 }
-
-function Private.SetGroupQueueVisibility(newValue)
-    Memory.showGroupQueueFrame = newValue
-    Namespace.Database.profile.QueueTools.showGroupQueueFrame = newValue
-end
 
 function Private.GetGroupType()
     if IsInRaid() then
@@ -385,13 +379,13 @@ function Private.CreateTableRow(index, data)
 end
 
 function Private.RefreshPlayerTable()
-    if not _G.BgcQueueFrame or not Memory.showGroupQueueFrame then return end
+    if not _G.BgcQueueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
 
     _G.BgcQueueFrame.PlayerTable:Refresh()
 end
 
 function Private.UpdatePlayerTableData()
-    if not _G.BgcQueueFrame or not Memory.showGroupQueueFrame then return end
+    if not _G.BgcQueueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
 
     _G.BgcQueueFrame.PlayerTable:SetData(Memory.playerTableCache)
 end
@@ -456,10 +450,10 @@ function Private.TriggerStateUpdates()
     Private.UpdatePlayerTableData()
 end
 
-function Private.UpdateQueuesFrameVisibility()
+function Private.UpdateQueueFrameVisibility(newVisibility)
     if not _G.BgcQueueFrame then return end
 
-    if Memory.showGroupQueueFrame then
+    if newVisibility then
         _G.BgcQueueFrame:Show()
     else
         _G.BgcQueueFrame:Hide()
@@ -473,12 +467,13 @@ function Private.InitializeBattlegroundModeCheckbox()
     local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundModeCheckbox', PVPUIFrame, 'UICheckButtonTemplate')
     checkbox:SetPoint('BOTTOMRIGHT', _G.PVEFrame, 'BOTTOMRIGHT', -2, 2)
     checkbox:SetSize(24, 24)
-    checkbox:SetChecked(Memory.showGroupQueueFrame)
-    checkbox:HookScript('OnClick', function (self)
-        Private.SetGroupQueueVisibility(self:GetChecked())
-        Private.UpdateQueuesFrameVisibility()
+    checkbox:SetChecked(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
+    checkbox:SetScript('OnClick', function (self)
+        local newVisibility = self:GetChecked()
 
-        if Memory.showGroupQueueFrame then
+        Namespace.Database.profile.QueueTools.showGroupQueueFrame = newVisibility
+        Private.UpdateQueueFrameVisibility(newVisibility)
+        if newVisibility then
             PlaySound(CharacterPanelOpenSound)
         else
             PlaySound(CharacterPanelCloseSound)
@@ -533,9 +528,7 @@ function Module:OnEnable()
 end
 
 function Module:RefreshConfig()
-    Memory.showGroupQueueFrame = Namespace.Database.profile.QueueTools.showGroupQueueFrame
-
-    Private.UpdateQueuesFrameVisibility()
+    Private.UpdateQueueFrameVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
@@ -628,10 +621,11 @@ function Private.InitializeGroupQueueFrame()
     queueFrame:SetPoint('TOPLEFT', PVPUIFrame, 'TOPRIGHT', 11, 0)
     queueFrame:SetPoint('BOTTOMLEFT', PVPUIFrame, 'BOTTOMRIGHT', 11, 0)
     queueFrame.TitleText:SetText(L['Group Information'])
-    queueFrame.CloseButton:HookScript('OnClick', function ()
-        PlaySound(CharacterPanelCloseSound)
-        Private.SetGroupQueueVisibility(false)
+    queueFrame.CloseButton:SetScript('OnClick', function ()
+        Namespace.Database.profile.QueueTools.showGroupQueueFrame = false
+        Private.UpdateQueueFrameVisibility(false)
         _G.BgcBattlegroundModeCheckbox:SetChecked(false)
+        PlaySound(CharacterPanelCloseSound)
     end)
     queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]]);
     PVPUIFrame.QueueFrame = queueFrame
@@ -642,10 +636,10 @@ function Private.InitializeGroupQueueFrame()
     playerTable.frame:SetPoint('TOPRIGHT', -4, -58)
     playerTable:RegisterEvents({}, true)
 
-    playerTable.frame:HookScript('OnShow', function (self)
+    playerTable.frame:SetScript('OnShow', function (self)
         self.refreshTimer = Module:ScheduleRepeatingTimer(Private.RefreshPlayerTable, Config.tableRefreshSeconds)
     end)
-    playerTable.frame:HookScript('OnHide', function (self)
+    playerTable.frame:SetScript('OnHide', function (self)
         Module:CancelTimer(self.refreshTimer)
     end)
 
@@ -655,7 +649,7 @@ function Private.InitializeGroupQueueFrame()
     readyCheckButton:SetText(L['Ready Check'])
     readyCheckButton:SetPoint('BOTTOM', 0, 3)
     readyCheckButton:SetSize(120, 22)
-    readyCheckButton:HookScript('OnClick', function () DoReadyCheck() end)
+    readyCheckButton:SetScript('OnClick', function () DoReadyCheck() end)
 
     queueFrame.ReadyCheckButton = readyCheckButton
 
@@ -666,7 +660,9 @@ function Module:ADDON_LOADED(_, addonName)
     if addonName == 'Blizzard_PVPUI' then
         Private.InitializeBattlegroundModeCheckbox()
         Private.InitializeGroupQueueFrame()
-        _G.PVPUIFrame:HookScript('OnShow', function () Private.UpdateQueuesFrameVisibility() end)
+        _G.PVPUIFrame:HookScript('OnShow', function ()
+            Private.UpdateQueueFrameVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
+        end)
         self:UnregisterEvent('ADDON_LOADED')
     end
 end

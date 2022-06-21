@@ -1,9 +1,8 @@
-local LibStub, AddonName, Namespace = LibStub, ...
+local _G, LibStub, AddonName, Namespace = _G, LibStub, ...
+_G.BattlegroundCommander = Namespace
 
 local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategory
 local format = string.format
-
-_G.BattlegroundCommander = Namespace
 
 Namespace.Meta = {
     nameShort = 'BG Commander',
@@ -44,7 +43,6 @@ local defaultConfig = {
                     [2197] = true,
                     [1191] = true,
                     [2118] = true,
-                    [628]  = true,
                     [2107] = true,
                     [529]  = true,
                     [1681] = true,
