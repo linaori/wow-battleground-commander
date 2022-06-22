@@ -77,6 +77,7 @@ local defaultConfig = {
                     color = { r = 0.7, g = 0.5, b = 0 },
                     shadowColor = { 0, 0, 0, 1 },
                     shadowOffset = { x = 1, y = -1 },
+                    topToBottom = true,
                 },
             },
         }
@@ -136,16 +137,10 @@ local function getOptions()
                                     get = function () return Namespace.BattlegroundTools:GetInstructionFrameMoveState() end,
                                     order = 2,
                                 },
-                                messageCount = {
-                                    name = L['Maximum instructions'],
-                                    desc = L['The maximum amount of instructions to show'],
-                                    type = 'range',
-                                    min = 1,
-                                    max = 10,
-                                    step = 1,
-                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('maxInstructions', value) end,
-                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('maxInstructions') end,
-                                    order = 3,
+                                filler1 = {
+                                    name = ' ',
+                                    type = 'description',
+                                    order = 3
                                 },
                                 fontDescription = {
                                     name = L['Frame Text Configuration'],
@@ -186,7 +181,7 @@ local function getOptions()
                                     get = function () return Namespace.BattlegroundTools:GetFontSetting('size') end,
                                     order = 7,
                                 },
-                                fontFiller = {
+                                fontMargin = {
                                     name = ' ',
                                     type = 'description',
                                     width = 'full',
@@ -235,7 +230,7 @@ local function getOptions()
                                     order = 12,
                                 },
                                 frameDesignDescription = {
-                                    name = L['Frame Design'],
+                                    name = L['Frame Layout'],
                                     type = 'description',
                                     width = 'full',
                                     fontSize = 'large',
@@ -305,12 +300,36 @@ local function getOptions()
                                     end,
                                     order = 19,
                                 },
+                                topToBottom = {
+                                    name = L['Latest message on top '],
+                                    desc = L['Enable to show the latest message on top, otherwise the latest message will be on the bottom'],
+                                    type = 'toggle',
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('topToBottom', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFontSetting('topToBottom') end,
+                                    order = 20,
+                                },
+                                maximumInstructions = {
+                                    name = L['Maximum instructions'],
+                                    desc = L['The maximum amount of instructions to show'],
+                                    type = 'range',
+                                    min = 1,
+                                    max = 10,
+                                    step = 1,
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('maxInstructions', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('maxInstructions') end,
+                                    order = 21,
+                                },
+                                filler2 = {
+                                    name = ' ',
+                                    type = 'description',
+                                    order = 22
+                                },
                                 zoneDescription = {
                                     name = L['Enabled in Zones'],
                                     type = 'description',
                                     width = 'full',
                                     fontSize = 'large',
-                                    order = 20,
+                                    order = 23,
                                 },
                                 zones = {
                                     name = L['Select Zones'],
@@ -319,7 +338,7 @@ local function getOptions()
                                     values = Namespace.BattlegroundTools.Zones,
                                     set = function (_, zoneId, value) Namespace.BattlegroundTools:SetZoneId(zoneId, value) end,
                                     get = function (_, zoneId) return Namespace.BattlegroundTools:GetZoneId(zoneId) end,
-                                    order = 21,
+                                    order = 24,
                                 },
                             },
                         },

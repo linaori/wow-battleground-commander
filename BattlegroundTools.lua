@@ -12,6 +12,7 @@ local GetInstanceInfo = GetInstanceInfo
 local concat = table.concat
 local format = string.format
 local floor = math.floor
+local min = math.min
 local TimeDiff = Namespace.Utils.TimeDiff
 
 local Memory = {
@@ -55,6 +56,8 @@ function Private.ApplyFont(textObject, fontConfig)
     textObject:SetTextColor(fontConfig.color.r, fontConfig.color.g, fontConfig.color.b)
     textObject:SetShadowColor(fontConfig.shadowColor.r, fontConfig.shadowColor.g, fontConfig.shadowColor.b, fontConfig.shadowColor.a)
     textObject:SetShadowOffset(fontConfig.shadowOffset.x, fontConfig.shadowOffset.y)
+    textObject:SetJustifyH('LEFT')
+    textObject:SetJustifyV(fontConfig.topToBottom and 'TOP' or 'BOTTOM')
 end
 
 function Private.ApplyFrameSettings()
@@ -120,14 +123,21 @@ function Private.ApplyLogs(textObject)
     local colorTime = frameConfig.font.colorTime
     local maxInstructions = frameConfig.settings.maxInstructions
 
-    local list = Memory.RaidWarningLogs.list
-    local messages = {}
-    local count = 0
+    local count, directionModifier
+    if frameConfig.font.topToBottom then
+        count = 0
+        directionModifier = 1
+    else
+        count = min(maxInstructions, Memory.RaidWarningLogs.size) + 1
+        directionModifier = -1
+    end
+
     local timePrefix = format('|cff%.2x%.2x%.2x', colorTime.r * 255, colorTime.g * 255, colorTime.b * 255)
     local now = floor(GetTime())
-
+    local list = Memory.RaidWarningLogs.list
+    local messages = {}
     for i = Memory.RaidWarningLogs.size, Memory.RaidWarningLogs.size - maxInstructions + 1, -1 do
-        count = count + 1
+        count = count + directionModifier
         local log = list[i]
         if not log then break end
 
@@ -199,8 +209,6 @@ function Private.InitializeInstructionFrame()
     Private.ApplyFont(text, Namespace.Database.profile.BattlegroundTools.InstructionFrame.font)
     text:SetPoint('TOPLEFT', 7, -7)
     text:SetPoint('BOTTOMRIGHT', -17, 7)
-    text:SetJustifyH('LEFT')
-    text:SetJustifyV('TOP')
 
     instructionFrame.MoveOverlay = moveOverlay
     instructionFrame.ResizeButton = resizeButton

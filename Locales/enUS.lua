@@ -35,7 +35,7 @@ L['Select the zones where the frame should appear when enabled'] = true
 L['Frame Text Configuration'] = true
 L['Maximum instructions'] = true
 L['The maximum amount of instructions to show'] = true
-L['Frame Design'] = true
+L['Frame Layout'] = true
 L['Background Texture'] = true
 L['Changes the background texture of the frame'] = true
 L['Border Texture'] = true
@@ -48,6 +48,8 @@ L['Background Color'] = true
 L['Border Color'] = true
 L['Battleground Commander loaded'] = true
 L['You can access the configuration via /bgc or through the interface options'] = true
+L['Latest message on top '] = true
+L['Enable to show the latest message on top, otherwise the latest message will be on the bottom'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
