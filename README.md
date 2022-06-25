@@ -6,6 +6,11 @@ This adds extra ready check tools, as well as being able to see who has a desert
 the mercenary contract is invisible to other players, the players you want to see the contract for need to have this
 addon installed.
 
+#### Queue Pause Detection
+Free choice of automatically notifying the group when the queue is paused, resumed, and doing a ready check to verify
+who is and isn't ready. These options can also be limited to being a group leader or assist. Additionally, if someone
+else with this addon does an automated ready check, it will try to automatically accept it.
+
 ### Battleground Tools
 Extra conveniences for Battlegrounds.
 
