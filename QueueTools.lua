@@ -166,6 +166,7 @@ local Channel = {
 
 local CommunicationEvent = {
     NotifyMercenaryDuration = 'Bgc:notifyMerc',
+    ReadyCheckHeartbeat = 'Bgc:rchb',
     packData = function (data)
         return Encoder:Encode(LibCompress:CompressHuffman(AceSerializer:Serialize(data)))
     end,
@@ -533,6 +534,10 @@ function Private.OnNotifyMercenaryDuration(_, text, _, sender)
     Private.RefreshPlayerTable()
 end
 
+function Private.OnReadyCheckHeartbeat()
+    _G.ReadyCheckFrameYesButton:Click()
+end
+
 function Module:OnInitialize()
     self:RegisterEvent('ADDON_LOADED')
 end
@@ -548,6 +553,7 @@ function Module:OnEnable()
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
     self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, Private.OnNotifyMercenaryDuration)
+    self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
@@ -574,19 +580,25 @@ function Module:UPDATE_BATTLEFIELD_STATUS(_, id)
     if status == 'queued' then
         local previousSuspendedQueue = Memory.queueStatus[id]
         if suspendedQueue == true and previousSuspendedQueue == false  then
+            local channel
             if config.sendPausedMessage then
-                local channel = CommunicationEvent.getMessageDestination()
+                channel = CommunicationEvent.getMessageDestination()
                 local message = format(Namespace.Meta.chatTemplate, format(L['Queue paused for for %s'], mapName))
                 SendChatMessage(message, channel)
             end
+
             if config.doReadyCheck and Private.CanDoReadyCheck() then
                 DoReadyCheck()
+                channel = channel or CommunicationEvent.GetMessageDestination()
+
+                self:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, 'ping', channel)
             end
         elseif config.sendResumedMessage and suspendedQueue == false and previousSuspendedQueue == true then
             local channel = CommunicationEvent.getMessageDestination()
             local message = format(Namespace.Meta.chatTemplate, format(L['Queue resumed for %s'], mapName))
             SendChatMessage(message, channel)
         end
+
         Memory.queueStatus[id] = suspendedQueue
     else
         Memory.queueStatus[id] = nil
