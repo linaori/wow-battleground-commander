@@ -6,9 +6,10 @@ local format = string.format
 
 Namespace.Meta = {
     nameShort = 'BG Commander',
-    name    = 'Battleground Commander',
+    name = 'Battleground Commander',
     version = [[@project-version@]],
-    date    = [[@project-date-iso@]],
+    date = [[@project-date-iso@]],
+    chatTemplate = '[Battleground Commander] %s',
 }
 
 Namespace.Libs = {
@@ -29,6 +30,12 @@ local defaultConfig = {
     profile = {
         QueueTools = {
             showGroupQueueFrame = false,
+            InspectQueue = {
+                onlyAsLeader = true,
+                sendPausedMessage = true,
+                sendResumedMessage = true,
+                doReadyCheck = true,
+            },
         },
         BattlegroundTools = {
             firstTime = true,
@@ -110,16 +117,67 @@ local function getOptions()
                         },
                     }
                 },
+                queue_tools = {
+                    name = L['Queue Tools'],
+                    type = 'group',
+                    order = 2,
+                    args = {
+                        inspect_queue = {
+                            name = L['Queue Inspection'],
+                            type = 'group',
+                            inline = true,
+                            order = 1,
+                            args = {
+                                onlyAsLeader = {
+                                    name = L['Only as Leader or Assist'],
+                                    desc = L['Enable the Queue Inspection features only when you are party leader or assist'],
+                                    type = 'toggle',
+                                    width = 'double',
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('onlyAsLeader', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('onlyAsLeader') end,
+                                    order = 1,
+                                },
+                                sendPausedMessage = {
+                                    name = L['Notify When Paused'],
+                                    desc = L['Send a chat message whenever the queue is paused'],
+                                    type = 'toggle',
+                                    width = 'double',
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('sendPausedMessage', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('sendPausedMessage') end,
+                                    order = 2,
+                                },
+                                sendResumedMessage = {
+                                    name = L['Notify When Resumed'],
+                                    desc = L['Send a chat message whenever the queue is resumed after being paused'],
+                                    type = 'toggle',
+                                    width = 'double',
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('sendResumedMessage', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('sendResumedMessage') end,
+                                    order = 3,
+                                },
+                                doReadyCheck = {
+                                    name = L['Ready Check on Pause'],
+                                    desc = L['Tries to do a ready check whenever a queue pause is detected'],
+                                    type = 'toggle',
+                                    width = 'double',
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('doReadyCheck', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('doReadyCheck') end,
+                                    order = 4,
+                                },
+                            }
+                        },
+                    },
+                },
                 battleground_tools = {
                     name = L['Battleground Tools'],
                     type = 'group',
-                    order = 2,
+                    order = 3,
                     args = {
                         instructions_frame = {
                             name = L['Instructions Frame'],
                             type = 'group',
                             inline = true,
-                            order = 2.1,
+                            order = 1,
                             args = {
                                 enable = {
                                     name = L['Enable'],
@@ -366,6 +424,7 @@ function Addon:OnInitialize()
     local ACD = Namespace.Libs.AceConfigDialog;
     self.optionsFrame = {
         information = ACD:AddToBlizOptions(AddonName, Namespace.Meta.nameShort, nil, 'information'),
+        queue_tools = ACD:AddToBlizOptions(AddonName, options.args.queue_tools.name, Namespace.Meta.nameShort, 'queue_tools'),
         battleground_tools = ACD:AddToBlizOptions(AddonName, options.args.battleground_tools.name, Namespace.Meta.nameShort, 'battleground_tools'),
         profiles = ACD:AddToBlizOptions(AddonName, options.args.profiles.name, Namespace.Meta.nameShort, 'profiles'),
     }

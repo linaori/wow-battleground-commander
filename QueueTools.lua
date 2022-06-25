@@ -6,6 +6,8 @@ local AceSerializer = Namespace.Libs.AceSerializer
 local LibCompress = Namespace.Libs.LibCompress
 local Encoder = LibCompress:GetAddonEncodeTable()
 
+Namespace.QueueTools = Module
+
 local DoReadyCheck = DoReadyCheck
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
@@ -15,6 +17,8 @@ local PlaySound = PlaySound
 local CharacterPanelOpenSound = SOUNDKIT.IG_CHARACTER_INFO_OPEN
 local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
+local GetNumGroupMembers = GetNumGroupMembers
+local GetBattlefieldStatus = GetBattlefieldStatus
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitFullName = UnitFullName
@@ -25,6 +29,7 @@ local UnitGUID = UnitGUID
 local IsInGroup = IsInGroup
 local IsInRaid = IsInRaid
 local GetTime = GetTime
+local SendChatMessage = SendChatMessage
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
@@ -91,7 +96,6 @@ local PlayerDataTargets = {
 local Config = {
     tableRefreshSeconds = 10,
     readyCheckStateResetSeconds = 10,
-    sendMercenaryDurationDelay = 1,
 }
 
 local GroupType = {
@@ -103,6 +107,7 @@ local GroupType = {
 }
 
 local Memory = {
+    currentZoneId = nil,
     me = {
         name = nil,
         realm = nil,
@@ -115,6 +120,12 @@ local Memory = {
     lastReadyCheckDuration = 0,
     readyCheckButtonTicker = nil,
     readyCheckClearTimeout = nil,
+
+    -- used to track whether or not the queue is paused
+    queueStatusTicker = nil,
+    queueStatus = {
+        --[0] = suspendedQueue boolean,
+    },
 
     playerTableCache = {},
     playerData = {
@@ -146,6 +157,13 @@ function Private.GetGroupType()
     return GroupType.solo
 end
 
+local Channel = {
+    Raid = 'RAID',
+    Party = 'PARTY',
+    Instance = 'INSTANCE_CHAT',
+    Whisper = 'WHISPER',
+}
+
 local CommunicationEvent = {
     NotifyMercenaryDuration = 'Bgc:notifyMerc',
     packData = function (data)
@@ -163,11 +181,11 @@ local CommunicationEvent = {
     getMessageDestination = function ()
         local groupType = Private.GetGroupType()
 
-        if groupType == GroupType.InstanceRaid or groupType == GroupType.InstanceParty then return 'INSTANCE_CHAT', nil end
-        if groupType == GroupType.Raid then return 'RAID', nil end
-        if groupType == GroupType.Party then return 'PARTY', nil end
+        if groupType == GroupType.InstanceRaid or groupType == GroupType.InstanceParty then return Channel.Instance, nil end
+        if groupType == GroupType.Raid then return Channel.Raid, nil end
+        if groupType == GroupType.Party then return Channel.Party, nil end
 
-        return 'WHISPER', Memory.me.name
+        return Channel.Whisper, Memory.me.name
     end,
 }
 
@@ -188,13 +206,14 @@ function Private.DoSendMercenaryDuration()
     Memory.sendMercenaryDataPayloadBuffer = nil
 end
 
-function Private.ScheduleSendMercenaryDuration(expirationTime)
+function Private.ScheduleSendMercenaryDuration()
+    local expirationTime = Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff)
     local shouldSchedule = Memory.sendMercenaryDataPayloadBuffer == nil
     local remaining = expirationTime == -1 and -1 or expirationTime - GetTime()
     Memory.sendMercenaryDataPayloadBuffer = { remaining = remaining }
 
     if not shouldSchedule then return end
-    Module:ScheduleTimer(Private.DoSendMercenaryDuration, Config.sendMercenaryDurationDelay)
+    Module:ScheduleTimer(Private.DoSendMercenaryDuration, ceil(GetNumGroupMembers() * 0.1))
 end
 
 function Private.GetPlayerDataByUnit(unit)
@@ -242,12 +261,16 @@ function Private.GetPlayerDataByName(name, realm)
     return nil
 end
 
+function Private.IsLeaderOrAssistant(unit)
+    return UnitIsGroupLeader(unit) or UnitIsGroupAssistant(unit)
+end
+
 function Private.CanDoReadyCheck()
     if Memory.lastReadyCheckTime + Memory.lastReadyCheckDuration > GetTime() then
         return false
     end
 
-    if not UnitIsGroupLeader('player') and not UnitIsGroupAssistant('player') then
+    if not Private.IsLeaderOrAssistant('player') then
         return false
     end
 
@@ -409,6 +432,12 @@ function Private.GetUnitListForCurrentGroupType()
     return PlayerDataTargets.solo
 end
 
+function Private.EnterZone()
+    local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
+    if instanceType == 'none' then currentZoneId = 0 end
+    Memory.currentZoneId = currentZoneId
+end
+
 function Private.TriggerStateUpdates()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
     if Memory.me.realm == nil then Memory.me.name, Memory.me.realm = UnitFullName('player') end
@@ -419,7 +448,7 @@ function Private.TriggerStateUpdates()
 
     local tableCache = {}
     for index, unit in pairs(Private.GetUnitListForCurrentGroupType()) do
-        if UnitExists(unit) and UnitIsPlayer(unit)then
+        if UnitExists(unit) and UnitIsPlayer(unit) then
             local dataIndex = UnitGUID(unit)
             local data = Memory.playerData[dataIndex]
             if not data then
@@ -429,7 +458,7 @@ function Private.TriggerStateUpdates()
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     mercenaryExpiry = -1,
-                    units = {primary = unit, unit = true},
+                    units = {primary = unit, [unit] = true},
                 }
 
                 Memory.playerData[dataIndex] = data
@@ -446,7 +475,7 @@ function Private.TriggerStateUpdates()
     end
 
     Memory.playerTableCache = tableCache
-    Private.ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+    Private.ScheduleSendMercenaryDuration()
     Private.UpdatePlayerTableData()
 end
 
@@ -513,10 +542,10 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK_CONFIRM')
     self:RegisterEvent('READY_CHECK_FINISHED')
     self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+    self:RegisterEvent('UPDATE_BATTLEFIELD_STATUS')
 
-    local update = function () Private.TriggerStateUpdates() end
-    self:RegisterEvent('GROUP_ROSTER_UPDATE', update);
-    self:RegisterEvent('PLAYER_ENTERING_WORLD', update);
+    self:RegisterEvent('GROUP_ROSTER_UPDATE')
+    self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
     self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, Private.OnNotifyMercenaryDuration)
 
@@ -525,6 +554,43 @@ function Module:OnEnable()
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 
     self:RefreshConfig()
+end
+
+function Module:GROUP_ROSTER_UPDATE()
+    Private.TriggerStateUpdates()
+end
+
+function Module:PLAYER_ENTERING_WORLD()
+    Private.EnterZone()
+    Private.TriggerStateUpdates()
+end
+
+function Module:UPDATE_BATTLEFIELD_STATUS(_, id)
+    local config = Namespace.Database.profile.QueueTools.InspectQueue
+
+    if Memory.currentZoneId ~= 0 or (config.onlyAsLeader and not Private.IsLeaderOrAssistant('player')) then return end
+
+    local status, mapName, _, _, suspendedQueue = GetBattlefieldStatus(id)
+    if status == 'queued' then
+        local previousSuspendedQueue = Memory.queueStatus[id]
+        if suspendedQueue == true and previousSuspendedQueue == false  then
+            if config.sendPausedMessage then
+                local channel = CommunicationEvent.getMessageDestination()
+                local message = format(Namespace.Meta.chatTemplate, format(L['Queue paused for for %s'], mapName))
+                SendChatMessage(message, channel)
+            end
+            if config.doReadyCheck and Private.CanDoReadyCheck() then
+                DoReadyCheck()
+            end
+        elseif config.sendResumedMessage and suspendedQueue == false and previousSuspendedQueue == true then
+            local channel = CommunicationEvent.getMessageDestination()
+            local message = format(Namespace.Meta.chatTemplate, format(L['Queue resumed for %s'], mapName))
+            SendChatMessage(message, channel)
+        end
+        Memory.queueStatus[id] = suspendedQueue
+    else
+        Memory.queueStatus[id] = nil
+    end
 end
 
 function Module:RefreshConfig()
@@ -536,7 +602,7 @@ function Module:COMBAT_LOG_EVENT_UNFILTERED()
     if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
 
     if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
-        Private.ScheduleSendMercenaryDuration(Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff))
+        Private.ScheduleSendMercenaryDuration()
     end
 end
 
@@ -665,4 +731,13 @@ function Module:ADDON_LOADED(_, addonName)
         end)
         self:UnregisterEvent('ADDON_LOADED')
     end
+end
+
+function Module:SetQueueInspectionSetting(setting, value)
+    local config = Namespace.Database.profile.QueueTools.InspectQueue
+    config[setting] = value
+end
+
+function Module:GetQueueInspectionSetting(setting)
+    return Namespace.Database.profile.QueueTools.InspectQueue[setting]
 end

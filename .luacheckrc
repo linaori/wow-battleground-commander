@@ -28,6 +28,7 @@ globals = {
     'UnitFullName',
     'GetRealmName',
     'GetNumGroupMembers',
+    'GetBattlefieldStatus',
     'UnitDebuff',
     'UnitIsPlayer',
     'UnitExists',
@@ -37,6 +38,7 @@ globals = {
     'GetTime',
     'GetInstanceInfo',
     'C_ChatInfo',
+    'SendChatMessage',
     'InterfaceOptionsFrame_OpenToCategory',
 
     'SOUNDKIT',
@@ -52,6 +54,6 @@ globals = {
     'pairs',
     'type',
     'print',
-    'concat',
+    'table',
     'select',
 }
