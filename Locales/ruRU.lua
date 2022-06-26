@@ -1,5 +1,6 @@
 local AddonName, Namespace = ...
-local L = Namespace.Libs.AceLocale:NewLocale(AddonName, 'enUS', true, not Namespace.Debug.enabled)
+local L = Namespace.Libs.AceLocale:NewLocale(AddonName, 'ruRU')
+if not L then return end
 
 L['Group Mode'] = true
 L['Ready Check'] = true

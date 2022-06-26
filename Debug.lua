@@ -1,7 +1,6 @@
 local Private, _, Namespace = {}, ...
 
 Namespace.Debug = {}
-
 --@debug@
 Namespace.Debug.enabled = true
 --@end-debug@

@@ -31,6 +31,8 @@ Debug.lua
 Utils.lua
 
 Locales\enUS.lua
+Locales\deDE.lua
+Locales\ruRU.lua
 
 QueueTools.lua
 BattlegroundTools.lua
