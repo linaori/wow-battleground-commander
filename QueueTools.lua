@@ -2,12 +2,13 @@ local _G, ModuleName, Private, AddonName, Namespace = _G, 'QueueTools', {}, ...
 local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local ScrollingTable = Namespace.Libs.ScrollingTable
-local AceSerializer = Namespace.Libs.AceSerializer
-local LibCompress = Namespace.Libs.LibCompress
-local Encoder = LibCompress:GetAddonEncodeTable()
 
 Namespace.QueueTools = Module
 
+local PackData = Namespace.Communication.PackData
+local UnpackData = Namespace.Communication.UnpackData
+local GetMessageDestination = Namespace.Communication.GetMessageDestination
+local GroupType = Namespace.Utils.GroupType
 local DoReadyCheck = DoReadyCheck
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
@@ -19,6 +20,7 @@ local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local GetNumGroupMembers = GetNumGroupMembers
 local GetBattlefieldStatus = GetBattlefieldStatus
+local GetRealmName = GetRealmName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitFullName = UnitFullName
@@ -26,15 +28,11 @@ local UnitDebuff = UnitDebuff
 local UnitIsPlayer = UnitIsPlayer
 local UnitExists = UnitExists
 local UnitGUID = UnitGUID
-local IsInGroup = IsInGroup
-local IsInRaid = IsInRaid
 local GetTime = GetTime
 local SendChatMessage = SendChatMessage
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
-local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
-local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
 local TimeDiff = Namespace.Utils.TimeDiff
 local max = math.max
 local ceil = math.ceil
@@ -98,14 +96,6 @@ local Config = {
     readyCheckStateResetSeconds = 10,
 }
 
-local GroupType = {
-    Solo = 1,
-    Party = 2,
-    Raid = 3,
-    InstanceParty = 4,
-    InstanceRaid = 5,
-}
-
 local Memory = {
     currentZoneId = nil,
     me = {
@@ -145,49 +135,9 @@ local Memory = {
     sendMercenaryDataPayloadBuffer = nil,
 }
 
-function Private.GetGroupType()
-    if IsInRaid() then
-        return (not IsInRaid(LE_PARTY_CATEGORY_HOME) and IsInRaid(LE_PARTY_CATEGORY_INSTANCE)) and GroupType.InstanceRaid or GroupType.Raid
-    end
-
-    if IsInGroup() then
-        return (not IsInGroup(LE_PARTY_CATEGORY_HOME) and IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) and GroupType.InstanceParty or GroupType.Party
-    end
-
-    return GroupType.solo
-end
-
-local Channel = {
-    Raid = 'RAID',
-    Party = 'PARTY',
-    Instance = 'INSTANCE_CHAT',
-    Whisper = 'WHISPER',
-}
-
 local CommunicationEvent = {
     NotifyMercenaryDuration = 'Bgc:notifyMerc',
     ReadyCheckHeartbeat = 'Bgc:rchb',
-    packData = function (data)
-        return Encoder:Encode(LibCompress:CompressHuffman(AceSerializer:Serialize(data)))
-    end,
-    unpackData = function (raw)
-        local decompressed = LibCompress:Decompress(Encoder:Decode(raw))
-        if not decompressed then return end
-
-        local success, data = AceSerializer:Deserialize(decompressed)
-        if not success then return end
-
-        return data
-    end,
-    getMessageDestination = function ()
-        local groupType = Private.GetGroupType()
-
-        if groupType == GroupType.InstanceRaid or groupType == GroupType.InstanceParty then return Channel.Instance, nil end
-        if groupType == GroupType.Raid then return Channel.Raid, nil end
-        if groupType == GroupType.Party then return Channel.Party, nil end
-
-        return Channel.Whisper, Memory.me.name
-    end,
 }
 
 local ColorList = {
@@ -200,8 +150,8 @@ local ColorList = {
 function Private.DoSendMercenaryDuration()
     if Memory.sendMercenaryDataPayloadBuffer == nil then return end
 
-    local channel, player = CommunicationEvent.getMessageDestination()
-    local payload = CommunicationEvent.packData(Memory.sendMercenaryDataPayloadBuffer)
+    local channel, player = GetMessageDestination()
+    local payload = PackData(Memory.sendMercenaryDataPayloadBuffer)
 
     Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, payload, channel, player)
     Memory.sendMercenaryDataPayloadBuffer = nil
@@ -317,7 +267,7 @@ function Private.CreateTableRow(index, data)
             else
                 local _, class = UnitClass(data.units.primary)
                 name = data.name
-                if data.realm ~= nil and data.realm ~= Memory.me.realm then
+                if data.realm ~= nil and data.realm ~= GetRealmName() then
                     name = name .. '-' .. data.realm
                 end
 
@@ -421,7 +371,7 @@ function Private.GetPlayerAuraExpiryTime(auraId)
 end
 
 function Private.GetUnitListForCurrentGroupType()
-    local groupType = Private.GetGroupType()
+    local groupType = Namespace.Utils.GetGroupType()
     if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
         return PlayerDataTargets.raid
     end
@@ -441,7 +391,6 @@ end
 
 function Private.TriggerStateUpdates()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
-    if Memory.me.realm == nil then Memory.me.name, Memory.me.realm = UnitFullName('player') end
 
     for _, data in pairs(Memory.playerData) do
         data.units = {}
@@ -522,7 +471,7 @@ function Private.InitializeBattlegroundModeCheckbox()
 end
 
 function Private.OnNotifyMercenaryDuration(_, text, _, sender)
-    local payload = CommunicationEvent.unpackData(text);
+    local payload = UnpackData(text);
     if not payload or payload.remaining == nil then return end
 
     local data = Private.GetPlayerDataByName(sender)
@@ -582,19 +531,19 @@ function Module:UPDATE_BATTLEFIELD_STATUS(_, id)
         if suspendedQueue == true and previousSuspendedQueue == false  then
             local channel
             if config.sendPausedMessage then
-                channel = CommunicationEvent.getMessageDestination()
+                channel = GetMessageDestination()
                 local message = format(Namespace.Meta.chatTemplate, format(L['Queue paused for for %s'], mapName))
                 SendChatMessage(message, channel)
             end
 
             if config.doReadyCheck and Private.CanDoReadyCheck() then
                 DoReadyCheck()
-                channel = channel or CommunicationEvent.GetMessageDestination()
+                channel = channel or GetMessageDestination()
 
                 self:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, 'ping', channel)
             end
         elseif config.sendResumedMessage and suspendedQueue == false and previousSuspendedQueue == true then
-            local channel = CommunicationEvent.getMessageDestination()
+            local channel = GetMessageDestination()
             local message = format(Namespace.Meta.chatTemplate, format(L['Queue resumed for %s'], mapName))
             SendChatMessage(message, channel)
         end

@@ -30,6 +30,8 @@ Bootstrap.lua
 Debug.lua
 Utils.lua
 
+Communication.lua
+
 Locales\enUS.lua
 Locales\deDE.lua
 Locales\ruRU.lua
