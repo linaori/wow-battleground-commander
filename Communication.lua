@@ -38,5 +38,5 @@ function Namespace.Communication.GetMessageDestination()
     if currentType == GroupType.Raid then return Channel.Raid, nil end
     if currentType == GroupType.Party then return Channel.Party, nil end
 
-    return Channel.Whisper, GetUnitName('player')
+    return Channel.Whisper, GetUnitName('player', true)
 end

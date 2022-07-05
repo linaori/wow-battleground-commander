@@ -9,6 +9,7 @@ local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
+local GetGroupType = Namespace.Utils.GetGroupType
 local DoReadyCheck = DoReadyCheck
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
@@ -20,6 +21,7 @@ local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local GetNumGroupMembers = GetNumGroupMembers
 local GetBattlefieldStatus = GetBattlefieldStatus
+local GetUnitName = GetUnitName
 local GetRealmName = GetRealmName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
@@ -371,7 +373,7 @@ function Private.GetPlayerAuraExpiryTime(auraId)
 end
 
 function Private.GetUnitListForCurrentGroupType()
-    local groupType = Namespace.Utils.GetGroupType()
+    local groupType = GetGroupType()
     if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
         return PlayerDataTargets.raid
     end
@@ -523,7 +525,9 @@ end
 function Module:UPDATE_BATTLEFIELD_STATUS(_, id)
     local config = Namespace.Database.profile.QueueTools.InspectQueue
 
-    if Memory.currentZoneId ~= 0 or (config.onlyAsLeader and not Private.IsLeaderOrAssistant('player')) then return end
+    if Memory.currentZoneId ~= 0 then return end
+    if GetNumGroupMembers() == 0 then return end
+    if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
 
     local status, mapName, _, _, suspendedQueue = GetBattlefieldStatus(id)
     if status == 'queued' then
@@ -602,7 +606,8 @@ function Module:READY_CHECK(_, initiatedByName, duration)
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
-    local data = Private.GetPlayerDataByUnit(unit)
+    -- ready check can give "target" instead as unit if you have a party/raid member selected during the confirmation
+    local data = unit == 'target' and Private.GetPlayerDataByName(GetUnitName('target', true)) or Private.GetPlayerDataByUnit(unit)
     if not data then return print(_, 'Missing unit', unit) end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined

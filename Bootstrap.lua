@@ -3,6 +3,8 @@ _G.BattlegroundCommander = Namespace
 
 local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategory
 local format = string.format
+local pairs = pairs
+local concat = table.concat
 
 Namespace.Meta = {
     nameShort = 'BG Commander',
@@ -24,6 +26,7 @@ Namespace.Libs = {
     LibCompress = LibStub('LibCompress'),
     LibSharedMedia = LibStub('LibSharedMedia-3.0'),
     ScrollingTable = LibStub('ScrollingTable'),
+    LibDropDown = LibStub('LibUIDropDownMenu-4.0'),
 }
 
 local defaultConfig = {
@@ -39,6 +42,11 @@ local defaultConfig = {
         },
         BattlegroundTools = {
             firstTime = true,
+            WantBattlegroundLead = {
+                wantLead = false,
+                automaticallyAccept = {},
+                automaticallyReject = {},
+            },
             InstructionFrame = {
                 show = true,
                 move = true,
@@ -90,6 +98,24 @@ local defaultConfig = {
         }
     },
 }
+
+local function textToKeyedTable(input)
+    local table = {}
+    for name in input:gmatch("[^\n]+") do
+        table[name:gsub('%s+', '')] = true
+    end
+    return table
+end
+
+local function keyedTableToText(table)
+    local text = {}
+    local i = 0
+    for name in pairs(table) do
+        i = i + 1
+        text[i] = name
+    end
+    return concat(text, "\n")
+end
 
 local addonOptions
 local function getOptions()
@@ -176,7 +202,6 @@ local function getOptions()
                         instructions_frame = {
                             name = L['Instructions Frame'],
                             type = 'group',
-                            inline = true,
                             order = 1,
                             args = {
                                 enable = {
@@ -195,16 +220,9 @@ local function getOptions()
                                     get = function () return Namespace.BattlegroundTools:GetInstructionFrameMoveState() end,
                                     order = 2,
                                 },
-                                filler1 = {
-                                    name = ' ',
-                                    type = 'description',
-                                    order = 3
-                                },
                                 fontDescription = {
                                     name = L['Frame Text Configuration'],
-                                    type = 'description',
-                                    width = 'full',
-                                    fontSize = 'large',
+                                    type = 'header',
                                     order = 4,
                                 },
                                 font = {
@@ -238,12 +256,6 @@ local function getOptions()
                                     set = function (_, value) Namespace.BattlegroundTools:SetFontSetting('size', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFontSetting('size') end,
                                     order = 7,
-                                },
-                                fontMargin = {
-                                    name = ' ',
-                                    type = 'description',
-                                    width = 'full',
-                                    order = 8,
                                 },
                                 highlightColor = {
                                     name = L['Highlight Color'],
@@ -280,18 +292,9 @@ local function getOptions()
                                     end,
                                     order = 11,
                                 },
-                                colorMargin = {
-                                    name = ' ',
-                                    type = 'description',
-                                    width = 'full',
-                                    fontSize = 'large',
-                                    order = 12,
-                                },
                                 frameDesignDescription = {
                                     name = L['Frame Layout'],
-                                    type = 'description',
-                                    width = 'full',
-                                    fontSize = 'large',
+                                    type = 'header',
                                     order = 13,
                                 },
                                 backgroundTexture = {
@@ -313,7 +316,7 @@ local function getOptions()
                                     step = 1,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('backgroundInset', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFrameSetting('backgroundInset') end,
-                                    order = 15,
+                                    order = 16,
                                 },
                                 backgroundColor = {
                                     name = L['Background Color'],
@@ -324,7 +327,7 @@ local function getOptions()
                                         local color = Namespace.BattlegroundTools:GetFrameSetting('backgroundColor')
                                         return color.r, color.g, color.b, color.a
                                     end,
-                                    order = 16,
+                                    order = 18,
                                 },
                                 borderTexture = {
                                     name = L['Border Texture'],
@@ -334,18 +337,18 @@ local function getOptions()
                                     values = LibSharedMediaBorders,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('borderTexture', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFrameSetting('borderTexture') end,
-                                    order = 17,
+                                    order = 15,
                                 },
                                 borderSize = {
                                     name = L['Border Size'],
                                     desc = L['Changes the border size'],
                                     type = 'range',
                                     min = 0,
-                                    max = 20,
+                                    max = 30,
                                     step = 1,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('borderSize', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFrameSetting('borderSize') end,
-                                    order = 18,
+                                    order = 17,
                                 },
                                 borderColor = {
                                     name = L['Border Color'],
@@ -371,22 +374,15 @@ local function getOptions()
                                     desc = L['The maximum amount of instructions to show'],
                                     type = 'range',
                                     min = 1,
-                                    max = 10,
+                                    max = 20,
                                     step = 1,
                                     set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('maxInstructions', value) end,
                                     get = function () return Namespace.BattlegroundTools:GetFrameSetting('maxInstructions') end,
                                     order = 21,
                                 },
-                                filler2 = {
-                                    name = ' ',
-                                    type = 'description',
-                                    order = 22
-                                },
                                 zoneDescription = {
                                     name = L['Enabled in Zones'],
-                                    type = 'description',
-                                    width = 'full',
-                                    fontSize = 'large',
+                                    type = 'header',
                                     order = 23,
                                 },
                                 zones = {
@@ -397,6 +393,39 @@ local function getOptions()
                                     set = function (_, zoneId, value) Namespace.BattlegroundTools:SetZoneId(zoneId, value) end,
                                     get = function (_, zoneId) return Namespace.BattlegroundTools:GetZoneId(zoneId) end,
                                     order = 24,
+                                },
+                            },
+                        },
+                        battleground_leader = {
+                            name = L['Battleground Leader'],
+                            type = 'group',
+                            order = 2,
+                            args = {
+                                acceptRejectDescription = {
+                                    name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'],
+                                    type = 'description',
+                                    width = 'full',
+                                    order = 1,
+                                },
+                                automaticallyAccept = {
+                                    name = L['Automatically Accept Request'],
+                                    desc = L['Players to automatically accept when they request lead'],
+                                    type = 'input',
+                                    width = 'full',
+                                    multiline = 10,
+                                    set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyAccept', textToKeyedTable(input)) end,
+                                    get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyAccept')) end,
+                                    order = 2,
+                                },
+                                automaticallyReject = {
+                                    name = L['Automatically Reject Request'],
+                                    desc = L['Players to automatically reject when they request lead'],
+                                    type = 'input',
+                                    width = 'full',
+                                    multiline = 10,
+                                    set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyReject', textToKeyedTable(input)) end,
+                                    get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyReject')) end,
+                                    order = 3,
                                 },
                             },
                         },
@@ -412,6 +441,10 @@ end
 local Addon = Namespace.Libs.AceAddon:NewAddon(AddonName, 'AceConsole-3.0')
 
 Namespace.Addon = Addon
+
+function Addon:PrintMessage(message)
+    print(format(Namespace.Meta.chatTemplate, message))
+end
 
 function Addon:OnInitialize()
     local options = getOptions()

@@ -42,6 +42,7 @@ globals = {
     'C_ChatInfo',
     'SendChatMessage',
     'InterfaceOptionsFrame_OpenToCategory',
+    'PromoteToLeader',
 
     'SOUNDKIT',
     'RAID_CLASS_COLORS',

@@ -1,22 +1,50 @@
 local _G, ModuleName, Private, AddonName, Namespace = _G, 'BattlegroundTools', {}, ...
-local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0')
+local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local LSM = Namespace.Libs.LibSharedMedia
+local LibDD = Namespace.Libs.LibDropDown
 
 Namespace.BattlegroundTools = Module
 
+local Channel = Namespace.Communication.Channel
+local GetMessageDestination = Namespace.Communication.GetMessageDestination
+local GroupType = Namespace.Utils.GroupType
+local GetGroupType = Namespace.Utils.GetGroupType
 local CreateFrame = CreateFrame
 local GetTime = GetTime
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
 local GetInstanceInfo = GetInstanceInfo
+local GetUnitName = GetUnitName
+local PromoteToLeader = PromoteToLeader
+local PlaySound = PlaySound
+local UnitIsGroupLeader = UnitIsGroupLeader
+local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
+local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
 local concat = table.concat
 local format = string.format
 local floor = math.floor
 local min = math.min
+local pairs = pairs
 local TimeDiff = Namespace.Utils.TimeDiff
+local print = Namespace.Debug.print
+
+local CommunicationEvent = {
+    WantBattlegroundLead = 'bgc:wantLead',
+    AcknowledgeWantBattlegroundLead = 'bgc:wantLeadAck',
+}
 
 local Memory = {
     currentZoneId = nil,
+
+    WantBattlegroundLead = {
+        wantLeadTimer = nil,
+        DialogFrame = nil,
+        dropdownSelection = {},
+        requestedBy = {},
+        recentlyRejected = {},
+        requestedByCount = 0,
+    },
+
     InstructionFrame = nil,
     RaidWarningLogs = {
         last = nil,
@@ -218,7 +246,53 @@ function Private.InitializeInstructionFrame()
 end
 
 function Module:OnInitialize()
+    self:RegisterEvent('ADDON_LOADED')
+
     Private.InitializeInstructionFrame()
+end
+
+function Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+    local mem = Memory.WantBattlegroundLead
+    local dialog = mem.DialogFrame
+    if not dialog then return end
+
+    dialog:SetShown(mem.requestedByCount > 0)
+    local dropdown = dialog.Dropdown
+
+    local lastName
+    local count = 0
+    LibDD:UIDropDownMenu_Initialize(dropdown, function ()
+        for name, _ in pairs(mem.requestedBy) do
+            if not mem.dropdownSelection[name] then
+                mem.dropdownSelection[name] = false
+            end
+
+            lastName = name
+            count = count + 1
+
+            local info = LibDD:UIDropDownMenu_CreateInfo()
+            info.text = name
+            info.checked = mem.dropdownSelection[name]
+            info.isNotRadio = true
+            info.keepShownOnClick = true
+            info.arg1 = name
+            info.func = dialog.Dropdown.OnSelect
+            LibDD:UIDropDownMenu_AddButton(info)
+        end
+    end)
+
+    local message
+    if count == 1 then
+        LibDD:UIDropDownMenu_SetWidth(dropdown, 230)
+        message = format(L['%s is requesting lead'], lastName)
+    else
+        LibDD:UIDropDownMenu_SetWidth(dropdown, 190)
+        message = format(L['%d people requested lead'], count)
+    end
+
+    LibDD:UIDropDownMenu_SetText(dropdown, message)
+print()
+    Private.UpdateAcceptRejectButtonState()
 end
 
 function Private.TriggerUpdateInstructionFrame()
@@ -234,17 +308,28 @@ function Private.EnterZone()
     local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
     if instanceType == 'none' then currentZoneId = 0 end
     Memory.currentZoneId = currentZoneId
+    Memory.WantBattlegroundLead.requestedBy = {}
+    Memory.WantBattlegroundLead.recentlyRejected = {}
+    Memory.WantBattlegroundLead.requestedByCount = 0
 
     Private.TriggerUpdateInstructionFrame()
+    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+    Private.RequestRaidLead()
 end
 
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
+    self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
+
+    self:RegisterComm(CommunicationEvent.WantBattlegroundLead, Private.OnWantBattlegroundLead)
+    self:RegisterComm(CommunicationEvent.AcknowledgeWantBattlegroundLead, Private.OnAcknowledgeWantBattlegroundLead)
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
+
+    Private.InitializeBattlegroundLeaderDialog()
 
     self:RefreshConfig()
 
@@ -253,11 +338,16 @@ function Module:OnEnable()
         Private.AddLog(L['You can access the configuration via /bgc or through the interface options'])
         Namespace.Database.profile.BattlegroundTools.InstructionFrame.firstTime = false
     end
+
     Private.ApplyLogs(Memory.InstructionFrame.Text)
 end
 
 function Module:CHAT_MSG_RAID_WARNING(_, message)
     Private.AddLog(message)
+end
+
+function Module:GROUP_ROSTER_UPDATE()
+    Private.RequestRaidLead()
 end
 
 function Module:RefreshConfig()
@@ -268,19 +358,8 @@ function Module:RefreshConfig()
     Memory.InstructionFrame:SetPoint(frameConfig.position.anchor, _G.UIParent, frameConfig.position.anchor, frameConfig.position.x, frameConfig.position.y)
     Memory.InstructionFrame.ResizeButton:SetShown(frameConfig.move)
 
+    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
     Private.TriggerUpdateInstructionFrame()
-end
-
-function Module:OnDisable()
-    Memory.InstructionFrame:Hide()
-
-    Namespace.Database.UnregisterCallback(self, 'OnProfileChanged')
-    Namespace.Database.UnregisterCallback(self, 'OnProfileCopied')
-    Namespace.Database.UnregisterCallback(self, 'OnProfileReset')
-
-    self:UnregisterEvent('CHAT_MSG_RAID_WARNING')
-
-    self:HideInstructionsFrame()
 end
 
 function Module:ShowInstructionsFrame()
@@ -291,7 +370,7 @@ function Module:ShowInstructionsFrame()
     if Memory.InstructionFrame.timer then return end
     Memory.InstructionFrame.timer = self:ScheduleRepeatingTimer(function ()
         Private.ApplyLogs(Memory.InstructionFrame.Text)
-    end , 0.2)
+    end, 0.2)
 end
 
 function Module:HideInstructionsFrame()
@@ -330,4 +409,268 @@ end
 
 function Module:GetZoneId(zoneId)
     return Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[zoneId]
+end
+
+function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
+    if sender == GetUnitName('player', true) then return end
+end
+
+function Private.OnWantBattlegroundLead(_, _, _, sender)
+    if sender == GetUnitName('player', true) then return end
+
+    local options = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
+    if options.wantLead then return end
+    if options.automaticallyAccept[sender] then return PromoteToLeader(sender) end
+    if options.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
+
+    local mem = Memory.WantBattlegroundLead
+    mem.requestedBy[sender] = true
+    mem.requestedByCount = mem.requestedByCount + 1
+
+    local channel = GetMessageDestination()
+    if channel == Channel.Whisper then return end
+
+    Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, '1', channel)
+
+    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+end
+
+function Private.SendWantBattlegroundLead()
+    local mem = Memory.WantBattlegroundLead
+    mem.wantLeadTimer = nil
+
+    local channel = GetMessageDestination()
+    if channel == Channel.Whisper then return end
+
+    Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, '1', channel)
+end
+
+function Private.GetRaidLeaderUnit()
+    local groupType, maxSize, type = GetGroupType(), 6, 'party'
+    if groupType == 'solo' then return nil end
+
+    if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
+        maxSize, type = 40, 'raid'
+    end
+
+    for i = 1, maxSize do
+        local unit = type .. i
+        if UnitIsGroupLeader(unit) then
+            return unit
+        end
+    end
+
+    return nil
+end
+
+function Private.RequestRaidLead()
+    local mem = Memory.WantBattlegroundLead
+
+    if mem.wantLeadTimer then return end
+    if Memory.currentZoneId == 0 then return end
+    if not Namespace.BattlegroundTools.Zones[Memory.currentZoneId] then return end
+    if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return end
+    if UnitIsGroupLeader('player') then return end
+
+    mem.wantLeadTimer = Module:ScheduleTimer(Private.SendWantBattlegroundLead, 3)
+end
+
+function Private.ProcessDropDownOptions(onNameSelected)
+    local mem = Memory.WantBattlegroundLead
+    local found = 0
+    local total = 0
+    local lastName
+    local names = {}
+    for name, isChecked in pairs(mem.dropdownSelection) do
+        if mem.requestedBy[name] then
+            found = found + 1
+            lastName = name
+            if isChecked then
+                total = total + 1
+                names[total] = name
+            end
+        end
+    end
+
+    if found == 1 and total == 0 then
+        -- automatically pick the only option
+        names[1] = lastName
+    end
+
+    for _, name in pairs(names) do
+        if onNameSelected(name) then break end
+    end
+end
+
+function Private.AcceptManualBattlegroundLeaderRequest()
+    local mem = Memory.WantBattlegroundLead
+    local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
+    local automaticallyAccept = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.automaticallyAccept
+
+    Private.ProcessDropDownOptions(function (name)
+        mem.requestedBy[name] = nil
+        mem.requestedByCount = mem.requestedByCount - 1
+        if remember then automaticallyAccept[name] = true end
+
+        PromoteToLeader(name)
+
+        return true -- only ever attempt once
+    end)
+
+    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+end
+
+function Private.RejectManualBattlegroundLeaderRequest()
+    local mem = Memory.WantBattlegroundLead
+    local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
+    local automaticallyReject = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.automaticallyReject
+    Private.ProcessDropDownOptions(function (name)
+        mem.requestedBy[name] = nil
+        mem.recentlyRejected[name] = true
+        mem.requestedByCount = mem.requestedByCount - 1
+        if remember then
+            automaticallyReject[name] = true
+        end
+
+        return false
+    end)
+
+    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+end
+
+function Private.UpdateAcceptRejectButtonState()
+    local frame = Memory.WantBattlegroundLead.DialogFrame
+    if not frame then return end
+
+    local possibilities = 0
+    Private.ProcessDropDownOptions(function ()
+        possibilities = possibilities + 1
+
+        if possibilities > 1 then return true end
+    end)
+
+    frame.AcceptButton:SetEnabled(possibilities == 1)
+    frame.RejectButton:SetEnabled(possibilities > 0)
+end
+
+function Private.InitializeBattlegroundLeaderDialog()
+    local dialog = CreateFrame('Frame', 'BgcBattlegroundLeaderDialog', _G.UIParent, _G.BackdropTemplateMixin and 'BackdropTemplate')
+    dialog:SetSize(320, 160)
+    dialog:SetFrameStrata('DIALOG')
+    dialog:SetPoint('TOP', _G.UIParent, 'TOP', 0, -300)
+    dialog:SetMovable(true)
+    dialog:SetClampedToScreen(true)
+    dialog:SetBackdrop({
+        bgFile = LSM:Fetch('background', 'Blizzard Dialog Background Dark'),
+        edgeFile = LSM:Fetch('border', 'Blizzard Dialog'),
+        tile = true,
+        tileSize = 20,
+        edgeSize = 20,
+        insets = {
+            left = 5,
+            right = 5,
+            top = 5,
+            bottom = 5,
+        }
+    })
+    dialog:SetBackdropColor(0.5, 0.5, 0.5, 1);
+    dialog:SetBackdropBorderColor(0.7, 0.7, 0.7, 1)
+    dialog:SetScript('OnMouseDown', function(self) self:StartMoving() end)
+    dialog:SetScript('OnMouseUp', function(self) self:StopMovingOrSizing() end)
+
+    local dialogText = dialog:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
+    dialogText:SetText(L['Lead Requested'])
+    dialogText:SetPoint('TOP', 0, -12)
+    dialogText:SetPoint('LEFT', 0, 0)
+    dialogText:SetPoint('RIGHT', 0, 0)
+
+    local dropdown = LibDD:Create_UIDropDownMenu('BgcSelectLeaderDropDown', dialog)
+    dropdown:SetPoint('CENTER', dialog, 'CENTER', 0, 10)
+
+    function dropdown:OnSelect(name, _, checked)
+        Memory.WantBattlegroundLead.dropdownSelection[name] = checked
+
+        Private.UpdateAcceptRejectButtonState()
+    end
+
+    local acceptButton = CreateFrame('Button', nil, dialog, 'UIPanelButtonTemplate')
+    acceptButton:SetSize(110, 24)
+    acceptButton:SetText('Accept')
+    acceptButton:SetPoint('BOTTOMRIGHT', dialog, 'BOTTOM', -2, 8)
+    acceptButton:SetScript('OnClick', Private.AcceptManualBattlegroundLeaderRequest)
+
+    local rejectButton = CreateFrame('Button', nil, dialog, 'UIPanelButtonTemplate')
+    rejectButton:SetSize(110, 24)
+    rejectButton:SetText('Reject')
+    rejectButton:SetPoint('BOTTOMLEFT', dialog, 'BOTTOM', 2, 8)
+    rejectButton:SetScript('OnClick', Private.RejectManualBattlegroundLeaderRequest)
+
+    local checkbox = CreateFrame('CheckButton', nil, dialog, 'UICheckButtonTemplate')
+    local checkboxLabel = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
+    checkbox:SetPoint('RIGHT', checkboxLabel, 'LEFT', 0, 0)
+    checkbox:SetSize(24, 24)
+    checkboxLabel:SetText('Remember this choice')
+    checkboxLabel:SetPoint('BOTTOM', dialog, 'BOTTOM', 0, 42)
+
+    dialog.Text = dialogText
+    dialog.Dropdown = dropdown
+    dialog.AcceptButton = acceptButton
+    dialog.RejectButton = rejectButton
+    dialog.RememberNameCheckbox = checkbox
+
+    dialog:Hide()
+
+    Memory.WantBattlegroundLead.DialogFrame = dialog
+end
+
+function Private.InitializeBattlegroundLeaderCheckbox()
+    local PVPUIFrame = _G.PVPUIFrame
+    local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundLeaderCheckbox', PVPUIFrame, 'UICheckButtonTemplate')
+    checkbox:SetPoint('LEFT', _G.HonorFrameQueueButton, 'RIGHT', 2, 0)
+    checkbox:SetSize(24, 24)
+    checkbox:SetChecked(Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead)
+    checkbox:SetScript('OnEnter', function (self)
+        _G.GameTooltip:SetOwner(self, 'ANCHOR_RIGHT');
+        _G.GameTooltip:SetText(L['Requests lead upon entering or enabling this option'], nil, nil, nil, nil, true);
+    end)
+    checkbox:SetScript('OnLeave', function ()
+        _G.GameTooltip:Hide();
+    end)
+    checkbox:SetScript('OnClick', function (self)
+        local wantLead = self:GetChecked()
+
+        Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead = wantLead
+        if wantLead then
+            PlaySound(ActivateWarmodeSound)
+            Private.RequestRaidLead()
+        else
+            PlaySound(DeactivateWarmodeSound)
+        end
+    end)
+    checkbox:Show()
+
+    PVPUIFrame.BattlegroundModeCheckbox = checkbox
+
+    local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
+    text:SetText(L['As Leader'])
+    text:SetPoint('LEFT', checkbox, 'RIGHT')
+    text:SetWordWrap(false)
+
+    checkbox.Text = text
+end
+
+function Module:ADDON_LOADED(_, addonName)
+    if addonName == 'Blizzard_PVPUI' then
+        Private.InitializeBattlegroundLeaderCheckbox()
+
+        self:UnregisterEvent('ADDON_LOADED')
+    end
+end
+
+function Module:SetWantLeadSetting(key, table)
+    Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead[key] = table
+end
+
+function Module:GetWantLeadSetting(key)
+    return Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead[key]
 end

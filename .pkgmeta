@@ -19,6 +19,7 @@ externals:
     Libs/lib-st: https://github.com/ddumont/lib-st.git
     Libs/LibCompress: https://repos.wowace.com/wow/libcompress/trunk
     Libs/AceGUI-3.0-SharedMediaWidgets: https://repos.curseforge.com/wow/ace-gui-3-0-shared-media-widgets/trunk/AceGUI-3.0-SharedMediaWidgets
+    Libs/LibUIDropDownMenu: https://repos.wowace.com/wow/libuidropdownmenu/trunk
 
 ignore:
     - .github
