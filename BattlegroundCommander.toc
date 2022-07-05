@@ -25,7 +25,7 @@ Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceSerializer-3.0\AceSerializer-3.0.xml
 Libs\lib-st\lib-st.xml
 Libs\LibCompress\lib.xml
-Libs\LibUIDropDownMenu\LibUIDropDownMenu.lua
+Libs\LibUIDropDownMenu\LibUIDropDownMenu\LibUIDropDownMenu.lua
 
 Bootstrap.lua
 Debug.lua
