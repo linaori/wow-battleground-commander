@@ -26,7 +26,7 @@ local floor = math.floor
 local min = math.min
 local pairs = pairs
 local TimeDiff = Namespace.Utils.TimeDiff
-local print = Namespace.Debug.print
+--local print = Namespace.Debug.print
 
 local CommunicationEvent = {
     WantBattlegroundLead = 'bgc:wantLead',
@@ -291,7 +291,7 @@ function Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
     end
 
     LibDD:UIDropDownMenu_SetText(dropdown, message)
-print()
+
     Private.UpdateAcceptRejectButtonState()
 end
 
@@ -420,7 +420,10 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
 
     local options = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     if options.wantLead then return end
-    if options.automaticallyAccept[sender] then return PromoteToLeader(sender) end
+    if options.automaticallyAccept[sender] then
+        PromoteToLeader(sender)
+        return Namespace.Addon:PrintMessage(format(L['Automatically giving lead to %s'], sender))
+    end
     if options.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
 
     local mem = Memory.WantBattlegroundLead
@@ -652,7 +655,7 @@ function Private.InitializeBattlegroundLeaderCheckbox()
     PVPUIFrame.BattlegroundModeCheckbox = checkbox
 
     local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
-    text:SetText(L['As Leader'])
+    text:SetText(L['As BG Leader'])
     text:SetPoint('LEFT', checkbox, 'RIGHT')
     text:SetWordWrap(false)
 

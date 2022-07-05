@@ -52,7 +52,7 @@ L['Latest message on top '] = true
 L['Enable to show the latest message on top, otherwise the latest message will be on the bottom'] = true
 L['Queue paused for for %s'] = true
 L['Queue resumed for %s'] = true
-L['As Leader'] = true
+L['As BG Leader'] = true
 L['Requests lead upon entering or enabling this option'] = true
 L['Lead Requested'] = true
 L['%s is requesting lead'] = true
@@ -63,6 +63,7 @@ L['Automatically Reject Request'] = true
 L['Players to automatically accept when they request lead'] = true
 L['Players to automatically reject when they request lead'] = true
 L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'] = true
+L['Automatically giving lead to %s'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
