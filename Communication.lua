@@ -14,6 +14,7 @@ local Channel = {
     Party = 'PARTY',
     Instance = 'INSTANCE_CHAT',
     Whisper = 'WHISPER',
+    Say = 'SAY',
 }
 Namespace.Communication.Channel = Channel
 

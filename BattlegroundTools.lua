@@ -7,6 +7,7 @@ local LibDD = Namespace.Libs.LibDropDown
 Namespace.BattlegroundTools = Module
 
 local Channel = Namespace.Communication.Channel
+local GetGroupLeaderUnit = Namespace.Utils.GetGroupLeaderUnit
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
@@ -18,6 +19,7 @@ local GetUnitName = GetUnitName
 local PromoteToLeader = PromoteToLeader
 local PlaySound = PlaySound
 local UnitIsGroupLeader = UnitIsGroupLeader
+local SendChatMessage = SendChatMessage
 local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
 local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
 local concat = table.concat
@@ -43,6 +45,8 @@ local Memory = {
         requestedBy = {},
         recentlyRejected = {},
         requestedByCount = 0,
+        ackTimer = nil,
+        ackLeader = nil,
     },
 
     InstructionFrame = nil,
@@ -307,10 +311,12 @@ end
 function Private.EnterZone()
     local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
     if instanceType == 'none' then currentZoneId = 0 end
+
     Memory.currentZoneId = currentZoneId
     Memory.WantBattlegroundLead.requestedBy = {}
     Memory.WantBattlegroundLead.recentlyRejected = {}
     Memory.WantBattlegroundLead.requestedByCount = 0
+    Memory.WantBattlegroundLead.ackLeader = nil
 
     Private.TriggerUpdateInstructionFrame()
     Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
@@ -413,18 +419,25 @@ end
 
 function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
     if sender == GetUnitName('player', true) then return end
+
+    local mem = Memory.WantBattlegroundLead
+    if not mem.ackTimer then return end
+
+    Module:CancelTimer(mem.ackTimer)
+    mem.ackTimer = nil
+    mem.ackLeader = nil
 end
 
 function Private.OnWantBattlegroundLead(_, _, _, sender)
     if sender == GetUnitName('player', true) then return end
 
-    local options = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
-    if options.wantLead then return end
-    if options.automaticallyAccept[sender] then
+    local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
+    if config.wantLead then return end
+    if config.automaticallyAccept[sender] then
         PromoteToLeader(sender)
         return Namespace.Addon:PrintMessage(format(L['Automatically giving lead to %s'], sender))
     end
-    if options.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
+    if config.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
 
     local mem = Memory.WantBattlegroundLead
     mem.requestedBy[sender] = true
@@ -438,12 +451,36 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
     Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
 
+function Private.SendManualChatMessages()
+    local mem = Memory.WantBattlegroundLead
+    local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
+
+    mem.ackTimer = nil
+    if not config.enableManualRequest or not config.wantLead then return end
+
+    mem.ackLeader = GetUnitName(GetGroupLeaderUnit(), true)
+
+    local message = config.manualRequestMessage:gsub('{leader}', mem.ackLeader)
+    if config.sendWhisper then SendChatMessage(message, Channel.Whisper, nil, mem.ackLeader) end
+    if config.sendSay and Memory.currentZoneId ~= 0 then SendChatMessage(message, Channel.Say) end
+    if config.sendRaid and GetGroupType() == GroupType.Raid then SendChatMessage(message, Channel.Raid) end
+end
+
 function Private.SendWantBattlegroundLead()
     local mem = Memory.WantBattlegroundLead
     mem.wantLeadTimer = nil
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end
+
+    if Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.enableManualRequest then
+        local groupLeader = GetUnitName(GetGroupLeaderUnit(), true)
+        if mem.ackLeader == nil or groupLeader ~= mem.ackLeader then
+            if mem.ackTimer then Module:CancelTimer(mem.ackTimer) end
+
+            mem.ackTimer = Module:ScheduleTimer(Private.SendManualChatMessages, 5)
+        end
+    end
 
     Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, '1', channel)
 end

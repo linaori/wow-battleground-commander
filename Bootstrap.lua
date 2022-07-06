@@ -46,6 +46,11 @@ local defaultConfig = {
                 wantLead = false,
                 automaticallyAccept = {},
                 automaticallyReject = {},
+                enableManualRequest = false,
+                manualRequestMessage = '{triangle} {leader} {triangle} can you give me lead please?',
+                sendWhisper = true,
+                sendSay = true,
+                sendRaid = true,
             },
             InstructionFrame = {
                 show = true,
@@ -130,7 +135,7 @@ local function getOptions()
             name = Namespace.Meta.name,
             type = 'group',
             args = {
-                information = {
+                Information = {
                     name = L['Addon Information'],
                     type = 'group',
                     order = 1,
@@ -143,12 +148,12 @@ local function getOptions()
                         },
                     }
                 },
-                queue_tools = {
+                QueueTools = {
                     name = L['Queue Tools'],
                     type = 'group',
                     order = 2,
                     args = {
-                        inspect_queue = {
+                        InspectQueue = {
                             name = L['Queue Inspection'],
                             type = 'group',
                             inline = true,
@@ -194,12 +199,12 @@ local function getOptions()
                         },
                     },
                 },
-                battleground_tools = {
+                BattlegroundTools = {
                     name = L['Battleground Tools'],
                     type = 'group',
                     order = 3,
                     args = {
-                        instructions_frame = {
+                        InstructionsFrame = {
                             name = L['Instructions Frame'],
                             type = 'group',
                             order = 1,
@@ -396,16 +401,63 @@ local function getOptions()
                                 },
                             },
                         },
-                        battleground_leader = {
+                        WantBattlegroundLead = {
                             name = L['Battleground Leader'],
                             type = 'group',
                             order = 2,
                             args = {
+                                enableManualRequest = {
+                                    name = L['Enable Custom Message'],
+                                    desc = L['Enable sending a custom message if the leader not using Battleground Commander'],
+                                    type = 'toggle',
+                                    set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('enableManualRequest', input) end,
+                                    get = function () return Namespace.BattlegroundTools:GetWantLeadSetting('enableManualRequest') end,
+                                    order = 1,
+                                },
+                                manualRequestMessage = {
+                                    name = L['Custom Message'],
+                                    desc = L['{leader} will be replaced by the leader name in this message and is optional'],
+                                    type = 'input',
+                                    multiline = false,
+                                    width = 'full',
+                                    set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('manualRequestMessage', input) end,
+                                    get = function () return Namespace.BattlegroundTools:GetWantLeadSetting('manualRequestMessage') end,
+                                    order = 2,
+                                },
+                                sendWhisper = {
+                                    name = L['Send Whisper (/w)'],
+                                    type = 'toggle',
+                                    width = 'full',
+                                    set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('sendWhisper', input) end,
+                                    get = function () return Namespace.BattlegroundTools:GetWantLeadSetting('sendWhisper') end,
+                                    order = 3,
+                                },
+                                sendSay = {
+                                    name = L['Send Say (/s)'],
+                                    type = 'toggle',
+                                    width = 'full',
+                                    set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('sendSay', input) end,
+                                    get = function () return Namespace.BattlegroundTools:GetWantLeadSetting('sendSay') end,
+                                    order = 4,
+                                },
+                                sendRaid = {
+                                    name = L['Send Whisper (/r)'],
+                                    type = 'toggle',
+                                    width = 'full',
+                                    set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('sendRaid', input) end,
+                                    get = function () return Namespace.BattlegroundTools:GetWantLeadSetting('sendRaid') end,
+                                    order = 5,
+                                },
+                                automationBehavior = {
+                                    name = L['Decision Automation'],
+                                    type = 'header',
+                                    order = 6,
+                                },
                                 acceptRejectDescription = {
                                     name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'],
                                     type = 'description',
                                     width = 'full',
-                                    order = 1,
+                                    order = 7,
                                 },
                                 automaticallyAccept = {
                                     name = L['Automatically Accept Request'],
@@ -415,7 +467,7 @@ local function getOptions()
                                     multiline = 10,
                                     set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyAccept', textToKeyedTable(input)) end,
                                     get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyAccept')) end,
-                                    order = 2,
+                                    order = 8,
                                 },
                                 automaticallyReject = {
                                     name = L['Automatically Reject Request'],
@@ -425,7 +477,7 @@ local function getOptions()
                                     multiline = 10,
                                     set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyReject', textToKeyedTable(input)) end,
                                     get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyReject')) end,
-                                    order = 3,
+                                    order = 9,
                                 },
                             },
                         },
@@ -450,16 +502,16 @@ function Addon:OnInitialize()
     local options = getOptions()
 
     Namespace.Database = Namespace.Libs.AceDB:New('BattlegroundCommanderDatabase', defaultConfig, true)
-    options.args.profiles = Namespace.Libs.AceDBOptions:GetOptionsTable(Namespace.Database)
+    options.args.Profiles = Namespace.Libs.AceDBOptions:GetOptionsTable(Namespace.Database)
 
     Namespace.Libs.AceConfig:RegisterOptionsTable(AddonName, options)
 
     local ACD = Namespace.Libs.AceConfigDialog;
     self.optionsFrame = {
-        information = ACD:AddToBlizOptions(AddonName, Namespace.Meta.nameShort, nil, 'information'),
-        queue_tools = ACD:AddToBlizOptions(AddonName, options.args.queue_tools.name, Namespace.Meta.nameShort, 'queue_tools'),
-        battleground_tools = ACD:AddToBlizOptions(AddonName, options.args.battleground_tools.name, Namespace.Meta.nameShort, 'battleground_tools'),
-        profiles = ACD:AddToBlizOptions(AddonName, options.args.profiles.name, Namespace.Meta.nameShort, 'profiles'),
+        Information = ACD:AddToBlizOptions(AddonName, Namespace.Meta.nameShort, nil, 'Information'),
+        QueueTools = ACD:AddToBlizOptions(AddonName, options.args.QueueTools.name, Namespace.Meta.nameShort, 'QueueTools'),
+        BattlegroundTools = ACD:AddToBlizOptions(AddonName, options.args.BattlegroundTools.name, Namespace.Meta.nameShort, 'BattlegroundTools'),
+        Profiles = ACD:AddToBlizOptions(AddonName, options.args.Profiles.name, Namespace.Meta.nameShort, 'Profiles'),
     }
 
     self:RegisterChatCommand('bgc', 'ChatCommand')
@@ -468,9 +520,9 @@ end
 
 function Addon:ChatCommand(input)
     if not input or input:trim() == '' then
-        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.profiles)
-        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.profiles)
-        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.information)
+        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Profiles)
+        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Profiles)
+        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Information)
         return
     end
 

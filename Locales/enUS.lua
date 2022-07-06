@@ -64,6 +64,14 @@ L['Players to automatically accept when they request lead'] = true
 L['Players to automatically reject when they request lead'] = true
 L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'] = true
 L['Automatically giving lead to %s'] = true
+L['Enable Custom Message'] = true
+L['Enable sending a custom message if the leader not using Battleground Commander'] = true
+L['Custom Message'] = true
+L['{leader} will be replaced by the leader name in this message and is optional'] = true
+L['Decision Automation'] = true
+L['Send Whisper (/w)'] = true
+L['Send Say (/s)'] = true
+L['Send Whisper (/r)'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
