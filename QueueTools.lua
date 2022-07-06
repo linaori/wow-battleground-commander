@@ -22,10 +22,8 @@ local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local GetNumGroupMembers = GetNumGroupMembers
 local GetBattlefieldStatus = GetBattlefieldStatus
 local GetUnitName = GetUnitName
-local GetRealmName = GetRealmName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
-local UnitFullName = UnitFullName
 local UnitDebuff = UnitDebuff
 local UnitIsPlayer = UnitIsPlayer
 local UnitExists = UnitExists
@@ -100,10 +98,7 @@ local Config = {
 
 local Memory = {
     currentZoneId = nil,
-    me = {
-        name = nil,
-        realm = nil,
-    },
+
     -- seems like you can't do a second ready check for about 5~6 seconds, even if the "finished" event is faster
     readyCheckGracePeriod = 6,
 
@@ -123,7 +118,6 @@ local Memory = {
     playerData = {
         --[GUID] = {
         --    name = playerName,
-        --    realm = playerRealm,
         --    units = {[1] => first unit, first unit = true, second unit = true},
         --    class = 'CLASS',
         --    readyState = ReadyCheckState.Nothing,
@@ -177,38 +171,15 @@ function Private.GetPlayerDataByUnit(unit)
     return nil
 end
 
---- can be used as
---- - GetPlayerDataByName('Linaori')
---- - GetPlayerDataByName('Linaori-Ragnaros)
---- - GetPlayerDataByName('Linaori', 'Ragnaros)
-function Private.GetPlayerDataByName(name, realm)
-    if realm == nil then
-        local splitName, splitRealm = name:match('(.-)-(.+)')
-        if splitName ~= nil then
-            name = splitName
-            realm = splitRealm
-        end
-    end
-
-    local totalPotentialMatches, potentialMatch = 0
-
+function Private.GetPlayerDataByName(name)
     for _, data in pairs(Memory.playerData) do
-        if data.units.primary and (data.name == UNKNOWNOBJECT or data.name == nil or data.realm == nil) then
-            data.name, data.realm = UnitFullName(data.units.primary)
+        if data.units.primary and (data.name == UNKNOWNOBJECT or data.name == nil) then
+            data.name = GetUnitName(data.units.primary, true)
         end
 
         if data.name == name then
-            if realm == nil then
-                potentialMatch = data
-                totalPotentialMatches = totalPotentialMatches + 1
-            elseif data.realm == realm then
-                return data
-            end
+            return data
         end
-    end
-
-    if totalPotentialMatches == 1 then
-        return potentialMatch
     end
 
     return nil
@@ -257,9 +228,9 @@ function Private.CreateTableRow(index, data)
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
 
-            if data.name == UNKNOWNOBJECT or data.name == nil or data.realm == nil then
+            if data.name == UNKNOWNOBJECT or data.name == nil then
                 -- try to update the name as it wasn't available on initial check
-                data.name, data.realm = UnitFullName(data.units.primary)
+                data.name = GetUnitName(data.units.primary, true)
             end
 
             local name, color
@@ -269,9 +240,6 @@ function Private.CreateTableRow(index, data)
             else
                 local _, class = UnitClass(data.units.primary)
                 name = data.name
-                if data.realm ~= nil and data.realm ~= GetRealmName() then
-                    name = name .. '-' .. data.realm
-                end
 
                 color = class and RAID_CLASS_COLORS[class] or ColorList.UnknownClass
             end
@@ -405,8 +373,7 @@ function Private.TriggerStateUpdates()
             local data = Memory.playerData[dataIndex]
             if not data then
                 data = {
-                    name = UNKNOWNOBJECT,
-                    realm = nil,
+                    name = GetUnitName(unit, true),
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     mercenaryExpiry = -1,
