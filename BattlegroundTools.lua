@@ -652,11 +652,15 @@ function Private.InitializeBattlegroundLeaderDialog()
     checkboxLabel:SetText('Remember this choice')
     checkboxLabel:SetPoint('BOTTOM', dialog, 'BOTTOM', 0, 42)
 
+    local closeButton = CreateFrame('Button', nil, dialog, 'UIPanelCloseButton')
+    closeButton:SetPoint('TOPRIGHT', dialog, 'TOPRIGHT', -2, -2)
+
     dialog.Text = dialogText
     dialog.Dropdown = dropdown
     dialog.AcceptButton = acceptButton
     dialog.RejectButton = rejectButton
     dialog.RememberNameCheckbox = checkbox
+    dialog.closeButton = closeButton
 
     dialog:Hide()
 
