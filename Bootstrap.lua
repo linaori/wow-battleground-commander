@@ -441,7 +441,7 @@ local function getOptions()
                                     order = 4,
                                 },
                                 sendRaid = {
-                                    name = L['Send Whisper (/r)'],
+                                    name = L['Send Raid (/r)'],
                                     type = 'toggle',
                                     width = 'full',
                                     set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('sendRaid', input) end,

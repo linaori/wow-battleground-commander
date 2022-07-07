@@ -72,7 +72,7 @@ L['{leader} will be replaced by the leader name in this message and is optional'
 L['Decision Automation'] = true
 L['Send Whisper (/w)'] = true
 L['Send Say (/s)'] = true
-L['Send Whisper (/r)'] = true
+L['Send Raid (/r)'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
