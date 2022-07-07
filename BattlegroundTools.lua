@@ -260,11 +260,13 @@ function Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
     local dialog = mem.DialogFrame
     if not dialog then return end
 
-    dialog:SetShown(mem.requestedByCount > 0)
-    if not dialog:IsShown() then return end
+    if mem.requestedByCount == 0 or not UnitIsGroupLeader('player') then
+        return dialog:SetShown(false)
+    end
+
+    dialog:SetShown(true)
 
     local dropdown = dialog.Dropdown
-
     local lastName
     local count = 0
     LibDD:UIDropDownMenu_Initialize(dropdown, function ()
