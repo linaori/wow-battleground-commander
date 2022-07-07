@@ -435,6 +435,8 @@ function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
 end
 
 function Private.CanRequestLead()
+    if Memory.currentZoneId == 0 then return false end
+    if not Namespace.BattlegroundTools.Zones[Memory.currentZoneId] then return false end
     if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return false end
     if UnitIsGroupLeader('player') then return false end
 
@@ -528,8 +530,6 @@ function Private.RequestRaidLead()
     local mem = Memory.WantBattlegroundLead
 
     if mem.wantLeadTimer then return end
-    if Memory.currentZoneId == 0 then return end
-    if not Namespace.BattlegroundTools.Zones[Memory.currentZoneId] then return end
     if not Private.CanRequestLead() then return end
 
     mem.wantLeadTimer = Module:ScheduleTimer(Private.SendWantBattlegroundLead, 3)
