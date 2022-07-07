@@ -30,6 +30,7 @@ globals = {
     'GetRealmName',
     'GetNumGroupMembers',
     'GetBattlefieldStatus',
+    'GetMaxBattlefieldID',
     'UnitDebuff',
     'UnitIsPlayer',
     'UnitExists',

@@ -20,6 +20,8 @@ local PromoteToLeader = PromoteToLeader
 local PlaySound = PlaySound
 local UnitIsGroupLeader = UnitIsGroupLeader
 local SendChatMessage = SendChatMessage
+local GetMaxBattlefieldID = GetMaxBattlefieldID
+local GetBattlefieldStatus = GetBattlefieldStatus
 local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
 local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
 local concat = table.concat
@@ -432,6 +434,18 @@ function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
     mem.ackLeader = nil
 end
 
+function Private.CanRequestLead()
+    if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return false end
+    if UnitIsGroupLeader('player') then return false end
+
+    for i = 1, GetMaxBattlefieldID() do
+        local status = GetBattlefieldStatus(i)
+        if status == 'active' then return true end
+    end
+
+    return false
+end
+
 function Private.OnWantBattlegroundLead(_, _, _, sender)
     if sender == GetUnitName('player', true) then return end
     if not UnitIsGroupLeader('player') then return end
@@ -461,8 +475,7 @@ function Private.SendManualChatMessages()
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
 
     mem.ackTimer = nil
-    if not config.enableManualRequest or not config.wantLead then return end
-    if UnitIsGroupLeader('player') then return end
+    if not config.enableManualRequest or not Private.CanRequestLead() then return end
 
     mem.ackLeader = GetUnitName(GetGroupLeaderUnit(), true)
 
@@ -476,7 +489,7 @@ function Private.SendWantBattlegroundLead()
     local mem = Memory.WantBattlegroundLead
     mem.wantLeadTimer = nil
 
-    if UnitIsGroupLeader('player') then return end
+    if not Private.CanRequestLead() then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end
@@ -517,8 +530,7 @@ function Private.RequestRaidLead()
     if mem.wantLeadTimer then return end
     if Memory.currentZoneId == 0 then return end
     if not Namespace.BattlegroundTools.Zones[Memory.currentZoneId] then return end
-    if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return end
-    if UnitIsGroupLeader('player') then return end
+    if not Private.CanRequestLead() then return end
 
     mem.wantLeadTimer = Module:ScheduleTimer(Private.SendWantBattlegroundLead, 3)
 end
