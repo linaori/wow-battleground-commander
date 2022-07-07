@@ -430,6 +430,7 @@ end
 
 function Private.OnWantBattlegroundLead(_, _, _, sender)
     if sender == GetUnitName('player', true) then return end
+    if not UnitIsGroupLeader('player') then return end
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     if config.wantLead then return end
@@ -457,6 +458,7 @@ function Private.SendManualChatMessages()
 
     mem.ackTimer = nil
     if not config.enableManualRequest or not config.wantLead then return end
+    if UnitIsGroupLeader('player') then return end
 
     mem.ackLeader = GetUnitName(GetGroupLeaderUnit(), true)
 
@@ -469,6 +471,8 @@ end
 function Private.SendWantBattlegroundLead()
     local mem = Memory.WantBattlegroundLead
     mem.wantLeadTimer = nil
+
+    if UnitIsGroupLeader('player') then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end
