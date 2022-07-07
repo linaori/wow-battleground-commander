@@ -261,6 +261,8 @@ function Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
     if not dialog then return end
 
     dialog:SetShown(mem.requestedByCount > 0)
+    if not dialog:IsShown() then return end
+
     local dropdown = dialog.Dropdown
 
     local lastName
