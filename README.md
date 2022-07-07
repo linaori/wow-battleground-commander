@@ -24,5 +24,5 @@ or reject the request, and remember the choice in the future.
 
 ## Official Download Locations
 You can find this addon on: [CurseForge.com](https://www.curseforge.com/wow/addons/battleground-commander), 
-[Wago.io](https://addons.wago.io/addons/wow-battleground-commander), and [WowUp.io](https://wowup.io/addons/1792745). 
+[Wago.io](https://addons.wago.io/addons/battleground-commander), and [WowUp.io](https://wowup.io/addons/1792745). 
 You can find the releases on [GitHub](https://github.com/linaori/wow-battleground-commander/releases).
