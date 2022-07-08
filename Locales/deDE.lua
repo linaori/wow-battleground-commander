@@ -73,6 +73,9 @@ L['Decision Automation'] = true
 L['Send Whisper (/w)'] = true
 L['Send Say (/s)'] = true
 L['Send Raid (/r)'] = true
+L['Automation'] = true
+L['Automatically Accept Role Selection'] = true
+L['Accepts the pre-selected role when your group applies for a battleground'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

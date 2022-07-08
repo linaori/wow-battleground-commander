@@ -21,6 +21,7 @@ local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local GetNumGroupMembers = GetNumGroupMembers
 local GetBattlefieldStatus = GetBattlefieldStatus
+local GetLFGRoleUpdate = GetLFGRoleUpdate
 local GetUnitName = GetUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
@@ -466,6 +467,7 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK_FINISHED')
     self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
     self:RegisterEvent('UPDATE_BATTLEFIELD_STATUS')
+    self:RegisterEvent('LFG_ROLE_CHECK_SHOW')
 
     self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
@@ -478,6 +480,18 @@ function Module:OnEnable()
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 
     self:RefreshConfig()
+end
+
+function Module:LFG_ROLE_CHECK_SHOW()
+    if not Namespace.Database.profile.QueueTools.Automation.acceptRoleSelection then return end
+
+    local _, _, _, _, _, bgQueue = GetLFGRoleUpdate()
+    if not bgQueue then return end
+
+    local button = _G.LFDRoleCheckPopupAcceptButton
+    if not button then return end
+
+    button:Click();
 end
 
 function Module:GROUP_ROSTER_UPDATE()
@@ -667,10 +681,17 @@ function Module:ADDON_LOADED(_, addonName)
 end
 
 function Module:SetQueueInspectionSetting(setting, value)
-    local config = Namespace.Database.profile.QueueTools.InspectQueue
-    config[setting] = value
+    Namespace.Database.profile.QueueTools.InspectQueue[setting] = value
 end
 
 function Module:GetQueueInspectionSetting(setting)
     return Namespace.Database.profile.QueueTools.InspectQueue[setting]
+end
+
+function Module:SetAutomationSetting(setting, value)
+    Namespace.Database.profile.QueueTools.Automation[setting] = value
+end
+
+function Module:GetAutomationSetting(setting)
+    return Namespace.Database.profile.QueueTools.Automation[setting]
 end

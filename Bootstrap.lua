@@ -33,6 +33,9 @@ local defaultConfig = {
     profile = {
         QueueTools = {
             showGroupQueueFrame = false,
+            Automation = {
+                acceptRoleSelection = false,
+            },
             InspectQueue = {
                 onlyAsLeader = true,
                 sendPausedMessage = true,
@@ -153,11 +156,26 @@ local function getOptions()
                     type = 'group',
                     order = 2,
                     args = {
+                        Automation = {
+                            name = L['Automation'],
+                            type = 'group',
+                            order = 2,
+                            args = {
+                                acceptRoleSelection = {
+                                    name = L['Automatically Accept Role Selection'],
+                                    desc = L['Accepts the pre-selected role when your group applies for a battleground'],
+                                    type = 'toggle',
+                                    width = 'full',
+                                    set = function (_, value) Namespace.QueueTools:SetAutomationSetting('acceptRoleSelection', value) end,
+                                    get = function () return Namespace.QueueTools:GetAutomationSetting('acceptRoleSelection') end,
+                                    order = 1,
+                                },
+                            },
+                        },
                         InspectQueue = {
                             name = L['Queue Inspection'],
                             type = 'group',
-                            inline = true,
-                            order = 1,
+                            order = 2,
                             args = {
                                 onlyAsLeader = {
                                     name = L['Only as Leader or Assist'],
