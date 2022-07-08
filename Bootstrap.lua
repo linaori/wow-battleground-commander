@@ -90,6 +90,7 @@ local defaultConfig = {
                     borderColor = { r = 1, g = 1, b = 1, a = 0.5 },
                     borderSize = 12,
                     backgroundInset = 3,
+                    clearFrameOnExitBattleground = true,
                 },
                 font = {
                     family = Namespace.Libs.LibSharedMedia:GetDefault('font'),
@@ -408,6 +409,15 @@ local function getOptions()
                                     type = 'header',
                                     order = 23,
                                 },
+                                clearFrameOnExitBattleground = {
+                                    name = L['Clear frame when exiting the battleground'],
+                                    desc = L['Removes the instructions from the last battleground'],
+                                    type = 'toggle',
+                                    width = 'full',
+                                    set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('clearFrameOnExitBattleground', value) end,
+                                    get = function () return Namespace.BattlegroundTools:GetFrameSetting('clearFrameOnExitBattleground') end,
+                                    order = 24,
+                                },
                                 zones = {
                                     name = L['Select Zones'],
                                     desc = L['Select the zones where the frame should appear when enabled'],
@@ -415,7 +425,7 @@ local function getOptions()
                                     values = Namespace.BattlegroundTools.Zones,
                                     set = function (_, zoneId, value) Namespace.BattlegroundTools:SetZoneId(zoneId, value) end,
                                     get = function (_, zoneId) return Namespace.BattlegroundTools:GetZoneId(zoneId) end,
-                                    order = 24,
+                                    order = 25,
                                 },
                             },
                         },

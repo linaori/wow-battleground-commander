@@ -75,6 +75,9 @@ L['Send Raid (/r)'] = true
 L['Automation'] = true
 L['Automatically Accept Role Selection'] = true
 L['Accepts the pre-selected role when your group applies for a battleground'] = true
+L['Clear frame when exiting the battleground'] = true
+L['Removes the instructions from the last battleground'] = true
+L['Entered %s'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

@@ -96,8 +96,8 @@ end
 
 function Private.ApplyFrameSettings()
     local settings = Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings
-
-    Memory.InstructionFrame:SetBackdrop({
+    local frame = Memory.InstructionFrame
+    frame:SetBackdrop({
         bgFile = LSM:Fetch('background', settings.backgroundTexture),
         edgeFile = LSM:Fetch('border', settings.borderTexture),
         edgeSize = settings.borderSize,
@@ -112,8 +112,8 @@ function Private.ApplyFrameSettings()
     local bgColor = settings.backgroundColor
     local borderColor = settings.borderColor
 
-    Memory.InstructionFrame:SetBackdropColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
-    Memory.InstructionFrame:SetBackdropBorderColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+    frame:SetBackdropColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
+    frame:SetBackdropBorderColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
 end
 
 function Module:SetFontSetting(setting, value)
@@ -134,6 +134,13 @@ end
 
 function Module:GetFrameSetting(setting)
     return Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings[setting]
+end
+
+function Private.ResetLogs()
+    local logs = Memory.RaidWarningLogs
+    logs.last = nil
+    logs.list = {}
+    logs.size = 0
 end
 
 function Private.AddLog(message)
@@ -307,7 +314,11 @@ end
 
 function Private.TriggerUpdateInstructionFrame()
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
-    if frameConfig.show and frameConfig.zones[Memory.currentZoneId] then
+    local currentZoneId = Memory.currentZoneId
+    if frameConfig.show and frameConfig.zones[currentZoneId] then
+        if currentZoneId ~= 0 then
+            Private.AddLog(format(L['Entered %s'], Namespace.BattlegroundTools.Zones[currentZoneId]))
+        end
         Module:ShowInstructionsFrame()
     else
         Module:HideInstructionsFrame()
@@ -318,11 +329,21 @@ function Private.EnterZone()
     local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
     if instanceType == 'none' then currentZoneId = 0 end
 
+    if Memory.currentZoneId ~= 0
+        and currentZoneId == 0
+        and Namespace.BattlegroundTools.Zones[Memory.currentZoneId]
+        and Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings.clearFrameOnExitBattleground
+    then
+        Private.ResetLogs()
+    end
+
     Memory.currentZoneId = currentZoneId
-    Memory.WantBattlegroundLead.requestedBy = {}
-    Memory.WantBattlegroundLead.recentlyRejected = {}
-    Memory.WantBattlegroundLead.requestedByCount = 0
-    Memory.WantBattlegroundLead.ackLeader = nil
+
+    local wantLead = Memory.WantBattlegroundLead
+    wantLead.requestedBy = {}
+    wantLead.recentlyRejected = {}
+    wantLead.requestedByCount = 0
+    wantLead.ackLeader = nil
 
     Private.TriggerUpdateInstructionFrame()
     Private.TriggerUpdateWantBattlegroundLeadDialogFrame()

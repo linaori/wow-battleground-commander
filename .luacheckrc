@@ -31,6 +31,7 @@ globals = {
     'GetNumGroupMembers',
     'GetBattlefieldStatus',
     'GetMaxBattlefieldID',
+    'GetLFGRoleUpdate',
     'UnitDebuff',
     'UnitIsPlayer',
     'UnitExists',
