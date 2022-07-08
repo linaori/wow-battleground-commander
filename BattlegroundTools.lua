@@ -479,8 +479,6 @@ function Private.SendManualChatMessages()
     mem.ackTimer = nil
     if not config.enableManualRequest or not Private.CanRequestLead() then return end
 
-    mem.ackLeader = GetUnitName(GetGroupLeaderUnit(), true)
-
     local message = config.manualRequestMessage:gsub('{leader}', mem.ackLeader)
     if config.sendWhisper then SendChatMessage(message, Channel.Whisper, nil, mem.ackLeader) end
     if config.sendSay and Memory.currentZoneId ~= 0 then SendChatMessage(message, Channel.Say) end
@@ -499,8 +497,10 @@ function Private.SendWantBattlegroundLead()
     if Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.enableManualRequest then
         local groupLeader = GetUnitName(GetGroupLeaderUnit(), true)
         if mem.ackLeader == nil or groupLeader ~= mem.ackLeader then
+            -- re-buffer the timer each time the leader changes to give them enough time to reply
             if mem.ackTimer then Module:CancelTimer(mem.ackTimer) end
 
+            mem.ackLeader = groupLeader
             mem.ackTimer = Module:ScheduleTimer(Private.SendManualChatMessages, 5)
         end
     end
