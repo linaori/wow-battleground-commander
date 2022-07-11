@@ -49,6 +49,7 @@ local Memory = {
         requestedByCount = 0,
         ackTimer = nil,
         ackLeader = nil,
+        ackWantLeadTimer = nil
     },
 
     InstructionFrame = nil,
@@ -469,9 +470,25 @@ function Private.CanRequestLead()
     return false
 end
 
+function Private.SendAcknowledgeWantBattlegroundLead()
+    if not UnitIsGroupLeader('player') then return end
+
+    local channel = GetMessageDestination()
+    if channel == Channel.Whisper then return end
+
+    Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, '1', channel)
+
+    Memory.WantBattlegroundLead.ackWantLeadTimer = nil
+end
+
 function Private.OnWantBattlegroundLead(_, _, _, sender)
     if sender == GetUnitName('player', true) then return end
     if not UnitIsGroupLeader('player') then return end
+
+    local mem = Memory.WantBattlegroundLead
+    if not mem.ackWantLeadTimer then
+        mem.ackWantLeadTimer = Module:ScheduleTimer(Private.SendAcknowledgeWantBattlegroundLead, 2)
+    end
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     if config.wantLead then return end
@@ -481,14 +498,8 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
     end
     if config.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
 
-    local mem = Memory.WantBattlegroundLead
     mem.requestedBy[sender] = true
     mem.requestedByCount = mem.requestedByCount + 1
-
-    local channel = GetMessageDestination()
-    if channel == Channel.Whisper then return end
-
-    Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, '1', channel)
 
     Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
