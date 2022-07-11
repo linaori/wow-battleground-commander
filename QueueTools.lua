@@ -128,12 +128,12 @@ local Memory = {
         --},
     },
 
-    -- the data that should be send next mercenary sync event
-    sendMercenaryDataPayloadBuffer = nil,
+    -- the data that should be send next data sync event
+    sendDurationDataPayloadBuffer = nil,
 }
 
 local CommunicationEvent = {
-    NotifyMercenaryDuration = 'Bgc:notifyMerc',
+    NotifyDataDuration = 'Bgc:notifyMerc',
     ReadyCheckHeartbeat = 'Bgc:rchb',
 }
 
@@ -144,24 +144,28 @@ local ColorList = {
     UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1.0 },
 }
 
-function Private.DoSendMercenaryDuration()
-    if Memory.sendMercenaryDataPayloadBuffer == nil then return end
+function Private.SendDurationData()
+    if Memory.sendDurationDataPayloadBuffer == nil then return end
 
     local channel, player = GetMessageDestination()
-    local payload = PackData(Memory.sendMercenaryDataPayloadBuffer)
+    local payload = PackData(Memory.sendDurationDataPayloadBuffer)
 
-    Module:SendCommMessage(CommunicationEvent.NotifyMercenaryDuration, payload, channel, player)
-    Memory.sendMercenaryDataPayloadBuffer = nil
+    Module:SendCommMessage(CommunicationEvent.NotifyDataDuration, payload, channel, player)
+    Memory.sendDurationDataPayloadBuffer = nil
 end
 
-function Private.ScheduleSendMercenaryDuration()
-    local expirationTime = Private.GetPlayerAuraExpiryTime(SpellIds.MercenaryContractBuff)
-    local shouldSchedule = Memory.sendMercenaryDataPayloadBuffer == nil
-    local remaining = expirationTime == -1 and -1 or expirationTime - GetTime()
-    Memory.sendMercenaryDataPayloadBuffer = { remaining = remaining }
+function Private.ScheduleSendDataDuration()
+    local shouldSchedule = Memory.sendDurationDataPayloadBuffer == nil
+    local remaining = Private.GetRemainingAuraTime(SpellIds.MercenaryContractBuff)
+
+    Memory.sendDurationDataPayloadBuffer = {
+        remaining = remaining, -- remove in the future, renamed
+        remainingMercenary = remaining,
+        remainingDeserter = Private.GetRemainingAuraTime(SpellIds.DeserterDebuff),
+    }
 
     if not shouldSchedule then return end
-    Module:ScheduleTimer(Private.DoSendMercenaryDuration, ceil(GetNumGroupMembers() * 0.1))
+    Module:ScheduleTimer(Private.SendDurationData, ceil(GetNumGroupMembers() * 0.1))
 end
 
 function Private.GetPlayerDataByUnit(unit)
@@ -211,6 +215,8 @@ function Private.TriggerDeserterUpdate(data)
 
     if data.deserterExpiry > -1 then
         -- only re-check if the player doesn't have it already
+        -- this ensures the "guess" here is a fallback vs what
+        -- the addon comms say.
         return
     end
 
@@ -335,10 +341,12 @@ function Private.UpdatePlayerTableData()
     _G.BgcQueueFrame.PlayerTable:SetData(Memory.playerTableCache)
 end
 
-function Private.GetPlayerAuraExpiryTime(auraId)
+function Private.GetRemainingAuraTime(auraId)
     local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(auraId)
 
-    return expirationTime ~= nil and expirationTime or -1
+    if not expirationTime then return -1 end
+
+    return expirationTime - GetTime()
 end
 
 function Private.GetUnitListForCurrentGroupType()
@@ -395,7 +403,7 @@ function Private.TriggerStateUpdates()
     end
 
     Memory.playerTableCache = tableCache
-    Private.ScheduleSendMercenaryDuration()
+    Private.ScheduleSendDataDuration()
     Private.UpdatePlayerTableData()
 end
 
@@ -440,15 +448,22 @@ function Private.InitializeBattlegroundModeCheckbox()
     checkbox.Text = text
 end
 
-function Private.OnNotifyMercenaryDuration(_, text, _, sender)
+function Private.OnNotifyDataDuration(_, text, _, sender)
     local payload = UnpackData(text);
-    if not payload or payload.remaining == nil then return end
+    if not payload then return end
 
     local data = Private.GetPlayerDataByName(sender)
-    if not data then return print('OnNotifyMercenaryDuration', 'Missing player for sender', sender) end
+    if not data then return print('OnNotifyDataDuration', 'Missing player for sender', sender) end
+
+    local time = GetTime()
 
     data.hasAddon = true
-    data.mercenaryExpiry = payload.remaining + GetTime()
+    -- renamed after 1.4.0, remove "remaining" index in the future
+    data.mercenaryExpiry = (payload.remainingMercenary or payload.remaining) + time
+    if payload.remainingDeserter then
+        -- added after 1.4.0, remove if check in the future
+        data.deserterExpiry = payload.remainingDeserter + time
+    end
 
     Private.RefreshPlayerTable()
 end
@@ -472,7 +487,7 @@ function Module:OnEnable()
     self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
-    self:RegisterComm(CommunicationEvent.NotifyMercenaryDuration, Private.OnNotifyMercenaryDuration)
+    self:RegisterComm(CommunicationEvent.NotifyDataDuration, Private.OnNotifyDataDuration)
     self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
@@ -545,10 +560,10 @@ end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
     local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
-    if spellId ~= SpellIds.MercenaryContractBuff or sourceGUID ~= UnitGUID('player') then return end
+    if (spellId ~= SpellIds.MercenaryContractBuff and spellId ~= SpellIds.DeserterDebuff) or sourceGUID ~= UnitGUID('player') then return end
 
     if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
-        Private.ScheduleSendMercenaryDuration()
+        Private.ScheduleSendDataDuration()
     end
 end
 
