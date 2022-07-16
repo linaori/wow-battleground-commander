@@ -140,7 +140,7 @@ local Memory = {
     },
 
     -- the data that should be send next data sync event
-    sendDurationDataPayloadBuffer = nil,
+    syncDataPayloadBuffer = nil,
 }
 
 local CommunicationEvent = {
@@ -157,24 +157,26 @@ local ColorList = {
 }
 
 function Private.SendSyncData()
-    if Memory.sendDurationDataPayloadBuffer == nil then return end
+    if Memory.syncDataPayloadBuffer == nil then return end
 
     local channel, player = GetMessageDestination()
-    local payload = PackData(Memory.sendDurationDataPayloadBuffer)
+    local payload = PackData(Memory.syncDataPayloadBuffer)
 
     Module:SendCommMessage(CommunicationEvent.NotifyMercDuration, payload, channel, player) -- remove in future
     Module:SendCommMessage(CommunicationEvent.SyncData, payload, channel, player)
-    Memory.sendDurationDataPayloadBuffer = nil
+    Memory.syncDataPayloadBuffer = nil
 end
 
 function Private.ScheduleSendSyncData()
-    Memory.sendDurationDataPayloadBuffer = {
+    local shouldSchedule = Memory.syncDataPayloadBuffer == nil
+
+    Memory.syncDataPayloadBuffer = {
         addonVersion = Namespace.Meta.version,
         remainingMercenary = Private.GetRemainingAuraTime(SpellIds.MercenaryContractBuff),
         remainingDeserter = Private.GetRemainingAuraTime(SpellIds.DeserterDebuff),
     }
 
-    if not Memory.sendDurationDataPayloadBuffer == nil then return end
+    if not shouldSchedule then return end
 
     Module:ScheduleTimer(Private.SendSyncData, ceil(GetNumGroupMembers() * 0.1))
 end
