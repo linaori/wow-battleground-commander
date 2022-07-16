@@ -665,7 +665,7 @@ function Private.InitializeBattlegroundLeaderDialog()
             bottom = 5,
         }
     })
-    dialog:SetBackdropColor(0.5, 0.5, 0.5, 1);
+    dialog:SetBackdropColor(0.5, 0.5, 0.5, 1)
     dialog:SetBackdropBorderColor(0.7, 0.7, 0.7, 1)
     dialog:SetScript('OnMouseDown', function(self) self:StartMoving() end)
     dialog:SetScript('OnMouseUp', function(self) self:StopMovingOrSizing() end)
@@ -726,12 +726,10 @@ function Private.InitializeBattlegroundLeaderCheckbox()
     checkbox:SetSize(24, 24)
     checkbox:SetChecked(Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead)
     checkbox:SetScript('OnEnter', function (self)
-        _G.GameTooltip:SetOwner(self, 'ANCHOR_RIGHT');
-        _G.GameTooltip:SetText(L['Requests lead upon entering or enabling this option'], nil, nil, nil, nil, true);
+        _G.GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
+        _G.GameTooltip:SetText(L['Requests lead upon entering or enabling this option'], nil, nil, nil, nil, true)
     end)
-    checkbox:SetScript('OnLeave', function ()
-        _G.GameTooltip:Hide();
-    end)
+    checkbox:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
     checkbox:SetScript('OnClick', function (self)
         local wantLead = self:GetChecked()
 

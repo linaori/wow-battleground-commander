@@ -544,7 +544,7 @@ function Addon:OnInitialize()
 
     Namespace.Libs.AceConfig:RegisterOptionsTable(AddonName, options)
 
-    local ACD = Namespace.Libs.AceConfigDialog;
+    local ACD = Namespace.Libs.AceConfigDialog
     self.optionsFrame = {
         Information = ACD:AddToBlizOptions(AddonName, Namespace.Meta.nameShort, nil, 'Information'),
         QueueTools = ACD:AddToBlizOptions(AddonName, options.args.QueueTools.name, Namespace.Meta.nameShort, 'QueueTools'),
@@ -570,13 +570,14 @@ function Addon:MigrateConfig()
     end
 end
 
+function Addon:OpenSettingsPanel()
+    InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Profiles)
+    InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Profiles)
+    InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Information)
+end
+
 function Addon:ChatCommand(input)
-    if not input or input:trim() == '' then
-        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Profiles)
-        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Profiles)
-        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame.Information)
-        return
-    end
+    if not input or input:trim() == '' then return self:OpenSettingsPanel() end
 
     Namespace.Libs.AceConfigCmd:HandleCommand(AddonName, AddonName, input)
 end

@@ -82,6 +82,7 @@ L['Removes the instructions from the last battleground'] = true
 L['Entered %s'] = true
 L['Ready Check on Queue Cancel'] = true
 L['Do a ready check to see who entered while the group leader cancelled entering'] = true
+L['Open Battleground Commander Settings'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

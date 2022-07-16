@@ -310,7 +310,7 @@ function Private.CreateTableRow(index, data)
     local readyCheckColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
-            local readyState = data.readyState;
+            local readyState = data.readyState
             if readyState == ReadyCheckState.Waiting then
                 columnData.color = nil
                 return '...'
@@ -456,7 +456,7 @@ function Private.InitializeBattlegroundModeCheckbox()
 end
 
 function Private.OnSyncData(_, text, _, sender)
-    local payload = UnpackData(text);
+    local payload = UnpackData(text)
     if not payload then return end
 
     local data = Private.GetPlayerDataByName(sender)
@@ -521,7 +521,7 @@ function Module:LFG_ROLE_CHECK_SHOW()
     local button = _G.LFDRoleCheckPopupAcceptButton
     if not button then return end
 
-    button:Click();
+    button:Click()
 end
 
 function Module:GROUP_ROSTER_UPDATE()
@@ -720,7 +720,7 @@ function Private.InitializeGroupQueueFrame()
         _G.BgcBattlegroundModeCheckbox:SetChecked(false)
         PlaySound(CharacterPanelCloseSound)
     end)
-    queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]]);
+    queueFrame:SetPortraitToAsset([[Interface\LFGFrame\UI-LFR-PORTRAIT]])
     PVPUIFrame.QueueFrame = queueFrame
 
     local playerTable = ScrollingTable:CreateST(tableStructure, 14, 24, nil, queueFrame)
@@ -734,9 +734,9 @@ function Private.InitializeGroupQueueFrame()
             local originalData = data[realRow].originalData
             if not originalData.addonVersion then return end
 
-            _G.GameTooltip:SetOwner(rowFrame, 'ANCHOR_NONE');
+            _G.GameTooltip:SetOwner(rowFrame, 'ANCHOR_NONE')
             _G.GameTooltip:SetPoint('LEFT', rowFrame, 'RIGHT')
-            _G.GameTooltip:SetText(format(L['Addon version: %s'], originalData.addonVersion), nil, nil, nil, nil, true);
+            _G.GameTooltip:SetText(format(L['Addon version: %s'], originalData.addonVersion), nil, nil, nil, nil, true)
         end,
         onLeave = function () _G.GameTooltip:Hide() end,
     }, true)
@@ -757,6 +757,40 @@ function Private.InitializeGroupQueueFrame()
     readyCheckButton:SetScript('OnClick', function () DoReadyCheck() end)
 
     queueFrame.ReadyCheckButton = readyCheckButton
+
+    local settingsButton = CreateFrame('Button', nil, queueFrame, 'UIPanelButtonTemplate')
+    settingsButton:SetWidth(24)
+    settingsButton:SetHeight(24)
+    settingsButton:SetPoint('BOTTOMRIGHT', queueFrame, 'BOTTOMRIGHT', -2, 3)
+    settingsButton:SetNormalTexture([[Interface\WorldMap\Gear_64.png]])
+    settingsButton:SetHighlightTexture([[Interface\WorldMap\Gear_64.png]])
+    settingsButton:SetPushedTexture([[Interface\WorldMap\Gear_64.png]])
+
+    settingsButton:SetScript('OnEnter', function (self)
+        _G.GameTooltip:SetOwner(self, 'ANCHOR_TOP')
+        _G.GameTooltip:SetText(L['Open Battleground Commander Settings'], nil, nil, nil, nil, true)
+    end)
+    settingsButton:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
+    settingsButton:SetScript('OnClick', function () Namespace.Addon:OpenSettingsPanel() end)
+
+    local settingsButtonHighlightTexture = settingsButton:GetHighlightTexture()
+    settingsButtonHighlightTexture:SetPoint('TOPLEFT', 4, -4)
+    settingsButtonHighlightTexture:SetPoint('BOTTOMRIGHT', -4, 4)
+    settingsButtonHighlightTexture:SetTexCoord(0, 0.50, 0, 0.50)
+
+    local settingsButtonPushedTexture = settingsButton:GetPushedTexture()
+    settingsButtonPushedTexture:ClearAllPoints()
+    settingsButtonPushedTexture:SetPoint('TOPLEFT', 5, -6)
+    settingsButtonPushedTexture:SetPoint('BOTTOMRIGHT', -5, 6)
+    settingsButtonPushedTexture:SetTexCoord(0, 0.50, 0, 0.50)
+
+    local settingsButtonTexture = settingsButton:GetNormalTexture()
+    settingsButtonTexture:SetPoint('TOPLEFT', 4, -4)
+    settingsButtonTexture:SetPoint('BOTTOMRIGHT', -4, 4)
+    settingsButtonTexture:SetTexCoord(0, 0.50, 0, 0.50)
+    settingsButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
+
+    queueFrame.SettingsButton = settingsButton
 
     Private.TriggerStateUpdates()
 end
