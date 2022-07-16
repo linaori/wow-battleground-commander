@@ -40,7 +40,8 @@ local defaultConfig = {
                 onlyAsLeader = true,
                 sendPausedMessage = true,
                 sendResumedMessage = true,
-                doReadyCheck = true,
+                doReadyCheckOnQueuePause = true,
+                doReadyCheckOnQueueCancelAfterConfirm = true,
             },
         },
         BattlegroundTools = {
@@ -205,13 +206,22 @@ local function getOptions()
                                     get = function () return Namespace.QueueTools:GetQueueInspectionSetting('sendResumedMessage') end,
                                     order = 3,
                                 },
-                                doReadyCheck = {
+                                doReadyCheckOnQueuePause = {
                                     name = L['Ready Check on Pause'],
-                                    desc = L['Tries to do a ready check whenever a queue pause is detected'],
+                                    desc = L['Do a ready check whenever a queue pause is detected'],
                                     type = 'toggle',
                                     width = 'double',
-                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('doReadyCheck', value) end,
-                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('doReadyCheck') end,
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('doReadyCheckOnQueuePause', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('doReadyCheckOnQueuePause') end,
+                                    order = 4,
+                                },
+                                doReadyCheckOnQueueCancelAfterConfirm = {
+                                    name = L['Ready Check on Queue Cancel'],
+                                    desc = L['Do a ready check to see who entered while the group leader cancelled entering'],
+                                    type = 'toggle',
+                                    width = 'double',
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('doReadyCheckOnQueueCancelAfterConfirm', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('doReadyCheckOnQueueCancelAfterConfirm') end,
                                     order = 4,
                                 },
                             }
@@ -544,6 +554,20 @@ function Addon:OnInitialize()
 
     self:RegisterChatCommand('bgc', 'ChatCommand')
     self:RegisterChatCommand('battlegroundcommander', 'ChatCommand')
+
+    Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'MigrateConfig')
+    Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'MigrateConfig')
+    Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'MigrateConfig')
+
+    self:MigrateConfig()
+end
+
+function Addon:MigrateConfig()
+    local inspectQueue = Namespace.Database.profile.QueueTools.InspectQueue
+    if inspectQueue.doReadyCheck == false then
+        inspectQueue.doReadyCheckOnQueuePause = false
+        inspectQueue.doReadyCheck = nil
+    end
 end
 
 function Addon:ChatCommand(input)

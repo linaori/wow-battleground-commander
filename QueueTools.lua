@@ -97,6 +97,14 @@ local Config = {
     readyCheckStateResetSeconds = 10,
 }
 
+local QueueStatus = {
+    Queued = 'queued',
+    Confirm = 'confirm',
+    Active = 'active',
+    None = 'none',
+    Error = 'error',
+}
+
 local Memory = {
     currentZoneId = nil,
 
@@ -108,12 +116,15 @@ local Memory = {
     lastReadyCheckDuration = 0,
     readyCheckButtonTicker = nil,
     readyCheckClearTimeout = nil,
+    readyCheckHeartbeatTimout = nil,
 
-    -- used to track whether or not the queue is paused
-    queueStatusTicker = nil,
-    queueStatus = {
-        --[0] = suspendedQueue boolean,
+    queueState = {
+        --[0] = {
+        --    status = QueueStatus,
+        --    queueSuspended = boolean
+        --},
     },
+    queueStateChangeListeners = {},
 
     playerTableCache = {},
     playerData = {
@@ -124,7 +135,7 @@ local Memory = {
         --    readyState = ReadyCheckState.Nothing,
         --    deserterExpiry = -1,
         --    mercenaryExpiry = -1,
-        --    hasAddon = false,
+        --    addonVersion = 'whatever remote version',
         --},
     },
 
@@ -133,7 +144,8 @@ local Memory = {
 }
 
 local CommunicationEvent = {
-    NotifyDataDuration = 'Bgc:notifyMerc',
+    SyncData = 'Bgc:syncData',
+    NotifyMercDuration = 'Bgc:notifyMerc', -- replaced by Bgc:syncData
     ReadyCheckHeartbeat = 'Bgc:rchb',
 }
 
@@ -144,28 +156,27 @@ local ColorList = {
     UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1.0 },
 }
 
-function Private.SendDurationData()
+function Private.SendSyncData()
     if Memory.sendDurationDataPayloadBuffer == nil then return end
 
     local channel, player = GetMessageDestination()
     local payload = PackData(Memory.sendDurationDataPayloadBuffer)
 
-    Module:SendCommMessage(CommunicationEvent.NotifyDataDuration, payload, channel, player)
+    Module:SendCommMessage(CommunicationEvent.NotifyMercDuration, payload, channel, player) -- remove in future
+    Module:SendCommMessage(CommunicationEvent.SyncData, payload, channel, player)
     Memory.sendDurationDataPayloadBuffer = nil
 end
 
-function Private.ScheduleSendDataDuration()
-    local shouldSchedule = Memory.sendDurationDataPayloadBuffer == nil
-    local remaining = Private.GetRemainingAuraTime(SpellIds.MercenaryContractBuff)
-
+function Private.ScheduleSendSyncData()
     Memory.sendDurationDataPayloadBuffer = {
-        remaining = remaining, -- remove in the future, renamed
-        remainingMercenary = remaining,
+        addonVersion = Namespace.Meta.version,
+        remainingMercenary = Private.GetRemainingAuraTime(SpellIds.MercenaryContractBuff),
         remainingDeserter = Private.GetRemainingAuraTime(SpellIds.DeserterDebuff),
     }
 
-    if not shouldSchedule then return end
-    Module:ScheduleTimer(Private.SendDurationData, ceil(GetNumGroupMembers() * 0.1))
+    if not Memory.sendDurationDataPayloadBuffer == nil then return end
+
+    Module:ScheduleTimer(Private.SendSyncData, ceil(GetNumGroupMembers() * 0.1))
 end
 
 function Private.GetPlayerDataByUnit(unit)
@@ -259,7 +270,7 @@ function Private.CreateTableRow(index, data)
     local mercenaryColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
-            if not data.hasAddon then
+            if not data.addonVersion then
                 columnData.color = ColorList.Warning
                 return '?'
             end
@@ -326,7 +337,7 @@ function Private.CreateTableRow(index, data)
         mercenaryColumn,
         deserterColumn,
         readyCheckColumn,
-    }}
+    }, originalData = data }
 end
 
 function Private.RefreshPlayerTable()
@@ -403,18 +414,14 @@ function Private.TriggerStateUpdates()
     end
 
     Memory.playerTableCache = tableCache
-    Private.ScheduleSendDataDuration()
+    Private.ScheduleSendSyncData()
     Private.UpdatePlayerTableData()
 end
 
 function Private.UpdateQueueFrameVisibility(newVisibility)
     if not _G.BgcQueueFrame then return end
 
-    if newVisibility then
-        _G.BgcQueueFrame:Show()
-    else
-        _G.BgcQueueFrame:Hide()
-    end
+    _G.BgcQueueFrame:SetShown(newVisibility)
 
     Private.UpdatePlayerTableData()
 end
@@ -448,22 +455,23 @@ function Private.InitializeBattlegroundModeCheckbox()
     checkbox.Text = text
 end
 
-function Private.OnNotifyDataDuration(_, text, _, sender)
+function Private.OnSyncData(_, text, _, sender)
     local payload = UnpackData(text);
     if not payload then return end
 
     local data = Private.GetPlayerDataByName(sender)
-    if not data then return print('OnNotifyDataDuration', 'Missing player for sender', sender) end
+    if not data then return print('OnSyncData', 'Missing player for sender', sender) end
 
     local time = GetTime()
 
-    data.hasAddon = true
     -- renamed after 1.4.0, remove "remaining" index in the future
     data.mercenaryExpiry = (payload.remainingMercenary or payload.remaining) + time
     if payload.remainingDeserter then
         -- added after 1.4.0, remove if check in the future
         data.deserterExpiry = payload.remainingDeserter + time
     end
+
+    data.addonVersion = payload.addonVersion or '<=1.4.1' -- added after 1.4.1
 
     Private.RefreshPlayerTable()
 end
@@ -487,12 +495,19 @@ function Module:OnEnable()
     self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
-    self:RegisterComm(CommunicationEvent.NotifyDataDuration, Private.OnNotifyDataDuration)
+    self:RegisterComm(CommunicationEvent.NotifyMercDuration, Private.OnSyncData)
+    self:RegisterComm(CommunicationEvent.SyncData, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
+
+    Memory.queueStateChangeListeners = {
+        Private.DetectQueuePause,
+        Private.DetectQueueResume,
+        Private.DetectQueueCancelAfterConfirm,
+    }
 
     self:RefreshConfig()
 end
@@ -518,40 +533,90 @@ function Module:PLAYER_ENTERING_WORLD()
     Private.TriggerStateUpdates()
 end
 
-function Module:UPDATE_BATTLEFIELD_STATUS(_, id)
-    local config = Namespace.Database.profile.QueueTools.InspectQueue
+function Private.SendReadyCheckHeartbeat()
+    if not Private.CanDoReadyCheck() then return end
 
-    if Memory.currentZoneId ~= 0 then return end
-    if GetNumGroupMembers() == 0 then return end
+    DoReadyCheck()
+    Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, 'ping', GetMessageDestination())
+
+    if Memory.readyCheckHeartbeatTimout ~= nil then
+        -- ensure it's always cancelled as it might have been called directly
+        Module:CancelTimer(Memory.readyCheckHeartbeatTimout)
+        Memory.readyCheckHeartbeatTimout = nil
+    end
+end
+
+function Private.ScheduleReadyCheckHeartbeat(delay)
+    if delay == nil then delay = 0 end
+
+    if Memory.readyCheckHeartbeatTimout ~= nil then
+        Module:CancelTimer(Memory.readyCheckHeartbeatTimout)
+    end
+
+    Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(Private.SendReadyCheckHeartbeat, delay)
+end
+
+function Private.DetectQueuePause(previousState, newState, mapName)
+    if previousState.queueStatus ~= QueueStatus.Queued then return end
+    if newState.queueStatus ~= QueueStatus.Queued then return end
+    if previousState.suspendedQueue == true then return end
+    if newState.suspendedQueue == false then return end
+
+    local config = Namespace.Database.profile.QueueTools.InspectQueue
     if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
 
-    local status, mapName, _, _, suspendedQueue = GetBattlefieldStatus(id)
-    if status == 'queued' then
-        local previousSuspendedQueue = Memory.queueStatus[id]
-        if suspendedQueue == true and previousSuspendedQueue == false  then
-            local channel
-            if config.sendPausedMessage then
-                channel = GetMessageDestination()
-                local message = format(Namespace.Meta.chatTemplate, format(L['Queue paused for for %s'], mapName))
-                SendChatMessage(message, channel)
-            end
-
-            if config.doReadyCheck and Private.CanDoReadyCheck() then
-                DoReadyCheck()
-                channel = channel or GetMessageDestination()
-
-                self:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, 'ping', channel)
-            end
-        elseif config.sendResumedMessage and suspendedQueue == false and previousSuspendedQueue == true then
-            local channel = GetMessageDestination()
-            local message = format(Namespace.Meta.chatTemplate, format(L['Queue resumed for %s'], mapName))
-            SendChatMessage(message, channel)
-        end
-
-        Memory.queueStatus[id] = suspendedQueue
-    else
-        Memory.queueStatus[id] = nil
+    if config.sendPausedMessage then
+        local message = format(Namespace.Meta.chatTemplate, format(L['Queue paused for for %s'], mapName))
+        SendChatMessage(message, GetMessageDestination())
     end
+
+    if config.doReadyCheckOnQueuePause then
+        Private.SendReadyCheckHeartbeat()
+    end
+end
+
+function Private.DetectQueueResume(previousState, newState, mapName)
+    if previousState.queueStatus ~= QueueStatus.Queued then return end
+    if newState.queueStatus ~= QueueStatus.Queued then return end
+    if previousState.suspendedQueue == false then return end
+    if newState.suspendedQueue == true then return end
+
+    local config = Namespace.Database.profile.QueueTools.InspectQueue
+    if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
+    if not config.sendResumedMessage then return end
+
+    local message = format(Namespace.Meta.chatTemplate, format(L['Queue resumed for %s'], mapName))
+
+    SendChatMessage(message, GetMessageDestination())
+end
+
+function Private.DetectQueueCancelAfterConfirm(previousState, newState)
+    if previousState.queueStatus ~= QueueStatus.Confirm then return end
+    if newState.queueStatus ~= QueueStatus.None then return end
+
+    local config = Namespace.Database.profile.QueueTools.InspectQueue
+    if not config.doReadyCheckOnQueueCancelAfterConfirm then return end
+    if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
+
+    -- wait a few seconds as not everyone will have cancelled as fast
+    Private.ScheduleReadyCheckHeartbeat(3)
+end
+
+function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
+    if Memory.currentZoneId ~= 0 then return end
+    if GetNumGroupMembers() == 0 then return end
+
+    local previousState = Memory.queueState[queueId] or {}
+    local status, mapName, _, _, suspendedQueue = GetBattlefieldStatus(queueId)
+    local newState = { status = status, suspendedQueue = suspendedQueue }
+
+    if newState.status == previousState.status and newState.suspendedQueue == previousState.suspendedQueue then return end
+
+    for _, listener in pairs(Memory.queueStateChangeListeners) do
+        listener(previousState, newState, mapName)
+    end
+
+    Memory.queueState[queueId] = newState
 end
 
 function Module:RefreshConfig()
@@ -563,7 +628,7 @@ function Module:COMBAT_LOG_EVENT_UNFILTERED()
     if (spellId ~= SpellIds.MercenaryContractBuff and spellId ~= SpellIds.DeserterDebuff) or sourceGUID ~= UnitGUID('player') then return end
 
     if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
-        Private.ScheduleSendDataDuration()
+        Private.ScheduleSendSyncData()
     end
 end
 
@@ -662,7 +727,19 @@ function Private.InitializeGroupQueueFrame()
     playerTable.frame:SetBackdropColor(0, 0, 0, 0)
     playerTable.frame:SetBackdropBorderColor(0, 0, 0, 0)
     playerTable.frame:SetPoint('TOPRIGHT', -4, -58)
-    playerTable:RegisterEvents({}, true)
+    playerTable:RegisterEvents({
+        onEnter = function (rowFrame, _, data, _, _, realRow, _)
+            if not data[realRow] then return end
+
+            local originalData = data[realRow].originalData
+            if not originalData.addonVersion then return end
+
+            _G.GameTooltip:SetOwner(rowFrame, 'ANCHOR_NONE');
+            _G.GameTooltip:SetPoint('LEFT', rowFrame, 'RIGHT')
+            _G.GameTooltip:SetText(format(L['Addon version: %s'], originalData.addonVersion), nil, nil, nil, nil, true);
+        end,
+        onLeave = function () _G.GameTooltip:Hide() end,
+    }, true)
 
     playerTable.frame:SetScript('OnShow', function (self)
         self.refreshTimer = Module:ScheduleRepeatingTimer(Private.RefreshPlayerTable, Config.tableRefreshSeconds)
