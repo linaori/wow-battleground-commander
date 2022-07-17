@@ -533,7 +533,11 @@ local Addon = Namespace.Libs.AceAddon:NewAddon(AddonName, 'AceConsole-3.0')
 Namespace.Addon = Addon
 
 function Addon:PrintMessage(message)
-    print(format(Namespace.Meta.chatTemplate, message))
+    print(self:PrependChatTemplate(message))
+end
+
+function Addon:PrependChatTemplate(message)
+    return format(Namespace.Meta.chatTemplate, message)
 end
 
 function Addon:OnInitialize()

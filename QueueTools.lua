@@ -1,5 +1,6 @@
 local _G, ModuleName, Private, AddonName, Namespace = _G, 'QueueTools', {}, ...
-local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
+local Addon = Namespace.Addon
+local Module = Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local ScrollingTable = Namespace.Libs.ScrollingTable
 
@@ -21,6 +22,7 @@ local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local GetNumGroupMembers = GetNumGroupMembers
 local GetBattlefieldStatus = GetBattlefieldStatus
+local GetMaxBattlefieldID = GetMaxBattlefieldID
 local GetLFGRoleUpdate = GetLFGRoleUpdate
 local GetUnitName = GetUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
@@ -39,7 +41,11 @@ local max = math.max
 local ceil = math.ceil
 local format = string.format
 local pairs = pairs
-local print = Namespace.Debug.print
+local concat = table.concat
+--local print = Namespace.Debug.print
+local log = Namespace.Debug.log
+
+local locale = GetLocale()
 
 local SpellIds = {
     DeserterDebuff = 26013,
@@ -92,11 +98,6 @@ local PlayerDataTargets = {
     },
 }
 
-local Config = {
-    tableRefreshSeconds = 10,
-    readyCheckStateResetSeconds = 10,
-}
-
 local QueueStatus = {
     Queued = 'queued',
     Confirm = 'confirm',
@@ -117,6 +118,8 @@ local Memory = {
     readyCheckButtonTicker = nil,
     readyCheckClearTimeout = nil,
     readyCheckHeartbeatTimout = nil,
+    readyCheckHeartbeatMessage = nil,
+    stateInitializedTimout = nil,
 
     queueState = {
         --[0] = {
@@ -381,6 +384,12 @@ function Private.EnterZone()
     Memory.currentZoneId = currentZoneId
 end
 
+function Private.ScheduleStateUpdates(delay)
+    if Memory.stateInitializedTimout then return end
+
+    Memory.stateInitializedTimout = Module:ScheduleTimer(Private.TriggerStateUpdates, delay)
+end
+
 function Private.TriggerStateUpdates()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
 
@@ -415,9 +424,11 @@ function Private.TriggerStateUpdates()
         end
     end
 
+    Memory.stateInitializedTimout = nil
     Memory.playerTableCache = tableCache
     Private.ScheduleSendSyncData()
     Private.UpdatePlayerTableData()
+    Private.RefreshPlayerTable()
 end
 
 function Private.UpdateQueueFrameVisibility(newVisibility)
@@ -457,15 +468,8 @@ function Private.InitializeBattlegroundModeCheckbox()
     checkbox.Text = text
 end
 
-function Private.OnSyncData(_, text, _, sender)
-    local payload = UnpackData(text)
-    if not payload then return end
-
-    local data = Private.GetPlayerDataByName(sender)
-    if not data then return print('OnSyncData', 'Missing player for sender', sender) end
-
+function Private.ProcessSyncData(payload, data)
     local time = GetTime()
-
     -- renamed after 1.4.0, remove "remaining" index in the future
     data.mercenaryExpiry = (payload.remainingMercenary or payload.remaining) + time
     if payload.remainingDeserter then
@@ -478,8 +482,30 @@ function Private.OnSyncData(_, text, _, sender)
     Private.RefreshPlayerTable()
 end
 
-function Private.OnReadyCheckHeartbeat()
-    _G.ReadyCheckFrameYesButton:Click()
+function Private.OnSyncData(_, text, _, sender)
+    local payload = UnpackData(text)
+    if not payload then return end
+
+    local data = Private.GetPlayerDataByName(sender)
+    if data then return Private.ProcessSyncData(payload, data) end
+
+    -- in some cases after initial login the realm names are missing from
+    -- GetUnitName. Delaying in the hopes this is available when retrying
+    return Module:ScheduleTimer(function ()
+        data = Private.GetPlayerDataByName(sender)
+        if not data then return log('Unable to find data for sender: ', sender) end
+
+        Private.ProcessSyncData(payload, data)
+    end, 5)
+end
+
+function Private.OnReadyCheckHeartbeat(_, text, _, sender)
+    if sender == GetUnitName('player', true) then return end
+
+    if _G.ReadyCheckFrameYesButton:IsShown() then
+        _G.ReadyCheckFrameYesButton:Click()
+        Addon:PrintMessage(format(L['Accepted automated ready check with message: "%s"'], text))
+    end
 end
 
 function Module:OnInitialize()
@@ -527,40 +553,54 @@ function Module:LFG_ROLE_CHECK_SHOW()
 end
 
 function Module:GROUP_ROSTER_UPDATE()
-    Private.TriggerStateUpdates()
+    Private.ScheduleStateUpdates(1)
 end
 
-function Module:PLAYER_ENTERING_WORLD()
+function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
     Private.EnterZone()
-    Private.TriggerStateUpdates()
+    Private.ScheduleStateUpdates(isLogin and 5 or 1)
+
+    if not isLogin and not isReload then return end
+
+    -- when logging in or reloading mid-queue, the first queue status mutation
+    -- is inaccurate if not set before it happens
+    for queueId = 1, GetMaxBattlefieldID() do
+        local status, _, _, _, suspendedQueue = GetBattlefieldStatus(queueId)
+        Memory.queueState[queueId] = { status = status, suspendedQueue = suspendedQueue }
+    end
 end
 
-function Private.SendReadyCheckHeartbeat()
+function Private.SendReadyCheckHeartbeat(message)
     if not Private.CanDoReadyCheck() then return end
 
+    message = message or Memory.readyCheckHeartbeatMessage or 'ping'
+
     DoReadyCheck()
-    Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, 'ping', GetMessageDestination())
+    Addon:PrintMessage(format(L['Sending automated ready check with message: "%s"'], message))
+    Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, message, GetMessageDestination())
 
     if Memory.readyCheckHeartbeatTimout ~= nil then
         -- ensure it's always cancelled as it might have been called directly
         Module:CancelTimer(Memory.readyCheckHeartbeatTimout)
         Memory.readyCheckHeartbeatTimout = nil
+        Memory.readyCheckHeartbeatMessage = nil
     end
 end
 
-function Private.ScheduleReadyCheckHeartbeat(delay)
+function Private.ScheduleReadyCheckHeartbeat(message, delay)
     if delay == nil then delay = 0 end
 
     if Memory.readyCheckHeartbeatTimout ~= nil then
         Module:CancelTimer(Memory.readyCheckHeartbeatTimout)
     end
 
+    Memory.readyCheckHeartbeatMessage = message
     Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(Private.SendReadyCheckHeartbeat, delay)
 end
 
 function Private.DetectQueuePause(previousState, newState, mapName)
-    if previousState.queueStatus ~= QueueStatus.Queued then return end
-    if newState.queueStatus ~= QueueStatus.Queued then return end
+    if previousState.status ~= QueueStatus.Queued then return end
+    if newState.status ~= QueueStatus.Queued then return end
     if previousState.suspendedQueue == true then return end
     if newState.suspendedQueue == false then return end
 
@@ -568,18 +608,24 @@ function Private.DetectQueuePause(previousState, newState, mapName)
     if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
 
     if config.sendPausedMessage then
-        local message = format(Namespace.Meta.chatTemplate, format(L['Queue paused for for %s'], mapName))
-        SendChatMessage(message, GetMessageDestination())
+        local message = Private.TwoLanguages('Queue paused for %s', mapName)
+        if GetNumGroupMembers() == 0 then
+            -- just return, you got no friends to do a ready check with anyway
+            return Addon:PrintMessage(message)
+        end
+
+        local channel = GetMessageDestination()
+        SendChatMessage(Addon:PrependChatTemplate(message), channel)
     end
 
     if config.doReadyCheckOnQueuePause then
-        Private.SendReadyCheckHeartbeat()
+        Private.SendReadyCheckHeartbeat('Detected queue pause')
     end
 end
 
 function Private.DetectQueueResume(previousState, newState, mapName)
-    if previousState.queueStatus ~= QueueStatus.Queued then return end
-    if newState.queueStatus ~= QueueStatus.Queued then return end
+    if previousState.status ~= QueueStatus.Queued then return end
+    if newState.status ~= QueueStatus.Queued then return end
     if previousState.suspendedQueue == false then return end
     if newState.suspendedQueue == true then return end
 
@@ -587,28 +633,29 @@ function Private.DetectQueueResume(previousState, newState, mapName)
     if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
     if not config.sendResumedMessage then return end
 
-    local message = format(Namespace.Meta.chatTemplate, format(L['Queue resumed for %s'], mapName))
+    local message = Private.TwoLanguages('Queue resumed for %s', mapName)
+    if GetNumGroupMembers() == 0 then
+        return Addon:PrintMessage(message)
+    end
 
-    SendChatMessage(message, GetMessageDestination())
+    local channel = GetMessageDestination()
+    SendChatMessage(Addon:PrependChatTemplate(message), channel)
 end
 
 function Private.DetectQueueCancelAfterConfirm(previousState, newState)
-    if previousState.queueStatus ~= QueueStatus.Confirm then return end
-    if newState.queueStatus ~= QueueStatus.None then return end
+    if previousState.status ~= QueueStatus.Confirm then return end
+    if newState.status ~= QueueStatus.None then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
     if not config.doReadyCheckOnQueueCancelAfterConfirm then return end
     if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
 
     -- wait a few seconds as not everyone will have cancelled as fast
-    Private.ScheduleReadyCheckHeartbeat(3)
+    Private.ScheduleReadyCheckHeartbeat('Confirm nobody entered', 3)
 end
 
 function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
-    if Memory.currentZoneId ~= 0 then return end
-    if GetNumGroupMembers() == 0 then return end
-
-    local previousState = Memory.queueState[queueId] or {}
+    local previousState = Memory.queueState[queueId] or { status = QueueStatus.None, suspendedQueue = false }
     local status, mapName, _, _, suspendedQueue = GetBattlefieldStatus(queueId)
     local newState = { status = status, suspendedQueue = suspendedQueue }
 
@@ -646,7 +693,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     if initiatedByData then
         initiatedByData.readyState = ReadyCheckState.Ready
     else
-        print(_, 'Missing player for initiatedByName', initiatedByName)
+        log('READY_CHECK', 'Missing player for initiatedByName', initiatedByName)
     end
 
     Memory.readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
@@ -664,14 +711,14 @@ function Module:READY_CHECK(_, initiatedByName, duration)
         Memory.readyCheckButtonTicker = nil
     end, 0.1)
 
-    Private.TriggerStateUpdates()
+    Private.ScheduleStateUpdates(1)
     Private.RefreshPlayerTable()
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
     -- ready check can give "target" instead as unit if you have a party/raid member selected during the confirmation
     local data = unit == 'target' and Private.GetPlayerDataByName(GetUnitName('target', true)) or Private.GetPlayerDataByUnit(unit)
-    if not data then return print(_, 'Missing unit', unit) end
+    if not data then return log('READY_CHECK_CONFIRM', 'Missing unit', unit) end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
 
@@ -703,7 +750,7 @@ function Module:READY_CHECK_FINISHED()
 
         Private.RefreshPlayerTable()
         Memory.readyCheckClearTimeout = nil
-    end, Config.readyCheckStateResetSeconds)
+    end, 10)
 
     Private.RefreshPlayerTable()
 end
@@ -744,7 +791,7 @@ function Private.InitializeGroupQueueFrame()
     }, true)
 
     playerTable.frame:SetScript('OnShow', function (self)
-        self.refreshTimer = Module:ScheduleRepeatingTimer(Private.RefreshPlayerTable, Config.tableRefreshSeconds)
+        self.refreshTimer = Module:ScheduleRepeatingTimer(Private.RefreshPlayerTable, 10)
     end)
     playerTable.frame:SetScript('OnHide', function (self)
         Module:CancelTimer(self.refreshTimer)
@@ -794,7 +841,7 @@ function Private.InitializeGroupQueueFrame()
 
     queueFrame.SettingsButton = settingsButton
 
-    Private.TriggerStateUpdates()
+    Private.ScheduleStateUpdates(0)
 end
 
 function Module:ADDON_LOADED(_, addonName)
@@ -822,4 +869,16 @@ end
 
 function Module:GetAutomationSetting(setting)
     return Namespace.Database.profile.QueueTools.Automation[setting]
+end
+
+--- Creates a formatted message based on the translation key for both the
+--- user locale, and English
+function Private.TwoLanguages(translationKey, ...)
+    local translated = format(L[translationKey], ...)
+    if locale == 'enUS' then return translated end
+
+    local english = format(translationKey, ...)
+    if english == translated then return translated end
+
+    return concat({english, ' / ' , translated})
 end

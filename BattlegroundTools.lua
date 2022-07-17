@@ -1,5 +1,6 @@
 local _G, ModuleName, Private, AddonName, Namespace = _G, 'BattlegroundTools', {}, ...
-local Module = Namespace.Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
+local Addon = Namespace.Addon
+local Module = Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local LSM = Namespace.Libs.LibSharedMedia
 local LibDD = Namespace.Libs.LibDropDown
@@ -494,7 +495,7 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
     if config.wantLead then return end
     if config.automaticallyAccept[sender] then
         PromoteToLeader(sender)
-        return Namespace.Addon:PrintMessage(format(L['Automatically giving lead to %s'], sender))
+        return Addon:PrintMessage(format(L['Automatically giving lead to %s'], sender))
     end
     if config.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
 

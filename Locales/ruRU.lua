@@ -52,7 +52,7 @@ L['Battleground Commander loaded'] = true
 L['You can access the configuration via /bgc or through the interface options'] = true
 L['Latest message on top '] = true
 L['Enable to show the latest message on top, otherwise the latest message will be on the bottom'] = true
-L['Queue paused for for %s'] = true
+L['Queue paused for %s'] = true
 L['Queue resumed for %s'] = true
 L['As BG Leader'] = true
 L['Requests lead upon entering or enabling this option'] = true
@@ -83,6 +83,8 @@ L['Entered %s'] = true
 L['Ready Check on Queue Cancel'] = true
 L['Do a ready check to see who entered while the group leader cancelled entering'] = true
 L['Open Battleground Commander Settings'] = true
+L['Accepted automated ready check with message: "%s"'] = true
+L['Sending automated ready check with message: "%s"'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
