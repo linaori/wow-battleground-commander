@@ -14,6 +14,10 @@ Free choice of automatically notifying the group when the queue is paused, resum
 who is and isn't ready. These options can also be limited to being a group leader or assist. Additionally, if someone
 else with this addon does an automated ready check, it will try to automatically accept it.
 
+#### Queue Entry and Decline Tools
+The ability to automatically do a ready check when a queue entry is cancelled, and automated "Enter" or "Cancel"
+messages when the group leader clicks either of those buttons.
+
 ### Battleground Tools
 Extra conveniences for Battlegrounds.
 

@@ -42,6 +42,8 @@ local defaultConfig = {
                 sendResumedMessage = true,
                 doReadyCheckOnQueuePause = true,
                 doReadyCheckOnQueueCancelAfterConfirm = true,
+                sendMessageOnQueueCancelAfterConfirm = true,
+                sendMessageOnBattlegroundEntry = true,
             },
         },
         BattlegroundTools = {
@@ -179,14 +181,19 @@ local function getOptions()
                             type = 'group',
                             order = 2,
                             args = {
+                                queuePauseDetection = {
+                                    name = L['Queue Pause Detection'],
+                                    type = 'header',
+                                    order = 1,
+                                },
                                 onlyAsLeader = {
                                     name = L['Only as Leader or Assist'],
-                                    desc = L['Enable the Queue Inspection features only when you are party leader or assist'],
+                                    desc = L['Enable the queue pause detection features only when you are party leader or assist'],
                                     type = 'toggle',
                                     width = 'double',
                                     set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('onlyAsLeader', value) end,
                                     get = function () return Namespace.QueueTools:GetQueueInspectionSetting('onlyAsLeader') end,
-                                    order = 1,
+                                    order = 2,
                                 },
                                 sendPausedMessage = {
                                     name = L['Notify When Paused'],
@@ -195,7 +202,7 @@ local function getOptions()
                                     width = 'double',
                                     set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('sendPausedMessage', value) end,
                                     get = function () return Namespace.QueueTools:GetQueueInspectionSetting('sendPausedMessage') end,
-                                    order = 2,
+                                    order = 3,
                                 },
                                 sendResumedMessage = {
                                     name = L['Notify When Resumed'],
@@ -204,7 +211,18 @@ local function getOptions()
                                     width = 'double',
                                     set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('sendResumedMessage', value) end,
                                     get = function () return Namespace.QueueTools:GetQueueInspectionSetting('sendResumedMessage') end,
-                                    order = 3,
+                                    order = 4,
+                                },
+                                entryManagementHeader = {
+                                    name = L['Entry Management'],
+                                    type = 'header',
+                                    order = 5,
+                                },
+                                entryManagementDescription = {
+                                    name = L['These features are only enabled when you are the group or raid leader'],
+                                    type = 'description',
+                                    width = 'full',
+                                    order = 6,
                                 },
                                 doReadyCheckOnQueuePause = {
                                     name = L['Ready Check on Pause'],
@@ -213,7 +231,7 @@ local function getOptions()
                                     width = 'double',
                                     set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('doReadyCheckOnQueuePause', value) end,
                                     get = function () return Namespace.QueueTools:GetQueueInspectionSetting('doReadyCheckOnQueuePause') end,
-                                    order = 4,
+                                    order = 7,
                                 },
                                 doReadyCheckOnQueueCancelAfterConfirm = {
                                     name = L['Ready Check on Queue Cancel'],
@@ -222,7 +240,25 @@ local function getOptions()
                                     width = 'double',
                                     set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('doReadyCheckOnQueueCancelAfterConfirm', value) end,
                                     get = function () return Namespace.QueueTools:GetQueueInspectionSetting('doReadyCheckOnQueueCancelAfterConfirm') end,
-                                    order = 4,
+                                    order = 8,
+                                },
+                                sendMessageOnQueueCancelAfterConfirm = {
+                                    name = L['Send "Cancel" message in chat'],
+                                    desc = L['Automatically send a message to the raid or party chat when you cancel the entry'],
+                                    type = 'toggle',
+                                    width = 'double',
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('sendMessageOnQueueCancelAfterConfirm', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('sendMessageOnQueueCancelAfterConfirm') end,
+                                    order = 9,
+                                },
+                                sendMessageOnBattlegroundEntry = {
+                                    name = L['Send "Enter" message in chat'],
+                                    desc = L['Automatically send a message to the raid or party chat when you confirm the entry'],
+                                    type = 'toggle',
+                                    width = 'double',
+                                    set = function (_, value) Namespace.QueueTools:SetQueueInspectionSetting('sendMessageOnBattlegroundEntry', value) end,
+                                    get = function () return Namespace.QueueTools:GetQueueInspectionSetting('sendMessageOnBattlegroundEntry') end,
+                                    order = 10,
                                 },
                             }
                         },

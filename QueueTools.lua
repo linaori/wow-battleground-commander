@@ -9,6 +9,7 @@ Namespace.QueueTools = Module
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
+local GetLocalMessageDestination = Namespace.Communication.GetLocalMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local DoReadyCheck = DoReadyCheck
@@ -57,6 +58,17 @@ local ReadyCheckState = {
     Waiting = 1,
     Ready = 2,
     Declined = 3,
+}
+
+local RaidMarker = {
+    YellowStar = '{rt1}',
+    OrangeCircle = '{rt2}',
+    PurpleDiamond = '{rt3}',
+    GreenTriangle = '{rt4}',
+    SilverMoon = '{rt5}',
+    BlueSquare = '{rt6}',
+    RedCross = '{rt7}',
+    WhiteSkull = '{rt8}',
 }
 
 local tableStructure = {
@@ -189,7 +201,12 @@ function Private.GetPlayerDataByUnit(unit)
         if data.units[unit] then return data end
     end
 
-    return nil
+    -- fallback to getting the name of the unit in case of weird scenarios
+    -- where "target" or "nameplate1" is sent
+    local name = GetUnitName(unit, true)
+    if not name then return nil end
+
+    return Private.GetPlayerDataByName(name)
 end
 
 function Private.GetPlayerDataByName(name)
@@ -502,10 +519,20 @@ end
 function Private.OnReadyCheckHeartbeat(_, text, _, sender)
     if sender == GetUnitName('player', true) then return end
 
-    if _G.ReadyCheckFrameYesButton:IsShown() then
+    local acceptReadyCheck = function (skipVisibility)
+        if not skipVisibility and not _G.ReadyCheckFrameYesButton:IsVisible() then return end
+
         _G.ReadyCheckFrameYesButton:Click()
         Addon:PrintMessage(format(L['Accepted automated ready check with message: "%s"'], text))
     end
+
+    -- due to the async nature, the ready check might come later than the
+    -- message to click the button, postpone click if not visible yet
+    if _G.ReadyCheckFrameYesButton:IsVisible() then
+        return acceptReadyCheck(true)
+    end
+
+    Module:ScheduleTimer(acceptReadyCheck, 0.055)
 end
 
 function Module:OnInitialize()
@@ -535,6 +562,7 @@ function Module:OnEnable()
         Private.DetectQueuePause,
         Private.DetectQueueResume,
         Private.DetectQueueCancelAfterConfirm,
+        Private.DetectBattlegroundEntryAfterConfirm,
     }
 
     self:RefreshConfig()
@@ -605,7 +633,8 @@ function Private.DetectQueuePause(previousState, newState, mapName)
     if newState.suspendedQueue == false then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
-    if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
+    local isLeader = Private.IsLeaderOrAssistant('player')
+    if config.onlyAsLeader and not isLeader then return end
 
     if config.sendPausedMessage then
         local message = Private.TwoLanguages('Queue paused for %s', mapName)
@@ -618,7 +647,7 @@ function Private.DetectQueuePause(previousState, newState, mapName)
         SendChatMessage(Addon:PrependChatTemplate(message), channel)
     end
 
-    if config.doReadyCheckOnQueuePause then
+    if isLeader and config.doReadyCheckOnQueuePause then
         Private.SendReadyCheckHeartbeat('Detected queue pause')
     end
 end
@@ -645,13 +674,32 @@ end
 function Private.DetectQueueCancelAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.None then return end
+    if not Private.IsLeaderOrAssistant('player') then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
-    if not config.doReadyCheckOnQueueCancelAfterConfirm then return end
-    if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
+    if config.doReadyCheckOnQueueCancelAfterConfirm then
+        -- wait a few seconds as not everyone will have cancelled as fast
+        Private.ScheduleReadyCheckHeartbeat('Confirm nobody entered', 3)
+    end
 
-    -- wait a few seconds as not everyone will have cancelled as fast
-    Private.ScheduleReadyCheckHeartbeat('Confirm nobody entered', 3)
+    if config.sendMessageOnQueueCancelAfterConfirm then
+        local channel = GetMessageDestination()
+        local message = concat({RaidMarker.RedCross, Private.TwoLanguages('Cancel'), RaidMarker.RedCross}, ' ')
+        SendChatMessage(Addon:PrependChatTemplate(message), channel)
+    end
+end
+
+function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
+    if previousState.status ~= QueueStatus.Confirm then return end
+    if newState.status ~= QueueStatus.Active then return end
+    if not Private.IsLeaderOrAssistant('player') then return end
+
+    local config = Namespace.Database.profile.QueueTools.InspectQueue
+    if config.sendMessageOnQueueEnterAfterConfirm then
+        local channel = GetLocalMessageDestination()
+        local message = concat({RaidMarker.GreenTriangle, Private.TwoLanguages('Enter'), RaidMarker.GreenTriangle}, ' ')
+        SendChatMessage(Addon:PrependChatTemplate(message), channel)
+    end
 end
 
 function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
@@ -716,8 +764,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
-    -- ready check can give "target" instead as unit if you have a party/raid member selected during the confirmation
-    local data = unit == 'target' and Private.GetPlayerDataByName(GetUnitName('target', true)) or Private.GetPlayerDataByUnit(unit)
+    local data = Private.GetPlayerDataByUnit(unit)
     if not data then return log('READY_CHECK_CONFIRM', 'Missing unit', unit) end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
@@ -880,5 +927,5 @@ function Private.TwoLanguages(translationKey, ...)
     local english = format(translationKey, ...)
     if english == translated then return translated end
 
-    return concat({english, ' / ' , translated})
+    return concat({english, '/' , translated}, ' ')
 end

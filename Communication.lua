@@ -41,3 +41,13 @@ function Namespace.Communication.GetMessageDestination()
 
     return Channel.Whisper, GetUnitName('player', true)
 end
+
+--- Same as GetMessageDestination, but enforces it to be sent to your local group
+function Namespace.Communication.GetLocalMessageDestination()
+    local currentType = Namespace.Utils.GetLocalGroupType()
+
+    if currentType == GroupType.Raid then return Channel.Raid, nil end
+    if currentType == GroupType.Party then return Channel.Party, nil end
+
+    return Channel.Whisper, GetUnitName('player', true)
+end

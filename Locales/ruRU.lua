@@ -85,6 +85,15 @@ L['Do a ready check to see who entered while the group leader cancelled entering
 L['Open Battleground Commander Settings'] = true
 L['Accepted automated ready check with message: "%s"'] = true
 L['Sending automated ready check with message: "%s"'] = true
+L['Cancel'] = true
+L['Enter'] = true
+L['Entry Management'] = true
+L['These features are only enabled when you are the group or raid leader'] = true
+L['Send "Enter" message in chat'] = true
+L['Send "Cancel" message in chat'] = true
+L['Automatically send a message to the raid or party chat when you cancel the entry'] = true
+L['Automatically send a message to the raid or party chat when you confirm the entry'] = true
+L['Queue Pause Detection'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
@@ -116,4 +125,4 @@ L['Send a chat message whenever the queue is resumed after being paused'] = true
 L['Ready Check on Pause'] = true
 L['Do a ready check whenever a queue pause is detected'] = true
 L['Only as Leader or Assist'] = true
-L['Enable the Queue Inspection features only when you are party leader or assist'] = true
+L['Enable the queue pause detection features only when you are party leader or assist'] = true

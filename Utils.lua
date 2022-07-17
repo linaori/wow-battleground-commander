@@ -76,6 +76,14 @@ function Namespace.Utils.GetGroupType()
     return GroupType.solo
 end
 
+--- Same as GetGroupType, but enforces it to detect your non-instanced group type
+function Namespace.Utils.GetLocalGroupType()
+    if IsInRaid(LE_PARTY_CATEGORY_HOME) then return GroupType.Raid end
+    if IsInGroup(LE_PARTY_CATEGORY_HOME) then return GroupType.Party end
+
+    return GroupType.solo
+end
+
 function Namespace.Utils.GetGroupLeaderUnit()
     local currentType = Namespace.Utils.GetGroupType()
     local units
