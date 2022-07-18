@@ -640,11 +640,9 @@ end
 function Private.ScheduleReadyCheckHeartbeat(message, delay)
     if delay == nil then delay = 0 end
 
-    if Memory.readyCheckHeartbeatTimout ~= nil then
-        Module:CancelTimer(Memory.readyCheckHeartbeatTimout)
-    end
-
     Memory.readyCheckHeartbeatMessage = message
+    if Memory.readyCheckHeartbeatTimout ~= nil then return end
+
     Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(Private.SendReadyCheckHeartbeat, delay)
 end
 
@@ -670,7 +668,7 @@ function Private.DetectQueuePause(previousState, newState, mapName)
     end
 
     if isLeader and config.doReadyCheckOnQueuePause then
-        Private.SendReadyCheckHeartbeat('Detected queue pause')
+        Private.ScheduleReadyCheckHeartbeat('Detected queue pause')
     end
 end
 
