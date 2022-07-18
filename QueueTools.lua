@@ -756,6 +756,9 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     Memory.lastReadyCheckTime = GetTime()
     Memory.lastReadyCheckDuration = duration
 
+    -- occupy the heartbeat timeout so it won't send anything shortly after this ready check
+    Memory.readyCheckHeartbeatTimout = self:ScheduleTimer(function() Memory.readyCheckHeartbeatTimout = nil end, duration)
+
     for _, data in pairs(Memory.playerData) do
         data.readyState = ReadyCheckState.Waiting
     end
