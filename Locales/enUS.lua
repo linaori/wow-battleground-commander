@@ -93,6 +93,7 @@ L['Send "Cancel" message in chat'] = true
 L['Automatically send a message to the raid or party chat when you cancel the entry'] = true
 L['Automatically send a message to the raid or party chat when you confirm the entry'] = true
 L['Queue Pause Detection'] = true
+L['Auto Queue'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

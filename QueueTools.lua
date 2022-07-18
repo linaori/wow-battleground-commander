@@ -78,22 +78,27 @@ local tableStructure = {
     },
     {
         name = '',
-        width = 110,
+        width = 100,
         align = 'LEFT',
     },
     {
+        name = L['Auto Queue'],
+        width = 50,
+        align = 'CENTER',
+    },
+    {
         name = ' ' .. L['Merc'],
-        width = 55,
+        width = 40,
         align = 'CENTER',
     },
     {
         name = ' ' .. L['Deserter'],
-        width = 55,
+        width = 50,
         align = 'CENTER',
     },
     {
         name = ' ' .. L['Ready'],
-        width = 55,
+        width = 40,
         align = 'CENTER',
     }
 }
@@ -149,8 +154,9 @@ local Memory = {
         --    class = 'CLASS',
         --    readyState = ReadyCheckState.Nothing,
         --    deserterExpiry = -1,
-        --    mercenaryExpiry = -1,
+        --    mercenaryExpiry = nil,
         --    addonVersion = 'whatever remote version',
+        --    autoAcceptRole = false,
         --},
     },
 
@@ -189,11 +195,12 @@ function Private.ScheduleSendSyncData()
         addonVersion = Namespace.Meta.version,
         remainingMercenary = Private.GetRemainingAuraTime(SpellIds.MercenaryContractBuff),
         remainingDeserter = Private.GetRemainingAuraTime(SpellIds.DeserterDebuff),
+        autoAcceptRole = Namespace.Database.profile.QueueTools.Automation.acceptRoleSelection,
     }
 
     if not shouldSchedule then return end
 
-    Module:ScheduleTimer(Private.SendSyncData, ceil(GetNumGroupMembers() * 0.1))
+    Module:ScheduleTimer(Private.SendSyncData, ceil(GetNumGroupMembers() * 0.1) + 1)
 end
 
 function Private.GetPlayerDataByUnit(unit)
@@ -289,10 +296,24 @@ function Private.CreateTableRow(index, data)
         end,
     }
 
+    local autoAcceptRoleColumn = {
+        value = function(tableData, _, realRow, column)
+            local columnData = tableData[realRow].cols[column]
+            if data.autoAcceptRole == nil then
+                columnData.color = ColorList.Warning
+                return '?'
+            end
+
+            columnData.color = nil
+
+            return data.autoAcceptRole and L['yes'] or L['no']
+        end,
+    }
+
     local mercenaryColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
-            if not data.addonVersion then
+            if not data.mercenaryExpiry then
                 columnData.color = ColorList.Warning
                 return '?'
             end
@@ -356,6 +377,7 @@ function Private.CreateTableRow(index, data)
     return { cols = {
         {value = index},
         nameColumn,
+        autoAcceptRoleColumn,
         mercenaryColumn,
         deserterColumn,
         readyCheckColumn,
@@ -424,7 +446,6 @@ function Private.TriggerStateUpdates()
                     name = GetUnitName(unit, true),
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
-                    mercenaryExpiry = -1,
                     units = {primary = unit, [unit] = true},
                 }
 
@@ -495,6 +516,7 @@ function Private.ProcessSyncData(payload, data)
     end
 
     data.addonVersion = payload.addonVersion or '<=1.4.1' -- added after 1.4.1
+    data.autoAcceptRole = payload.autoAcceptRole
 
     Private.RefreshPlayerTable()
 end
@@ -504,8 +526,8 @@ function Private.OnSyncData(_, text, _, sender)
     if not payload then return end
 
     local data = Private.GetPlayerDataByName(sender)
-    if data then return Private.ProcessSyncData(payload, data) end
 
+    if data then return Private.ProcessSyncData(payload, data) end
     -- in some cases after initial login the realm names are missing from
     -- GetUnitName. Delaying in the hopes this is available when retrying
     return Module:ScheduleTimer(function ()
@@ -586,7 +608,7 @@ end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
     Private.EnterZone()
-    Private.ScheduleStateUpdates(isLogin and 5 or 1)
+    Private.ScheduleStateUpdates(isLogin and 5 or 2)
 
     if not isLogin and not isReload then return end
 
@@ -718,6 +740,7 @@ end
 
 function Module:RefreshConfig()
     Private.UpdateQueueFrameVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
+    Private.ScheduleSendSyncData()
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
@@ -888,7 +911,7 @@ function Private.InitializeGroupQueueFrame()
 
     queueFrame.SettingsButton = settingsButton
 
-    Private.ScheduleStateUpdates(0)
+    Private.ScheduleStateUpdates(1)
 end
 
 function Module:ADDON_LOADED(_, addonName)
@@ -911,7 +934,14 @@ function Module:GetQueueInspectionSetting(setting)
 end
 
 function Module:SetAutomationSetting(setting, value)
-    Namespace.Database.profile.QueueTools.Automation[setting] = value
+    local Automation = Namespace.Database.profile.QueueTools.Automation
+    if setting == 'acceptRoleSelection' and value ~= Automation[setting] then
+        -- notify through sync data when this setting changed
+        Automation[setting] = value
+        return Private.ScheduleSendSyncData()
+    end
+
+    Automation[setting] = value
 end
 
 function Module:GetAutomationSetting(setting)
