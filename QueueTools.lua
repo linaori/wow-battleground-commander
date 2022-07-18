@@ -6,6 +6,8 @@ local ScrollingTable = Namespace.Libs.ScrollingTable
 
 Namespace.QueueTools = Module
 
+local IsLeaderOrAssistant = Namespace.Utils.IsLeaderOrAssistant
+local IsLocalLeaderOrAssistant = Namespace.Utils.IsLocalLeaderOrAssistant
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
@@ -239,7 +241,7 @@ function Private.CanDoReadyCheck()
         return false
     end
 
-    if not Private.IsLeaderOrAssistant('player') then
+    if not IsLeaderOrAssistant('player') then
         return false
     end
 
@@ -653,7 +655,7 @@ function Private.DetectQueuePause(previousState, newState, mapName)
     if newState.suspendedQueue == false then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
-    local isLeader = Private.IsLeaderOrAssistant('player')
+    local isLeader = IsLeaderOrAssistant('player')
     if config.onlyAsLeader and not isLeader then return end
 
     if config.sendPausedMessage then
@@ -679,7 +681,7 @@ function Private.DetectQueueResume(previousState, newState, mapName)
     if newState.suspendedQueue == true then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
-    if config.onlyAsLeader and not Private.IsLeaderOrAssistant('player') then return end
+    if config.onlyAsLeader and not IsLeaderOrAssistant('player') then return end
     if not config.sendResumedMessage then return end
 
     local message = Private.TwoLanguages('Queue resumed for %s', mapName)
@@ -694,7 +696,7 @@ end
 function Private.DetectQueueCancelAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.None then return end
-    if not Private.IsLeaderOrAssistant('player') then return end
+    if not IsLeaderOrAssistant('player') then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
     if config.doReadyCheckOnQueueCancelAfterConfirm then
@@ -712,10 +714,10 @@ end
 function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
-    if not Private.IsLeaderOrAssistant('player') then return end
+    if not IsLocalLeaderOrAssistant('player') then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
-    if config.sendMessageOnQueueEnterAfterConfirm then
+    if config.sendMessageOnBattlegroundEntry then
         local channel = GetLocalMessageDestination()
         local message = concat({RaidMarker.GreenTriangle, Private.TwoLanguages('Enter'), RaidMarker.GreenTriangle}, ' ')
         SendChatMessage(Addon:PrependChatTemplate(message), channel)

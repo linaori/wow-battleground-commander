@@ -2,9 +2,9 @@
 Provides quality of life features for Battlegrounds. 
 
 ### Queue Tools
-This adds extra ready check tools, as well as being able to see who has a deserter debuff, or mercenary contract. As
-the mercenary contract is invisible to other players, the players you want to see the contract for need to have this
-addon installed.
+This adds extra ready check tools, as well as being able to see who has a deserter debuff, mercenary contract, and
+whether the player has auto queue enabled. As the mercenary contract is invisible to other players, the players you want
+to see the contract for need to have this addon installed.
 
 #### Automatic Role Selection
 You can enable automatic role selection for battlegrounds to reduce a manual step that delays entry.
