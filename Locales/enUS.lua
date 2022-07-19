@@ -9,6 +9,7 @@ L['no'] = true
 L['Merc'] = true
 L['Deserter'] = true
 L['Ready'] = true
+L['Not Ready'] = true
 L['Addon Information'] = true
 L['Version'] = true
 L['Addon version: %s'] = true
@@ -94,6 +95,9 @@ L['Automatically send a message to the raid or party chat when you cancel the en
 L['Automatically send a message to the raid or party chat when you confirm the entry'] = true
 L['Queue Pause Detection'] = true
 L['Auto Queue'] = true
+L['Declined'] = true
+L['Entered'] = true
+L['Status'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

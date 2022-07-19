@@ -62,6 +62,13 @@ local ReadyCheckState = {
     Declined = 3,
 }
 
+local BattlegroundStatus = {
+    Nothing = 0,
+    Waiting = 1,
+    Declined = 2,
+    Entered = 3,
+}
+
 local RaidMarker = {
     YellowStar = '{rt1}',
     OrangeCircle = '{rt2}',
@@ -85,7 +92,7 @@ local tableStructure = {
     },
     {
         name = L['Auto Queue'],
-        width = 50,
+        width = 40,
         align = 'CENTER',
     },
     {
@@ -99,8 +106,8 @@ local tableStructure = {
         align = 'CENTER',
     },
     {
-        name = ' ' .. L['Ready'],
-        width = 40,
+        name = ' ' .. L['Status'],
+        width = 50,
         align = 'CENTER',
     }
 }
@@ -154,11 +161,12 @@ local Memory = {
         --    name = playerName,
         --    units = {[1] => first unit, first unit = true, second unit = true},
         --    class = 'CLASS',
-        --    readyState = ReadyCheckState.Nothing,
+        --    readyState = ReadyCheckState,
         --    deserterExpiry = -1,
         --    mercenaryExpiry = nil,
         --    addonVersion = 'whatever remote version',
         --    autoAcceptRole = false,
+        --    battlegroundStatus = BattlegroundStatus
         --},
     },
 
@@ -170,6 +178,8 @@ local CommunicationEvent = {
     SyncData = 'Bgc:syncData',
     NotifyMercDuration = 'Bgc:notifyMerc', -- replaced by Bgc:syncData
     ReadyCheckHeartbeat = 'Bgc:rchb',
+    EnterBattleground = 'Bgc:enterBg',
+    DeclineBattleground = 'Bgc:declineBg',
 }
 
 local ColorList = {
@@ -356,19 +366,31 @@ function Private.CreateTableRow(index, data)
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
             local readyState = data.readyState
-            if readyState == ReadyCheckState.Waiting then
+            local battlegroundStatus = data.battlegroundStatus
+
+            if battlegroundStatus == BattlegroundStatus.Declined then
                 columnData.color = nil
-                return '...'
+                return L['Declined']
+            end
+
+            if battlegroundStatus == BattlegroundStatus.Entered then
+                columnData.color = nil
+                return L['Entered']
             end
 
             if readyState == ReadyCheckState.Declined then
                 columnData.color = ColorList.Bad
-                return L['no']
+                return L['Not Ready']
             end
 
             if readyState == ReadyCheckState.Ready then
                 columnData.color = ColorList.Good
-                return L['yes']
+                return L['Ready']
+            end
+
+            if readyState == ReadyCheckState.Waiting or battlegroundStatus == BattlegroundStatus.Waiting then
+                columnData.color = ColorList.Warning
+                return '...'
             end
 
             columnData.color = nil
@@ -449,11 +471,15 @@ function Private.TriggerStateUpdates()
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     units = {primary = unit, [unit] = true},
+                    battlegroundStatus = BattlegroundStatus.Nothing,
                 }
 
                 Memory.playerData[dataIndex] = data
                 tableCache[index] = Private.CreateTableRow(index, data)
             else
+                -- always refresh the name whenever possible
+                data.name = GetUnitName(unit, true)
+
                 if not data.units.primary then
                     data.units.primary = unit
                     tableCache[index] = Private.CreateTableRow(index, data)
@@ -528,8 +554,8 @@ function Private.OnSyncData(_, text, _, sender)
     if not payload then return end
 
     local data = Private.GetPlayerDataByName(sender)
-
     if data then return Private.ProcessSyncData(payload, data) end
+
     -- in some cases after initial login the realm names are missing from
     -- GetUnitName. Delaying in the hopes this is available when retrying
     return Module:ScheduleTimer(function ()
@@ -563,6 +589,28 @@ function Module:OnInitialize()
     self:RegisterEvent('ADDON_LOADED')
 end
 
+function Private.OnEnterBattleground(_, _, _, sender)
+    local data = Private.GetPlayerDataByName(sender)
+    if not data then return end
+
+    if data.battlegroundStatus == BattlegroundStatus.Waiting then
+        data.battlegroundStatus = BattlegroundStatus.Entered
+    end
+
+    Private.RefreshPlayerTable()
+end
+
+function Private.OnDeclineBattleground(_, _, _, sender)
+    local data = Private.GetPlayerDataByName(sender)
+    if not data then return end
+
+    if data.battlegroundStatus == BattlegroundStatus.Waiting then
+        data.battlegroundStatus = BattlegroundStatus.Declined
+    end
+
+    Private.RefreshPlayerTable()
+end
+
 function Module:OnEnable()
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
@@ -577,12 +625,16 @@ function Module:OnEnable()
     self:RegisterComm(CommunicationEvent.NotifyMercDuration, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.SyncData, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
+    self:RegisterComm(CommunicationEvent.EnterBattleground, Private.OnEnterBattleground)
+    self:RegisterComm(CommunicationEvent.DeclineBattleground, Private.OnDeclineBattleground)
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 
     Memory.queueStateChangeListeners = {
+        Private.DetectQueuePop,
+        Private.DetectBattlegroundExit,
         Private.DetectQueuePause,
         Private.DetectQueueResume,
         Private.DetectQueueCancelAfterConfirm,
@@ -610,7 +662,13 @@ end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
     Private.EnterZone()
-    Private.ScheduleStateUpdates(isLogin and 5 or 2)
+    if isLogin then
+        Private.ScheduleStateUpdates(5)
+    elseif isReload then
+        Private.ScheduleStateUpdates(2)
+    else
+        Private.TriggerStateUpdates()
+    end
 
     if not isLogin and not isReload then return end
 
@@ -646,6 +704,31 @@ function Private.ScheduleReadyCheckHeartbeat(message, delay)
     if Memory.readyCheckHeartbeatTimout ~= nil then return end
 
     Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(Private.SendReadyCheckHeartbeat, delay)
+end
+
+function Private.DetectQueuePop(previousState, newState)
+    if previousState.status ~= QueueStatus.Queued then return end
+    if newState.status ~= QueueStatus.Confirm then return end
+
+    for _, data in pairs(Memory.playerData) do
+        data.battlegroundStatus = BattlegroundStatus.Waiting
+    end
+
+    Private.RefreshPlayerTable()
+end
+
+function Private.DetectBattlegroundExit(previousState, newState)
+    if previousState.status ~= QueueStatus.Active then return end
+    if newState.status ~= QueueStatus.None then return end
+
+    -- force refreshing the player data
+    Private.TriggerStateUpdates()
+
+    for _, data in pairs(Memory.playerData) do
+        data.battlegroundStatus = BattlegroundStatus.Nothing
+    end
+
+    Private.RefreshPlayerTable()
 end
 
 function Private.DetectQueuePause(previousState, newState, mapName)
@@ -696,6 +779,9 @@ end
 function Private.DetectQueueCancelAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.None then return end
+
+    Module:SendCommMessage(CommunicationEvent.DeclineBattleground, '1', GetMessageDestination())
+
     if not IsLeaderOrAssistant('player') then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
@@ -714,11 +800,18 @@ end
 function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
+    local channel, player = GetLocalMessageDestination()
+
+    Module:SendCommMessage(CommunicationEvent.EnterBattleground, '1', channel, player)
+    for _, data in pairs(Memory.playerData) do
+        -- when inside it's not important to see anything anymore
+        data.battlegroundStatus = BattlegroundStatus.Nothing
+    end
+
     if not IsLocalLeaderOrAssistant('player') then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
     if config.sendMessageOnBattlegroundEntry then
-        local channel = GetLocalMessageDestination()
         local message = concat({RaidMarker.GreenTriangle, Private.TwoLanguages('Enter'), RaidMarker.GreenTriangle}, ' ')
         SendChatMessage(Addon:PrependChatTemplate(message), channel)
     end
@@ -877,6 +970,7 @@ function Private.InitializeGroupQueueFrame()
     readyCheckButton:SetPoint('BOTTOM', 0, 3)
     readyCheckButton:SetSize(120, 22)
     readyCheckButton:SetScript('OnClick', function () DoReadyCheck() end)
+    readyCheckButton:SetEnabled(false)
 
     queueFrame.ReadyCheckButton = readyCheckButton
 
