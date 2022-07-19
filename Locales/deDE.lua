@@ -2,9 +2,9 @@ local AddonName, Namespace = ...
 local L = Namespace.Libs.AceLocale:NewLocale(AddonName, 'deDE')
 if not L then return end
 
-L['Group Mode'] = true
-L['Ready Check'] = true
-L['Group Information'] = true
+L['Group Mode'] = 'Gruppenmodus'
+L['Ready Check'] = 'Readycheck'
+L['Group Information'] = 'Gruppeninformation'
 L['yes'] = true
 L['no'] = true
 L['Merc'] = true
