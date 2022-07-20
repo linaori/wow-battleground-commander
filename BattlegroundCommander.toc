@@ -30,6 +30,7 @@ Libs\LibUIDropDownMenu\LibUIDropDownMenu\LibUIDropDownMenu.lua
 Bootstrap.lua
 Debug.lua
 Utils.lua
+PlayerData.lua
 
 Communication.lua
 

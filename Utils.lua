@@ -13,14 +13,40 @@ local ceil = math.ceil
 local format = string.format
 local pairs = pairs
 
-local GroupType = {
+Namespace.Utils.GroupType = {
     Solo = 1,
     Party = 2,
     Raid = 3,
     InstanceParty = 4,
     InstanceRaid = 5,
 }
-Namespace.Utils.GroupType = GroupType
+
+local GroupType = Namespace.Utils.GroupType
+
+Namespace.Utils.ReadyCheckState = {
+    Nothing = 0,
+    Waiting = 1,
+    Ready = 2,
+    Declined = 3,
+}
+
+Namespace.Utils.BattlegroundStatus = {
+    Nothing = 0,
+    Waiting = 1,
+    Declined = 2,
+    Entered = 3,
+}
+
+Namespace.Utils.RaidMarker = {
+    YellowStar = '{rt1}',
+    OrangeCircle = '{rt2}',
+    PurpleDiamond = '{rt3}',
+    GreenTriangle = '{rt4}',
+    SilverMoon = '{rt5}',
+    BlueSquare = '{rt6}',
+    RedCross = '{rt7}',
+    WhiteSkull = '{rt8}',
+}
 
 local UnitSet = {
     Party = { 'player', 'party1', 'party2', 'party3', 'party4' },

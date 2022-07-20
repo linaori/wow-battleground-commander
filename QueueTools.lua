@@ -6,15 +6,19 @@ local ScrollingTable = Namespace.Libs.ScrollingTable
 
 Namespace.QueueTools = Module
 
+local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
+local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
+local RebuildPlayerData = Namespace.PlayerData.RebuildPlayerData
+local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
+local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
+local ReadyCheckState = Namespace.Utils.ReadyCheckState
+local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
 local IsLeaderOrAssistant = Namespace.Utils.IsLeaderOrAssistant
+local RaidMarker = Namespace.Utils.RaidMarker
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
-local GroupType = Namespace.Utils.GroupType
-local GetGroupType = Namespace.Utils.GetGroupType
 local DoReadyCheck = DoReadyCheck
-local UnitIsGroupLeader = UnitIsGroupLeader
-local UnitIsGroupAssistant = UnitIsGroupAssistant
 local GetInstanceInfo = GetInstanceInfo
 local CreateFrame = CreateFrame
 local PlaySound = PlaySound
@@ -29,8 +33,6 @@ local GetUnitName = GetUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitDebuff = UnitDebuff
-local UnitIsPlayer = UnitIsPlayer
-local UnitExists = UnitExists
 local UnitGUID = UnitGUID
 local GetTime = GetTime
 local SendChatMessage = SendChatMessage
@@ -51,31 +53,6 @@ local locale = GetLocale()
 local SpellIds = {
     DeserterDebuff = 26013,
     MercenaryContractBuff = 193475,
-}
-
-local ReadyCheckState = {
-    Nothing = 0,
-    Waiting = 1,
-    Ready = 2,
-    Declined = 3,
-}
-
-local BattlegroundStatus = {
-    Nothing = 0,
-    Waiting = 1,
-    Declined = 2,
-    Entered = 3,
-}
-
-local RaidMarker = {
-    YellowStar = '{rt1}',
-    OrangeCircle = '{rt2}',
-    PurpleDiamond = '{rt3}',
-    GreenTriangle = '{rt4}',
-    SilverMoon = '{rt5}',
-    BlueSquare = '{rt6}',
-    RedCross = '{rt7}',
-    WhiteSkull = '{rt8}',
 }
 
 local tableStructure = {
@@ -110,18 +87,6 @@ local tableStructure = {
     }
 }
 
-local PlayerDataTargets = {
-    solo = {'player'},
-    party = { 'player', 'party1', 'party2', 'party3', 'party4' },
-    raid = {
-        'raid1', 'raid2', 'raid3', 'raid4', 'raid5', 'raid6', 'raid7', 'raid8', 'raid9', 'raid10',
-        'raid11', 'raid12', 'raid13', 'raid14', 'raid15', 'raid16', 'raid17', 'raid18', 'raid19', 'raid20',
-        'raid21', 'raid22', 'raid23', 'raid24', 'raid25', 'raid26', 'raid27', 'raid28', 'raid29', 'raid30',
-        'raid31', 'raid32', 'raid33', 'raid34', 'raid35', 'raid36', 'raid37', 'raid38', 'raid39', 'raid40',
-        'player', 'party1', 'party2', 'party3', 'party4',
-    },
-}
-
 local QueueStatus = {
     Queued = 'queued',
     Confirm = 'confirm',
@@ -142,7 +107,6 @@ local Memory = {
     readyCheckButtonTicker = nil,
     readyCheckClearTimeout = nil,
     readyCheckHeartbeatTimout = nil,
-    readyCheckHeartbeatMessage = nil,
     stateInitializedTimout = nil,
 
     queueState = {
@@ -154,19 +118,6 @@ local Memory = {
     queueStateChangeListeners = {},
 
     playerTableCache = {},
-    playerData = {
-        --[GUID] = {
-        --    name = playerName,
-        --    units = {[1] => first unit, first unit = true, second unit = true},
-        --    class = 'CLASS',
-        --    readyState = ReadyCheckState,
-        --    deserterExpiry = -1,
-        --    mercenaryExpiry = nil,
-        --    addonVersion = 'whatever remote version',
-        --    autoAcceptRole = false,
-        --    battlegroundStatus = BattlegroundStatus
-        --},
-    },
 
     -- the data that should be send next data sync event
     syncDataPayloadBuffer = nil,
@@ -211,37 +162,6 @@ function Private.ScheduleSendSyncData()
     if not shouldSchedule then return end
 
     Module:ScheduleTimer(Private.SendSyncData, ceil(GetNumGroupMembers() * 0.1) + 1)
-end
-
-function Private.GetPlayerDataByUnit(unit)
-    for _, data in pairs(Memory.playerData) do
-        if data.units[unit] then return data end
-    end
-
-    -- fallback to getting the name of the unit in case of weird scenarios
-    -- where "target" or "nameplate1" is sent
-    local name = GetUnitName(unit, true)
-    if not name then return nil end
-
-    return Private.GetPlayerDataByName(name)
-end
-
-function Private.GetPlayerDataByName(name)
-    for _, data in pairs(Memory.playerData) do
-        if data.units.primary and (data.name == UNKNOWNOBJECT or data.name == nil) then
-            data.name = GetUnitName(data.units.primary, true)
-        end
-
-        if data.name == name then
-            return data
-        end
-    end
-
-    return nil
-end
-
-function Private.IsLeaderOrAssistant(unit)
-    return UnitIsGroupLeader(unit) or UnitIsGroupAssistant(unit)
 end
 
 function Private.CanDoReadyCheck()
@@ -426,19 +346,6 @@ function Private.GetRemainingAuraTime(auraId)
     return expirationTime - GetTime()
 end
 
-function Private.GetUnitListForCurrentGroupType()
-    local groupType = GetGroupType()
-    if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
-        return PlayerDataTargets.raid
-    end
-
-    if groupType == GroupType.InstanceParty or groupType == GroupType.Party then
-        return PlayerDataTargets.party
-    end
-
-    return PlayerDataTargets.solo
-end
-
 function Private.EnterZone()
     local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
     if instanceType == 'none' then currentZoneId = 0 end
@@ -454,42 +361,14 @@ end
 function Private.TriggerStateUpdates()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
 
-    for _, data in pairs(Memory.playerData) do
-        data.units = {}
-    end
-
     local tableCache = {}
-    for index, unit in pairs(Private.GetUnitListForCurrentGroupType()) do
-        if UnitExists(unit) and UnitIsPlayer(unit) then
-            local dataIndex = UnitGUID(unit)
-            local data = Memory.playerData[dataIndex]
-            if not data then
-                data = {
-                    name = GetUnitName(unit, true),
-                    readyState = ReadyCheckState.Nothing,
-                    deserterExpiry = -1,
-                    units = {primary = unit, [unit] = true},
-                    battlegroundStatus = BattlegroundStatus.Nothing,
-                }
-
-                Memory.playerData[dataIndex] = data
-                tableCache[index] = Private.CreateTableRow(index, data)
-            else
-                -- always refresh the name whenever possible
-                data.name = GetUnitName(unit, true)
-
-                if not data.units.primary then
-                    data.units.primary = unit
-                    tableCache[index] = Private.CreateTableRow(index, data)
-                end
-
-                data.units[unit] = true
-            end
-        end
+    for index, playerData in pairs(RebuildPlayerData()) do
+        tableCache[index] = Private.CreateTableRow(index, playerData)
     end
 
     Memory.stateInitializedTimout = nil
     Memory.playerTableCache = tableCache
+
     Private.ScheduleSendSyncData()
     Private.UpdatePlayerTableData()
     Private.RefreshPlayerTable()
@@ -551,13 +430,13 @@ function Private.OnSyncData(_, text, _, sender)
     local payload = UnpackData(text)
     if not payload then return end
 
-    local data = Private.GetPlayerDataByName(sender)
+    local data = GetPlayerDataByName(sender)
     if data then return Private.ProcessSyncData(payload, data) end
 
     -- in some cases after initial login the realm names are missing from
     -- GetUnitName. Delaying in the hopes this is available when retrying
     return Module:ScheduleTimer(function ()
-        data = Private.GetPlayerDataByName(sender)
+        data = GetPlayerDataByName(sender)
         if not data then return log('Unable to find data for sender: ', sender) end
 
         Private.ProcessSyncData(payload, data)
@@ -601,7 +480,7 @@ function Private.OnClickEnterBattleground()
 end
 
 function Private.OnEnterBattleground(_, _, _, sender)
-    local data = Private.GetPlayerDataByName(sender)
+    local data = GetPlayerDataByName(sender)
     if not data then return end
 
     if data.battlegroundStatus == BattlegroundStatus.Waiting then
@@ -612,7 +491,7 @@ function Private.OnEnterBattleground(_, _, _, sender)
 end
 
 function Private.OnDeclineBattleground(_, _, _, sender)
-    local data = Private.GetPlayerDataByName(sender)
+    local data = GetPlayerDataByName(sender)
     if not data then return end
 
     if data.battlegroundStatus == BattlegroundStatus.Waiting then
@@ -697,8 +576,6 @@ end
 function Private.SendReadyCheckHeartbeat(message)
     if not Private.CanDoReadyCheck() then return end
 
-    message = message or Memory.readyCheckHeartbeatMessage or 'ping'
-
     DoReadyCheck()
     Addon:PrintMessage(format(L['Sending automated ready check with message: "%s"'], message))
     Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, message, GetMessageDestination())
@@ -707,26 +584,25 @@ function Private.SendReadyCheckHeartbeat(message)
         -- ensure it's always cancelled as it might have been called directly
         Module:CancelTimer(Memory.readyCheckHeartbeatTimout)
         Memory.readyCheckHeartbeatTimout = nil
-        Memory.readyCheckHeartbeatMessage = nil
     end
 end
 
-function Private.ScheduleReadyCheckHeartbeat(message, delay)
+function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCallback)
     if delay == nil then delay = 0 end
 
-    Memory.readyCheckHeartbeatMessage = message
     if Memory.readyCheckHeartbeatTimout ~= nil then return end
+    Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(function ()
+        if not preventReadyCheckCallback() then return end
 
-    Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(Private.SendReadyCheckHeartbeat, delay)
+        Private.SendReadyCheckHeartbeat(message)
+    end, delay)
 end
 
 function Private.DetectQueuePop(previousState, newState)
     if previousState.status ~= QueueStatus.Queued then return end
     if newState.status ~= QueueStatus.Confirm then return end
 
-    for _, data in pairs(Memory.playerData) do
-        data.battlegroundStatus = BattlegroundStatus.Waiting
-    end
+    ForEachUnitData(function(data) data.battlegroundStatus = BattlegroundStatus.Waiting end)
 
     Private.RefreshPlayerTable()
 end
@@ -735,9 +611,7 @@ function Private.DetectQueueEntry(previousState, newState)
     if previousState.status ~= QueueStatus.None then return end
     if newState.status ~= QueueStatus.Queued then return end
 
-    for _, data in pairs(Memory.playerData) do
-        data.battlegroundStatus = BattlegroundStatus.None
-    end
+    ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.None end)
 
     Private.RefreshPlayerTable()
 end
@@ -749,11 +623,7 @@ function Private.DetectBattlegroundExit(previousState, newState)
     -- force refreshing the player data
     Private.TriggerStateUpdates()
 
-    for _, data in pairs(Memory.playerData) do
-        data.battlegroundStatus = BattlegroundStatus.Nothing
-    end
-
-    Private.RefreshPlayerTable()
+    ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
 end
 
 function Private.DetectQueuePause(previousState, newState, mapName)
@@ -812,7 +682,17 @@ function Private.DetectQueueCancelAfterConfirm(previousState, newState)
     local config = Namespace.Database.profile.QueueTools.InspectQueue
     if config.doReadyCheckOnQueueCancelAfterConfirm then
         -- wait a few seconds as not everyone will have cancelled as fast
-        Private.ScheduleReadyCheckHeartbeat('Confirm nobody entered', 3)
+        Private.ScheduleReadyCheckHeartbeat('Confirm nobody entered', 4, function ()
+            local canCancelReadyCheck = true
+            ForEachUnitData(function (data)
+                if data.battlegroundStatus == BattlegroundStatus.Waiting then
+                    canCancelReadyCheck = false
+                    return false
+                end
+            end)
+
+            return canCancelReadyCheck
+        end)
     end
 
     if config.sendMessageOnQueueCancelAfterConfirm then
@@ -826,10 +706,7 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
 
-    for _, data in pairs(Memory.playerData) do
-        -- when inside it's not important to see anything anymore
-        data.battlegroundStatus = BattlegroundStatus.Nothing
-    end
+    ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
 end
 
 function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
@@ -867,11 +744,9 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     -- occupy the heartbeat timeout so it won't send anything shortly after this ready check
     Memory.readyCheckHeartbeatTimout = self:ScheduleTimer(function() Memory.readyCheckHeartbeatTimout = nil end, duration)
 
-    for _, data in pairs(Memory.playerData) do
-        data.readyState = ReadyCheckState.Waiting
-    end
+    ForEachUnitData(function(data) data.readyState = ReadyCheckState.Waiting end)
 
-    local initiatedByData = Private.GetPlayerDataByName(initiatedByName)
+    local initiatedByData = GetPlayerDataByName(initiatedByName)
     if initiatedByData then
         initiatedByData.readyState = ReadyCheckState.Ready
     else
@@ -898,7 +773,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
-    local data = Private.GetPlayerDataByUnit(unit)
+    local data = GetPlayerDataByUnit(unit)
     if not data then return log('READY_CHECK_CONFIRM', 'Missing unit', unit) end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
@@ -914,20 +789,18 @@ function Module:READY_CHECK_FINISHED()
         Memory.lastReadyCheckDuration = 0
     end
 
-    for _, data in pairs(Memory.playerData) do
+    ForEachUnitData(function(data)
         if data.readyState == ReadyCheckState.Waiting then
             -- in case of expired ready check no confirmation means declined
             data.readyState = ReadyCheckState.Declined
         end
-    end
+    end)
 
     self:ScheduleTimer(function ()
         -- new ready check has been initiated, don't do anything anymore
         if Memory.lastReadyCheckTime + Memory.lastReadyCheckDuration > GetTime() then return end
 
-        for _, player in pairs(Memory.playerData) do
-            player.readyState = ReadyCheckState.Nothing
-        end
+        ForEachPlayerData(function(data) data.readyState = ReadyCheckState.Nothing end)
 
         Private.RefreshPlayerTable()
         Memory.readyCheckClearTimeout = nil
