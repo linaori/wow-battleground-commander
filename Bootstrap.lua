@@ -35,6 +35,7 @@ local defaultConfig = {
             showGroupQueueFrame = false,
             Automation = {
                 acceptRoleSelection = false,
+                disableEntryButtonOnCancel = true,
             },
             InspectQueue = {
                 onlyAsLeader = true,
@@ -173,6 +174,15 @@ local function getOptions()
                                     set = function (_, value) Namespace.QueueTools:SetAutomationSetting('acceptRoleSelection', value) end,
                                     get = function () return Namespace.QueueTools:GetAutomationSetting('acceptRoleSelection') end,
                                     order = 1,
+                                },
+                                disableEntryButtonOnCancel = {
+                                    name = L['Disable Entry Button on Cancel'],
+                                    desc = L['Disables the entry button when the group leader cancels entry, hold shift to re-enable the button'],
+                                    type = 'toggle',
+                                    width = 'full',
+                                    set = function (_, value) Namespace.QueueTools:SetAutomationSetting('disableEntryButtonOnCancel', value) end,
+                                    get = function () return Namespace.QueueTools:GetAutomationSetting('disableEntryButtonOnCancel') end,
+                                    order = 2,
                                 },
                             },
                         },

@@ -39,6 +39,7 @@ globals = {
     'UnitGUID',
     'IsInGroup',
     'IsInRaid',
+    'IsShiftKeyDown',
     'GetTime',
     'GetInstanceInfo',
     'GetRealmName',

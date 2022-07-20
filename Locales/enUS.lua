@@ -98,6 +98,9 @@ L['Auto Queue'] = true
 L['Declined'] = true
 L['Entered'] = true
 L['Status'] = true
+L['Hold Shift'] = true
+L['Disable Entry Button on Cancel'] = true
+L['Disables the entry button when the group leader cancels entry, hold shift to re-enable the button'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

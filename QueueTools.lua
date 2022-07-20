@@ -35,6 +35,7 @@ local UnitClass = UnitClass
 local UnitDebuff = UnitDebuff
 local UnitGUID = UnitGUID
 local GetTime = GetTime
+local IsShiftKeyDown = IsShiftKeyDown
 local SendChatMessage = SendChatMessage
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
@@ -108,6 +109,7 @@ local Memory = {
     readyCheckClearTimeout = nil,
     readyCheckHeartbeatTimout = nil,
     stateInitializedTimout = nil,
+    disableEntryButtonTicker = nil,
 
     queueState = {
         --[0] = {
@@ -490,12 +492,41 @@ function Private.OnEnterBattleground(_, _, _, sender)
     Private.RefreshPlayerTable()
 end
 
+function Private.RestoreEntryButton()
+    local button = _G.PVPReadyDialogEnterBattleButton
+    button:SetEnabled(true)
+    button:SetText(Memory.disableEntryButtonOriginalText)
+
+    if Memory.disableEntryButtonTicker == nil then return end
+
+    Module:CancelTimer(Memory.disableEntryButtonTicker)
+    Memory.disableEntryButtonTicker = nil
+end
+
+function Private.DisableEntryButton()
+    if not Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnCancel then return end
+
+    local button = _G.PVPReadyDialogEnterBattleButton
+    button:SetEnabled(false)
+    button:SetText(L['Hold Shift'])
+
+    Memory.disableEntryButtonTicker = Module:ScheduleRepeatingTimer(function ()
+        if IsShiftKeyDown() then Private.RestoreEntryButton() end
+    end, 0.2)
+end
+
+Module.DisableEntryButton = Private.DisableEntryButton
+
 function Private.OnDeclineBattleground(_, _, _, sender)
     local data = GetPlayerDataByName(sender)
     if not data then return end
 
     if data.battlegroundStatus == BattlegroundStatus.Waiting then
         data.battlegroundStatus = BattlegroundStatus.Declined
+    end
+
+    if IsLeaderOrAssistant(data.units.primary) then
+        Private.DisableEntryButton()
     end
 
     Private.RefreshPlayerTable()
@@ -534,7 +565,9 @@ function Module:OnEnable()
 
     self:RefreshConfig()
 
-    _G.PVPReadyDialogEnterBattleButton:HookScript('OnClick', Private.OnClickEnterBattleground)
+    local enterButton = _G.PVPReadyDialogEnterBattleButton
+    enterButton:HookScript('OnClick', Private.OnClickEnterBattleground)
+    Memory.disableEntryButtonOriginalText = enterButton:GetText()
 end
 
 function Module:LFG_ROLE_CHECK_SHOW()
@@ -604,6 +637,8 @@ function Private.DetectQueuePop(previousState, newState)
 
     ForEachUnitData(function(data) data.battlegroundStatus = BattlegroundStatus.Waiting end)
 
+    -- failsafe
+    Private.RestoreEntryButton()
     Private.RefreshPlayerTable()
 end
 
@@ -676,6 +711,7 @@ function Private.DetectQueueCancelAfterConfirm(previousState, newState)
     if newState.status ~= QueueStatus.None then return end
 
     Module:SendCommMessage(CommunicationEvent.DeclineBattleground, '1', GetMessageDestination())
+    Private.RestoreEntryButton()
 
     if not IsLeaderOrAssistant('player') then return end
 
