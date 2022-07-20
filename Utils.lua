@@ -109,7 +109,3 @@ end
 function Namespace.Utils.IsLeaderOrAssistant(unit)
     return UnitIsGroupLeader(unit) or UnitIsGroupAssistant(unit)
 end
-
-function Namespace.Utils.IsLocalLeaderOrAssistant(unit)
-    return UnitIsGroupLeader(unit, LE_PARTY_CATEGORY_HOME) or UnitIsGroupAssistant(unit, LE_PARTY_CATEGORY_HOME)
-end

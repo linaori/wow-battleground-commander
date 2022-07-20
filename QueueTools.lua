@@ -7,11 +7,9 @@ local ScrollingTable = Namespace.Libs.ScrollingTable
 Namespace.QueueTools = Module
 
 local IsLeaderOrAssistant = Namespace.Utils.IsLeaderOrAssistant
-local IsLocalLeaderOrAssistant = Namespace.Utils.IsLocalLeaderOrAssistant
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
-local GetLocalMessageDestination = Namespace.Communication.GetLocalMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local DoReadyCheck = DoReadyCheck
@@ -589,6 +587,19 @@ function Module:OnInitialize()
     self:RegisterEvent('ADDON_LOADED')
 end
 
+function Private.OnClickEnterBattleground()
+    local channel, player = GetMessageDestination()
+    Module:SendCommMessage(CommunicationEvent.EnterBattleground, '1', channel, player)
+
+    if not IsLeaderOrAssistant('player') then return end
+
+    local config = Namespace.Database.profile.QueueTools.InspectQueue
+    if config.sendMessageOnBattlegroundEntry then
+        local message = concat({RaidMarker.GreenTriangle, Private.TwoLanguages('Enter'), RaidMarker.GreenTriangle}, ' ')
+        SendChatMessage(Addon:PrependChatTemplate(message), channel)
+    end
+end
+
 function Private.OnEnterBattleground(_, _, _, sender)
     local data = Private.GetPlayerDataByName(sender)
     if not data then return end
@@ -633,6 +644,7 @@ function Module:OnEnable()
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 
     Memory.queueStateChangeListeners = {
+        Private.DetectQueueEntry,
         Private.DetectQueuePop,
         Private.DetectBattlegroundExit,
         Private.DetectQueuePause,
@@ -642,6 +654,8 @@ function Module:OnEnable()
     }
 
     self:RefreshConfig()
+
+    _G.PVPReadyDialogEnterBattleButton:HookScript('OnClick', Private.OnClickEnterBattleground)
 end
 
 function Module:LFG_ROLE_CHECK_SHOW()
@@ -712,6 +726,17 @@ function Private.DetectQueuePop(previousState, newState)
 
     for _, data in pairs(Memory.playerData) do
         data.battlegroundStatus = BattlegroundStatus.Waiting
+    end
+
+    Private.RefreshPlayerTable()
+end
+
+function Private.DetectQueueEntry(previousState, newState)
+    if previousState.status ~= QueueStatus.None then return end
+    if newState.status ~= QueueStatus.Queued then return end
+
+    for _, data in pairs(Memory.playerData) do
+        data.battlegroundStatus = BattlegroundStatus.None
     end
 
     Private.RefreshPlayerTable()
@@ -800,20 +825,10 @@ end
 function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
-    local channel, player = GetLocalMessageDestination()
 
-    Module:SendCommMessage(CommunicationEvent.EnterBattleground, '1', channel, player)
     for _, data in pairs(Memory.playerData) do
         -- when inside it's not important to see anything anymore
         data.battlegroundStatus = BattlegroundStatus.Nothing
-    end
-
-    if not IsLocalLeaderOrAssistant('player') then return end
-
-    local config = Namespace.Database.profile.QueueTools.InspectQueue
-    if config.sendMessageOnBattlegroundEntry then
-        local message = concat({RaidMarker.GreenTriangle, Private.TwoLanguages('Enter'), RaidMarker.GreenTriangle}, ' ')
-        SendChatMessage(Addon:PrependChatTemplate(message), channel)
     end
 end
 
