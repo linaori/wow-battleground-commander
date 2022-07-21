@@ -505,6 +505,7 @@ end
 
 function Private.DisableEntryButton()
     if not Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnCancel then return end
+    if Memory.disableEntryButtonTicker then return end
 
     local button = _G.PVPReadyDialogEnterBattleButton
     button:SetEnabled(false)
@@ -525,7 +526,7 @@ function Private.OnDeclineBattleground(_, _, _, sender)
         data.battlegroundStatus = BattlegroundStatus.Declined
     end
 
-    if IsLeaderOrAssistant(data.units.primary) then
+    if sender ~= GetUnitName('player', true) and IsLeaderOrAssistant(data.units.primary) then
         Private.DisableEntryButton()
     end
 
