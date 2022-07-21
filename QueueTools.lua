@@ -626,7 +626,7 @@ function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCa
 
     if Memory.readyCheckHeartbeatTimout ~= nil then return end
     Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(function ()
-        if not preventReadyCheckCallback() then return end
+        if preventReadyCheckCallback() then return end
 
         Private.SendReadyCheckHeartbeat(message)
     end, delay)
@@ -720,15 +720,15 @@ function Private.DetectQueueCancelAfterConfirm(previousState, newState)
     if config.doReadyCheckOnQueueCancelAfterConfirm then
         -- wait a few seconds as not everyone will have cancelled as fast
         Private.ScheduleReadyCheckHeartbeat('Confirm nobody entered', 4, function ()
-            local canCancelReadyCheck = true
+            local preventReadyCheck = true
             ForEachUnitData(function (data)
                 if data.battlegroundStatus == BattlegroundStatus.Waiting then
-                    canCancelReadyCheck = false
+                    preventReadyCheck = false
                     return false
                 end
             end)
 
-            return canCancelReadyCheck
+            return preventReadyCheck
         end)
     end
 
