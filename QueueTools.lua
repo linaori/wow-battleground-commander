@@ -494,8 +494,10 @@ end
 
 function Private.RestoreEntryButton()
     local button = _G.PVPReadyDialogEnterBattleButton
-    button:SetEnabled(true)
-    button:SetText(Memory.disableEntryButtonOriginalText)
+    if not button:IsEnabled() and button:GetText() == L['Hold Shift'] then
+        button:SetEnabled(true)
+        button:SetText(Memory.disableEntryButtonOriginalText)
+    end
 
     if Memory.disableEntryButtonTicker == nil then return end
 
@@ -508,6 +510,7 @@ function Private.DisableEntryButton()
     if Memory.disableEntryButtonTicker then return end
 
     local button = _G.PVPReadyDialogEnterBattleButton
+    if not button:IsEnabled() then return end
     button:SetEnabled(false)
     button:SetText(L['Hold Shift'])
 
@@ -638,8 +641,6 @@ function Private.DetectQueuePop(previousState, newState)
 
     ForEachUnitData(function(data) data.battlegroundStatus = BattlegroundStatus.Waiting end)
 
-    -- failsafe
-    Private.RestoreEntryButton()
     Private.RefreshPlayerTable()
 end
 
@@ -649,6 +650,7 @@ function Private.DetectQueueEntry(previousState, newState)
 
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.None end)
 
+    Private.RestoreEntryButton()
     Private.RefreshPlayerTable()
 end
 
