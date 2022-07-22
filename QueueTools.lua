@@ -623,7 +623,7 @@ function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCa
 
     if Memory.readyCheckHeartbeatTimout ~= nil then return end
     Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(function ()
-        if preventReadyCheckCallback() then return end
+        if preventReadyCheckCallback and preventReadyCheckCallback() then return end
 
         Private.SendReadyCheckHeartbeat(message)
         Memory.readyCheckHeartbeatTimout = nil
