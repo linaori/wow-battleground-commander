@@ -616,12 +616,6 @@ function Private.SendReadyCheckHeartbeat(message)
     DoReadyCheck()
     Addon:PrintMessage(format(L['Sending automated ready check with message: "%s"'], message))
     Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, message, GetMessageDestination())
-
-    if Memory.readyCheckHeartbeatTimout ~= nil then
-        -- ensure it's always cancelled as it might have been called directly
-        Module:CancelTimer(Memory.readyCheckHeartbeatTimout)
-        Memory.readyCheckHeartbeatTimout = nil
-    end
 end
 
 function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCallback)
@@ -632,6 +626,7 @@ function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCa
         if preventReadyCheckCallback() then return end
 
         Private.SendReadyCheckHeartbeat(message)
+        Memory.readyCheckHeartbeatTimout = nil
     end, delay)
 end
 
