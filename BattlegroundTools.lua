@@ -31,7 +31,6 @@ local floor = math.floor
 local min = math.min
 local pairs = pairs
 local TimeDiff = Namespace.Utils.TimeDiff
---local print = Namespace.Debug.print
 
 local CommunicationEvent = {
     WantBattlegroundLead = 'bgc:wantLead',
@@ -499,8 +498,10 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
     end
     if config.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
 
-    mem.requestedBy[sender] = true
-    mem.requestedByCount = mem.requestedByCount + 1
+    if not mem.requestedBy[sender] then
+        mem.requestedBy[sender] = true
+        mem.requestedByCount = mem.requestedByCount + 1
+    end
 
     Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
