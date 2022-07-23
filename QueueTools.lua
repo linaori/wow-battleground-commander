@@ -390,6 +390,13 @@ function Private.InitializeBattlegroundModeCheckbox()
     checkbox:SetPoint('BOTTOMRIGHT', _G.PVEFrame, 'BOTTOMRIGHT', -2, 2)
     checkbox:SetSize(24, 24)
     checkbox:SetChecked(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
+    checkbox:SetScript('OnEnter', function (self)
+        local tooltip = _G.GameTooltip
+        tooltip:SetOwner(self, 'ANCHOR_RIGHT')
+        tooltip:SetText(L['Show or hide the Battleground Commander group information window'], nil, nil, nil, nil, true)
+        tooltip:Show()
+    end)
+    checkbox:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
     checkbox:SetScript('OnClick', function (self)
         local newVisibility = self:GetChecked()
 
@@ -406,7 +413,7 @@ function Private.InitializeBattlegroundModeCheckbox()
     PVPUIFrame.BattlegroundModeCheckbox = checkbox
 
     local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
-    text:SetText(L['Group Mode'])
+    text:SetText(L['Group Info'])
     text:SetPoint('RIGHT', checkbox, 'LEFT')
     text:SetWordWrap(false)
 

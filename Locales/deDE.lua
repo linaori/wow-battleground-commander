@@ -2,7 +2,7 @@ local AddonName, Namespace = ...
 local L = Namespace.Libs.AceLocale:NewLocale(AddonName, 'deDE')
 if not L then return end
 
-L['Group Mode'] = true
+L['Group Info'] = true
 L['Ready Check'] = true
 L['Group Information'] = true
 L['yes'] = true
@@ -102,6 +102,7 @@ L['Status'] = true
 L['Hold Shift'] = true
 L['Disable Entry Button on Cancel'] = true
 L['Disables the entry button when the group leader cancels entry, hold shift to re-enable the button'] = true
+L['Show or hide the Battleground Commander group information window'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true
