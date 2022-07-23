@@ -722,14 +722,16 @@ function Private.InitializeBattlegroundLeaderDialog()
 end
 
 function Private.InitializeBattlegroundLeaderCheckbox()
-    local PVPUIFrame = _G.PVPUIFrame
-    local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundLeaderCheckbox', PVPUIFrame, 'UICheckButtonTemplate')
+    local honorFrame = _G.HonorFrame
+    local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundLeaderCheckbox', honorFrame, 'UICheckButtonTemplate')
     checkbox:SetPoint('LEFT', _G.HonorFrameQueueButton, 'RIGHT', 2, 0)
     checkbox:SetSize(24, 24)
     checkbox:SetChecked(Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead)
     checkbox:SetScript('OnEnter', function (self)
-        _G.GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
-        _G.GameTooltip:SetText(L['Requests lead upon entering or enabling this option'], nil, nil, nil, nil, true)
+        local tooltip = _G.GameTooltip
+        tooltip:SetOwner(self, 'ANCHOR_RIGHT')
+        tooltip:SetText(L['Requests lead upon entering or enabling this option'], nil, nil, nil, nil, true)
+        tooltip:Show()
     end)
     checkbox:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
     checkbox:SetScript('OnClick', function (self)
@@ -745,7 +747,7 @@ function Private.InitializeBattlegroundLeaderCheckbox()
     end)
     checkbox:Show()
 
-    PVPUIFrame.BattlegroundModeCheckbox = checkbox
+    honorFrame.BattlegroundModeCheckbox = checkbox
 
     local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
     text:SetText(L['As BG Leader'])
