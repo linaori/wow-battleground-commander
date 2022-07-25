@@ -363,9 +363,10 @@ end
 function Private.TriggerStateUpdates()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
 
-    local tableCache = {}
-    for index, playerData in pairs(RebuildPlayerData()) do
-        tableCache[index] = Private.CreateTableRow(index, playerData)
+    local tableCache, count = {}, 0
+    for _, playerData in pairs(RebuildPlayerData()) do
+        count = count + 1
+        tableCache[count] = Private.CreateTableRow(count, playerData)
     end
 
     Memory.stateInitializedTimout = nil

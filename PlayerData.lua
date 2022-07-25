@@ -62,11 +62,9 @@ function Namespace.PlayerData.RebuildPlayerData()
         data.units = {}
     end
 
-    local unitPlayerData, count = {}, 0
+    local unitPlayerData = {}
     for _, unit in pairs(Private.GetUnitListForCurrentGroupType()) do
         if UnitExists(unit) and UnitIsPlayer(unit) then
-            count = count + 1
-
             local dataIndex = UnitGUID(unit)
             local data = Memory.AllPlayerData[dataIndex]
             if not data then
@@ -90,7 +88,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                 data.units[unit] = true
             end
 
-            unitPlayerData[count] = data
+            unitPlayerData[dataIndex] = data
         end
     end
 
@@ -133,7 +131,7 @@ function Namespace.PlayerData.ForEachPlayerData(callback)
 end
 
 function Namespace.PlayerData.ForEachUnitData(callback)
-    for index, playerData in pairs(Memory.UnitPlayerData) do
-        if callback(playerData, index) == false then return end
+    for guid, playerData in pairs(Memory.UnitPlayerData) do
+        if callback(playerData, guid) == false then return end
     end
 end
