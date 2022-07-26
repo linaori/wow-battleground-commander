@@ -102,6 +102,8 @@ L['Hold Shift'] = true
 L['Disable Entry Button on Cancel'] = true
 L['Disables the entry button when the group leader cancels entry, hold shift to re-enable the button'] = true
 L['Show or hide the Battleground Commander group information window'] = true
+L['Queue Pop'] = true
+L['OK'] = true
 
 L['Open World'] = true
 L['Alterac Valley'] = true

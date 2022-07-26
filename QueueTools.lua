@@ -63,12 +63,12 @@ local tableStructure = {
     },
     {
         name = '',
-        width = 100,
+        width = 120,
         align = 'LEFT',
     },
     {
         name = L['Auto Queue'],
-        width = 40,
+        width = 45,
         align = 'CENTER',
     },
     {
@@ -77,13 +77,8 @@ local tableStructure = {
         align = 'CENTER',
     },
     {
-        name = ' ' .. L['Deserter'],
-        width = 50,
-        align = 'CENTER',
-    },
-    {
         name = ' ' .. L['Status'],
-        width = 50,
+        width = 75,
         align = 'CENTER',
     }
 }
@@ -266,31 +261,17 @@ function Private.CreateTableRow(index, data)
         end,
     }
 
-    local deserterColumn = {
-        value = function(tableData, _, realRow, column)
-            local columnData = tableData[realRow].cols[column]
-            Private.TriggerDeserterUpdate(data)
-
-            local timeDiff = TimeDiff(data.deserterExpiry, GetTime())
-            if timeDiff.fullSeconds < 1 then
-                columnData.color = ColorList.Good
-                return L['no']
-            end
-
-            columnData.color = ColorList.Bad
-            return format('%dm', timeDiff.fullMinutes)
-        end,
-    }
-
     local readyCheckColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
             local readyState = data.readyState
             local battlegroundStatus = data.battlegroundStatus
+            Private.TriggerDeserterUpdate(data)
 
-            if battlegroundStatus == BattlegroundStatus.Declined then
-                columnData.color = nil
-                return L['Declined']
+            local timeDiff = TimeDiff(data.deserterExpiry, GetTime())
+            if timeDiff.fullSeconds > 0 then
+                columnData.color = ColorList.Bad
+                return format('%dm', timeDiff.fullMinutes) .. ' ' .. L['Deserter']
             end
 
             if battlegroundStatus == BattlegroundStatus.Entered then
@@ -308,13 +289,21 @@ function Private.CreateTableRow(index, data)
                 return L['Ready']
             end
 
-            if readyState == ReadyCheckState.Waiting or battlegroundStatus == BattlegroundStatus.Waiting then
-                columnData.color = ColorList.Warning
-                return '...'
+            if battlegroundStatus == BattlegroundStatus.Declined then
+                columnData.color = nil
+                return L['Declined']
             end
 
             columnData.color = nil
-            return '-'
+            if readyState == ReadyCheckState.Waiting then
+                return L['Ready Check']
+            end
+
+            if battlegroundStatus == BattlegroundStatus.Waiting then
+                return L['Queue Pop']
+            end
+
+            return L['OK']
         end,
     }
 
@@ -323,7 +312,6 @@ function Private.CreateTableRow(index, data)
         nameColumn,
         autoAcceptRoleColumn,
         mercenaryColumn,
-        deserterColumn,
         readyCheckColumn,
     }, originalData = data }
 end

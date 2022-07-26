@@ -2,6 +2,7 @@ local AddonName, Namespace = ...
 
 local pairs = pairs
 local concat = table.concat
+local format = string.format
 
 Namespace.Config = {}
 
