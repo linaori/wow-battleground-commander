@@ -88,7 +88,9 @@ function Namespace.PlayerData.RebuildPlayerData()
                 data.units[unit] = true
             end
 
-            unitPlayerData[dataIndex] = data
+            if not unitPlayerData[dataIndex] then
+                unitPlayerData[dataIndex] = data
+            end
         end
     end
 

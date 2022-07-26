@@ -28,6 +28,7 @@ Libs\LibCompress\lib.xml
 Libs\LibUIDropDownMenu\LibUIDropDownMenu\LibUIDropDownMenu.lua
 
 Bootstrap.lua
+Config.lua
 Debug.lua
 Utils.lua
 PlayerData.lua
