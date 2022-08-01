@@ -6,7 +6,7 @@ local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
-local GetUnitName = GetUnitName
+local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local UnitIsPlayer = UnitIsPlayer
 local UnitGUID = UnitGUID
 local UnitExists = UnitExists
@@ -69,7 +69,7 @@ function Namespace.PlayerData.RebuildPlayerData()
             local data = Memory.AllPlayerData[dataIndex]
             if not data then
                 data = {
-                    name = GetUnitName(unit, true),
+                    name = GetRealUnitName(unit),
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
                     units = {primary = unit, [unit] = true},
@@ -79,7 +79,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                 Memory.AllPlayerData[dataIndex] = data
             else
                 -- always refresh the name whenever possible
-                data.name = GetUnitName(unit, true)
+                data.name = GetRealUnitName(unit)
 
                 if not data.units.primary then
                     data.units.primary = unit
@@ -106,7 +106,7 @@ function Namespace.PlayerData.GetPlayerDataByUnit(unit)
 
     -- fallback to getting the name of the unit in case of weird scenarios
     -- where "target" or "nameplate1" is sent
-    local name = GetUnitName(unit, true)
+    local name = GetRealUnitName(unit)
     if not name then return nil end
 
     return Namespace.PlayerData.GetPlayerDataByName(name)
@@ -115,7 +115,7 @@ end
 function Namespace.PlayerData.GetPlayerDataByName(name)
     for _, data in pairs(Memory.AllPlayerData) do
         if data.units.primary and (data.name == UNKNOWNOBJECT or data.name == nil) then
-            data.name = GetUnitName(data.units.primary, true)
+            data.name = GetRealUnitName(data.units.primary)
         end
 
         if data.name == name then

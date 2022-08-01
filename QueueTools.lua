@@ -29,7 +29,7 @@ local GetNumGroupMembers = GetNumGroupMembers
 local GetBattlefieldStatus = GetBattlefieldStatus
 local GetMaxBattlefieldID = GetMaxBattlefieldID
 local GetLFGRoleUpdate = GetLFGRoleUpdate
-local GetUnitName = GetUnitName
+local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitDebuff = UnitDebuff
@@ -204,7 +204,7 @@ function Private.CreateTableRow(index, data)
 
             if data.name == UNKNOWNOBJECT or data.name == nil then
                 -- try to update the name as it wasn't available on initial check
-                data.name = GetUnitName(data.units.primary, true)
+                data.name = GetRealUnitName(data.units.primary)
             end
 
             local name, color
@@ -442,7 +442,7 @@ function Private.OnSyncData(_, text, _, sender)
 end
 
 function Private.OnReadyCheckHeartbeat(_, text, _, sender)
-    if sender == GetUnitName('player', true) then return end
+    if sender == GetRealUnitName('player') then return end
 
     local acceptReadyCheck = function (skipVisibility)
         if not skipVisibility and not _G.ReadyCheckFrameYesButton:IsVisible() then return end
@@ -525,7 +525,7 @@ function Private.OnDeclineBattleground(_, _, _, sender)
         data.battlegroundStatus = BattlegroundStatus.Declined
     end
 
-    if sender ~= GetUnitName('player', true) and IsLeaderOrAssistant(data.units.primary) then
+    if sender ~= GetRealUnitName('player') and IsLeaderOrAssistant(data.units.primary) then
         Private.DisableEntryButton()
     end
 

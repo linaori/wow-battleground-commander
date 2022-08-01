@@ -6,6 +6,7 @@ local IsInRaid = IsInRaid
 local IsInGroup = IsInGroup
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
+local UnitNameUnmodified = UnitNameUnmodified
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
 local floor = math.floor
@@ -134,4 +135,11 @@ end
 
 function Namespace.Utils.IsLeaderOrAssistant(unit)
     return UnitIsGroupLeader(unit) or UnitIsGroupAssistant(unit)
+end
+
+function Namespace.Utils.GetRealUnitName(unit)
+    local name, realm = UnitNameUnmodified(unit)
+    if realm == nil then return name end
+
+    return name .. '-' .. realm
 end

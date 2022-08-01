@@ -16,7 +16,7 @@ local CreateFrame = CreateFrame
 local GetTime = GetTime
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
 local GetInstanceInfo = GetInstanceInfo
-local GetUnitName = GetUnitName
+local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local PromoteToLeader = PromoteToLeader
 local PlaySound = PlaySound
 local UnitIsGroupLeader = UnitIsGroupLeader
@@ -446,7 +446,7 @@ function Module:GetZoneId(zoneId)
 end
 
 function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
-    if sender == GetUnitName('player', true) then return end
+    if sender == GetRealUnitName('player') then return end
 
     local mem = Memory.WantBattlegroundLead
     if not mem.ackTimer then return end
@@ -482,7 +482,7 @@ function Private.SendAcknowledgeWantBattlegroundLead()
 end
 
 function Private.OnWantBattlegroundLead(_, _, _, sender)
-    if sender == GetUnitName('player', true) then return end
+    if sender == GetRealUnitName('player') then return end
     if not UnitIsGroupLeader('player') then return end
 
     local mem = Memory.WantBattlegroundLead
@@ -529,7 +529,7 @@ function Private.SendWantBattlegroundLead()
     if channel == Channel.Whisper then return end
 
     if Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.enableManualRequest then
-        local groupLeader = GetUnitName(GetGroupLeaderUnit(), true)
+        local groupLeader = GetRealUnitName(GetGroupLeaderUnit())
         if mem.ackLeader == nil or groupLeader ~= mem.ackLeader then
             -- re-buffer the timer each time the leader changes to give them enough time to reply
             if mem.ackTimer then Module:CancelTimer(mem.ackTimer) end

@@ -28,6 +28,7 @@ globals = {
     'UnitFullName',
     'GetUnitName',
     'GetRealmName',
+    'UnitNameUnmodified',
     'GetNumGroupMembers',
     'GetBattlefieldStatus',
     'GetMaxBattlefieldID',

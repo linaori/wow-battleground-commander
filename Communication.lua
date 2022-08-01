@@ -7,7 +7,7 @@ local LibCompress = Namespace.Libs.LibCompress
 local Encoder = LibCompress:GetAddonEncodeTable()
 
 local GroupType = Namespace.Utils.GroupType
-local GetUnitName = GetUnitName
+local GetRealUnitName = Namespace.Utils.GetRealUnitName
 
 local Channel = {
     Raid = 'RAID',
@@ -39,5 +39,5 @@ function Namespace.Communication.GetMessageDestination()
     if currentType == GroupType.Raid then return Channel.Raid, nil end
     if currentType == GroupType.Party then return Channel.Party, nil end
 
-    return Channel.Whisper, GetUnitName('player', true)
+    return Channel.Whisper, GetRealUnitName('player')
 end
