@@ -10,6 +10,7 @@ local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local UnitIsPlayer = UnitIsPlayer
 local UnitGUID = UnitGUID
 local UnitExists = UnitExists
+local UnitIsConnected = UnitIsConnected
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local pairs = pairs
 
@@ -37,6 +38,7 @@ local Memory = {
         --    addonVersion = 'whatever remote version',
         --    autoAcceptRole = false,
         --    battlegroundStatus = BattlegroundStatus
+        --    isConnected = true,
         --},
     },
     UnitPlayerData = {
@@ -74,12 +76,14 @@ function Namespace.PlayerData.RebuildPlayerData()
                     deserterExpiry = -1,
                     units = {primary = unit, [unit] = true},
                     battlegroundStatus = BattlegroundStatus.Nothing,
+                    isConnected = UnitIsConnected(unit),
                 }
 
                 Memory.AllPlayerData[dataIndex] = data
             else
                 -- always refresh the name whenever possible
                 data.name = GetRealUnitName(unit)
+                data.isConnected = UnitIsConnected(unit)
 
                 if not data.units.primary then
                     data.units.primary = unit

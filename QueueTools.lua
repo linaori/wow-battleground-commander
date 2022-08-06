@@ -46,8 +46,7 @@ local ceil = math.ceil
 local format = string.format
 local pairs = pairs
 local concat = table.concat
---local print = Namespace.Debug.print
-local log = Namespace.Debug.log
+local log = Namespace.Debug.Log
 
 local locale = GetLocale()
 
@@ -266,6 +265,12 @@ function Private.CreateTableRow(index, data)
             local columnData = tableData[realRow].cols[column]
             local readyState = data.readyState
             local battlegroundStatus = data.battlegroundStatus
+
+            if not data.isConnected then
+                columnData.color = ColorList.Bad
+                return L['Offline']
+            end
+
             Private.TriggerDeserterUpdate(data)
 
             local timeDiff = TimeDiff(data.deserterExpiry, GetTime())
@@ -308,7 +313,7 @@ function Private.CreateTableRow(index, data)
     }
 
     return { cols = {
-        {value = index},
+        { value = index },
         nameColumn,
         autoAcceptRoleColumn,
         mercenaryColumn,
@@ -539,7 +544,7 @@ function Module:OnEnable()
     self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
     self:RegisterEvent('UPDATE_BATTLEFIELD_STATUS')
     self:RegisterEvent('LFG_ROLE_CHECK_SHOW')
-
+    self:RegisterEvent('UNIT_CONNECTION')
     self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
@@ -568,6 +573,13 @@ function Module:OnEnable()
     local enterButton = _G.PVPReadyDialogEnterBattleButton
     enterButton:HookScript('OnClick', Private.OnClickEnterBattleground)
     Memory.disableEntryButtonOriginalText = enterButton:GetText()
+end
+
+function Module:UNIT_CONNECTION(_, unitTarget, isConnected)
+    local playerData = GetPlayerDataByUnit(unitTarget)
+    if not playerData then return end
+
+    playerData.isConnected = isConnected
 end
 
 function Module:LFG_ROLE_CHECK_SHOW()

@@ -104,7 +104,7 @@ L['Disables the entry button when the group leader cancels entry, hold shift to 
 L['Show or hide the Battleground Commander group information window'] = true
 L['Queue Pop'] = true
 L['OK'] = true
-
+L['Offline'] = true
 L['Open World'] = true
 L['Alterac Valley'] = true
 L['Alterac Valley (Korrak\'s Revenge)'] = true
