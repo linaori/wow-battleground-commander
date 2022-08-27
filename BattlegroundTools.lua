@@ -84,6 +84,7 @@ Namespace.BattlegroundTools.Zones = {
     [761]  = L['The Battle for Gilneas'],
     [726]  = L['Twin Peaks'],
     [489]  = L['Warsong Gulch'],
+    [1280] = L['Southshore vs. Tarren Mill'],
 }
 
 function Private.ApplyFont(textObject, fontConfig)

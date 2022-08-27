@@ -127,6 +127,7 @@ L['Temple of Kotmogu'] = true
 L['The Battle for Gilneas'] = true
 L['Twin Peaks'] = true
 L['Warsong Gulch'] = true
+L['Southshore vs. Tarren Mill'] = true
 L['Queue Tools'] = true
 L['Queue Inspection'] = true
 L['Notify When Paused'] = true
