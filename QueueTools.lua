@@ -677,6 +677,11 @@ function Private.DetectQueuePause(previousState, newState, mapName)
     local isLeader = IsLeaderOrAssistant('player')
     if config.onlyAsLeader and not isLeader then return end
 
+    for _, state in pairs(Memory.queueState) do
+        local otherStatus = state.status
+        if otherStatus == QueueStatus.Active or otherStatus == QueueStatus.Confirm then return end
+    end
+
     if config.sendPausedMessage then
         local message = Private.TwoLanguages('Queue paused for %s', mapName)
         if GetNumGroupMembers() == 0 then
