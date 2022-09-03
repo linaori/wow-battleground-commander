@@ -17,6 +17,8 @@ globals = {
     'BattlegroundCommanderDatabase',
 
     'C_ChatInfo',
+    'C_UnitAuras',
+    'Settings',
     'CombatLogGetCurrentEventInfo',
     'CreateFrame',
     'DoReadyCheck',

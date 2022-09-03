@@ -14,6 +14,7 @@ local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
 local IsLeaderOrAssistant = Namespace.Utils.IsLeaderOrAssistant
+local GetPlayerAuraExpiration = Namespace.Utils.GetPlayerAuraExpiration
 local RaidMarker = Namespace.Utils.RaidMarker
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
@@ -24,7 +25,6 @@ local CreateFrame = CreateFrame
 local PlaySound = PlaySound
 local CharacterPanelOpenSound = SOUNDKIT.IG_CHARACTER_INFO_OPEN
 local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
-local GetPlayerAuraBySpellID = GetPlayerAuraBySpellID
 local GetNumGroupMembers = GetNumGroupMembers
 local GetBattlefieldStatus = GetBattlefieldStatus
 local GetMaxBattlefieldID = GetMaxBattlefieldID
@@ -333,12 +333,10 @@ function Private.UpdatePlayerTableData()
     _G.BgcQueueFrame.PlayerTable:SetData(Memory.playerTableCache)
 end
 
-function Private.GetRemainingAuraTime(auraId)
-    local _, _, _, _, _, expirationTime = GetPlayerAuraBySpellID(auraId)
+function Private.GetRemainingAuraTime(spellId)
+    local expirationTime = GetPlayerAuraExpiration(spellId)
 
-    if not expirationTime then return -1 end
-
-    return expirationTime - GetTime()
+    return expirationTime and expirationTime - GetTime() or -1
 end
 
 function Private.EnterZone()

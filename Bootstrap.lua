@@ -1,5 +1,6 @@
 local LibStub, AddonName, Namespace = LibStub, ...
 
+local Settings = Settings
 local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategory
 local format = string.format
 local print = print
@@ -81,9 +82,13 @@ end
 function Addon:OpenSettingsPanel()
     local frames = Memory.OptionsFrames
 
-    InterfaceOptionsFrame_OpenToCategory(frames.Profiles)
-    InterfaceOptionsFrame_OpenToCategory(frames.Profiles)
-    InterfaceOptionsFrame_OpenToCategory(frames.Information)
+    if Settings then
+        Settings.OpenToCategory(frames.QueueTools.name)
+    else
+        -- open twice or it might not work
+        InterfaceOptionsFrame_OpenToCategory(frames.QueueTools)
+        InterfaceOptionsFrame_OpenToCategory(frames.QueueTools)
+    end
 end
 
 function Addon:ChatCommand(input)

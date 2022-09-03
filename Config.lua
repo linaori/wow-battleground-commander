@@ -83,7 +83,7 @@ local Memory = {
                         colorTime = { r = 0.5, g = 0.5, b = 0.5 },
                         colorHighlight = { r = 1, g = 0.28, b = 0 },
                         color = { r = 0.7, g = 0.5, b = 0 },
-                        shadowColor = { 0, 0, 0, 1 },
+                        shadowColor = { r = 0, g = 0, b = 0, a = 1 },
                         shadowOffset = { x = 1, y = -1 },
                         topToBottom = true,
                     },
