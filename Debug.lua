@@ -3,7 +3,7 @@ local Private, _, Namespace = {}, ...
 Namespace.Debug = {}
 --@debug@
 Namespace.Debug.enabled = true
-Namespace.Meta.version = '1.8.0-dev'
+Namespace.Meta.version = '1.9.0-dev'
 --@end-debug@
 
 local type, pairs, tostring, print, concat, select = type, pairs, tostring, print, table.concat, select

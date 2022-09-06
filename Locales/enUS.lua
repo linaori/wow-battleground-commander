@@ -76,6 +76,7 @@ L['Send Say (/s)'] = true
 L['Send Raid (/r)'] = true
 L['Automation'] = true
 L['Automatically Accept Role Selection'] = true
+L['Auto Accept Role'] = true
 L['Accepts the pre-selected role when your group applies for a battleground'] = true
 L['Clear frame when exiting the battleground'] = true
 L['Removes the instructions from the last battleground'] = true

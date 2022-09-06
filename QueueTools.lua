@@ -377,8 +377,7 @@ function Private.UpdateQueueFrameVisibility(newVisibility)
 end
 
 function Private.InitializeBattlegroundModeCheckbox()
-    local PVPUIFrame = _G.PVPUIFrame
-    local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundModeCheckbox', PVPUIFrame, 'UICheckButtonTemplate')
+    local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundModeCheckbox', _G.PVPUIFrame, 'UICheckButtonTemplate')
     checkbox:SetPoint('BOTTOMRIGHT', _G.PVEFrame, 'BOTTOMRIGHT', -2, 2)
     checkbox:SetSize(24, 24)
     checkbox:SetChecked(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
@@ -402,11 +401,36 @@ function Private.InitializeBattlegroundModeCheckbox()
     end)
     checkbox:Show()
 
-    PVPUIFrame.BattlegroundModeCheckbox = checkbox
+    _G.PVPUIFrame.BattlegroundModeCheckbox = checkbox
 
     local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
     text:SetText(L['Group Info'])
     text:SetPoint('RIGHT', checkbox, 'LEFT')
+    text:SetWordWrap(false)
+
+    checkbox.Text = text
+end
+
+function Private.InitializeAutoQueueCheckbox()
+    local checkbox = CreateFrame('CheckButton', 'BgcAutoQueueCheckbox', _G.HonorFrame.TankIcon, 'UICheckButtonTemplate')
+    checkbox:SetPoint('BOTTOMLEFT', _G.HonorFrame.TankIcon, 'TOPLEFT', -5, 8)
+    checkbox:SetSize(24, 24)
+    checkbox:SetChecked(Module:GetAutomationSetting('acceptRoleSelection'))
+    checkbox:SetScript('OnEnter', function (self)
+        local tooltip = _G.GameTooltip
+        tooltip:SetOwner(self, 'ANCHOR_RIGHT')
+        tooltip:SetText(L['Accepts the pre-selected role when your group applies for a battleground'], nil, nil, nil, nil, true)
+        tooltip:Show()
+    end)
+    checkbox:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
+    checkbox:SetScript('OnClick', function (self) Module:SetAutomationSetting('acceptRoleSelection', self:GetChecked()) end)
+    checkbox:Show()
+
+    _G.HonorFrame.TankIcon.AutoQueueCheckbox = checkbox
+
+    local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
+    text:SetText(L['Auto Accept Role'])
+    text:SetPoint('LEFT', checkbox, 'RIGHT', 3, 0)
     text:SetWordWrap(false)
 
     checkbox.Text = text
@@ -946,6 +970,7 @@ end
 
 function Module:ADDON_LOADED(_, addonName)
     if addonName == 'Blizzard_PVPUI' then
+        Private.InitializeAutoQueueCheckbox()
         Private.InitializeBattlegroundModeCheckbox()
         Private.InitializeGroupQueueFrame()
         _G.PVPUIFrame:HookScript('OnShow', function ()
@@ -968,6 +993,9 @@ function Module:SetAutomationSetting(setting, value)
     if setting == 'acceptRoleSelection' and value ~= Automation[setting] then
         -- notify through sync data when this setting changed
         Automation[setting] = value
+        if _G.BgcAutoQueueCheckbox then
+            _G.BgcAutoQueueCheckbox:SetChecked(value)
+        end
         return Private.ScheduleSendSyncData()
     end
 
