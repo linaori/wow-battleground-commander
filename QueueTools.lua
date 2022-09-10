@@ -34,8 +34,8 @@ local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitDebuff = UnitDebuff
 local UnitGUID = UnitGUID
+local UnitAffectingCombat = UnitAffectingCombat
 local GetTime = GetTime
-local InCombatLockdown = InCombatLockdown
 local IsShiftKeyDown = IsShiftKeyDown
 local SendChatMessage = SendChatMessage
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
@@ -598,7 +598,7 @@ function Module:OnEnable()
         Private.DetectBattlegroundEntryAfterConfirm,
     }
 
-    if not InCombatLockdown() then self:PLAYER_REGEN_ENABLED() end
+    Private.UpdateAuraTracking()
 
     self:RefreshConfig()
 
@@ -697,6 +697,8 @@ function Private.DetectBattlegroundExit(previousState, newState)
     Private.TriggerStateUpdates()
 
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
+
+    Private.UpdateAuraTracking()
 end
 
 function Private.DetectQueuePause(previousState, newState, mapName)
@@ -786,6 +788,8 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if newState.status ~= QueueStatus.Active then return end
 
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
+
+    Private.UpdateAuraTracking()
 end
 
 function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
@@ -807,12 +811,27 @@ function Module:RefreshConfig()
     Private.ScheduleSendSyncData()
 end
 
+function Private.UpdateAuraTracking()
+    if UnitAffectingCombat('player') then
+        return Module:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+    end
+
+    for _, state in pairs(Memory.queueState) do
+        if state.status == QueueStatus.Active then
+            return Module:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+        end
+    end
+
+    -- only track outside of combat and outside of battlegrounds
+    Module:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+end
+
 function Module:PLAYER_REGEN_ENABLED()
-    self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+    Private.UpdateAuraTracking()
 end
 
 function Module:PLAYER_REGEN_DISABLED()
-    self:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+    Private.UpdateAuraTracking()
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()

@@ -42,6 +42,7 @@ globals = {
     'PromoteToLeader',
     'SendChatMessage',
     'Settings',
+    'UnitAffectingCombat',
     'UnitClass',
     'UnitDebuff',
     'UnitExists',
