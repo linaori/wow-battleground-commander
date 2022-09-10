@@ -35,6 +35,7 @@ local UnitClass = UnitClass
 local UnitDebuff = UnitDebuff
 local UnitGUID = UnitGUID
 local GetTime = GetTime
+local InCombatLockdown = InCombatLockdown
 local IsShiftKeyDown = IsShiftKeyDown
 local SendChatMessage = SendChatMessage
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
@@ -563,7 +564,8 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
     self:RegisterEvent('READY_CHECK_FINISHED')
-    self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+    self:RegisterEvent('PLAYER_REGEN_ENABLED')
+    self:RegisterEvent('PLAYER_REGEN_DISABLED')
     self:RegisterEvent('UPDATE_BATTLEFIELD_STATUS')
     self:RegisterEvent('LFG_ROLE_CHECK_SHOW')
     self:RegisterEvent('UNIT_CONNECTION')
@@ -589,6 +591,8 @@ function Module:OnEnable()
         Private.DetectQueueCancelAfterConfirm,
         Private.DetectBattlegroundEntryAfterConfirm,
     }
+
+    if not InCombatLockdown() then self:PLAYER_REGEN_ENABLED() end
 
     self:RefreshConfig()
 
@@ -795,6 +799,14 @@ end
 function Module:RefreshConfig()
     Private.UpdateQueueFrameVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
     Private.ScheduleSendSyncData()
+end
+
+function Module:PLAYER_REGEN_ENABLED()
+    self:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+end
+
+function Module:PLAYER_REGEN_DISABLED()
+    self:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()

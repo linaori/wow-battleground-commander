@@ -18,7 +18,6 @@ globals = {
 
     'C_ChatInfo',
     'C_UnitAuras',
-    'Settings',
     'CombatLogGetCurrentEventInfo',
     'CreateFrame',
     'DoReadyCheck',
@@ -34,6 +33,7 @@ globals = {
     'GetRealmName',
     'GetTime',
     'GetUnitName',
+    'InCombatLockdown',
     'InterfaceOptionsFrame_OpenToCategory',
     'IsInGroup',
     'IsInRaid',
@@ -41,6 +41,7 @@ globals = {
     'PlaySound',
     'PromoteToLeader',
     'SendChatMessage',
+    'Settings',
     'UnitClass',
     'UnitDebuff',
     'UnitExists',
