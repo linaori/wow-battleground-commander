@@ -325,11 +325,15 @@ end
 function Private.RefreshPlayerTable()
     if not _G.BgcQueueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
 
+    Private.UpdateReadyCheckButtonState()
+
     _G.BgcQueueFrame.PlayerTable:Refresh()
 end
 
 function Private.UpdatePlayerTableData()
     if not _G.BgcQueueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
+
+    Private.UpdateReadyCheckButtonState()
 
     _G.BgcQueueFrame.PlayerTable:SetData(Memory.playerTableCache)
 end
@@ -346,6 +350,10 @@ function Private.EnterZone()
     Memory.currentZoneId = currentZoneId
 end
 
+function Private.UpdateReadyCheckButtonState()
+    if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
+end
+
 function Private.ScheduleStateUpdates(delay)
     if Memory.stateInitializedTimout then return end
 
@@ -353,8 +361,6 @@ function Private.ScheduleStateUpdates(delay)
 end
 
 function Private.TriggerStateUpdates()
-    if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
-
     local tableCache, count = {}, 0
     for _, playerData in pairs(RebuildPlayerData()) do
         count = count + 1
@@ -609,10 +615,14 @@ function Module:UNIT_CONNECTION(_, unitTarget, isConnected)
 end
 
 function Module:LFG_ROLE_CHECK_SHOW()
-    if not Namespace.Database.profile.QueueTools.Automation.acceptRoleSelection then return end
-
     local _, _, _, _, _, bgQueue = GetLFGRoleUpdate()
     if not bgQueue then return end
+
+    -- always schedule sending your data when the queue popup happens
+    -- this means the leader has more accurate information
+    Private.ScheduleSendSyncData()
+
+    if not Namespace.Database.profile.QueueTools.Automation.acceptRoleSelection then return end
 
     local button = _G.LFDRoleCheckPopupAcceptButton
     if not button then return end
@@ -621,20 +631,16 @@ function Module:LFG_ROLE_CHECK_SHOW()
 end
 
 function Module:GROUP_ROSTER_UPDATE()
-    Private.ScheduleStateUpdates(1)
+    Private.UpdateReadyCheckButtonState()
+    Private.ScheduleStateUpdates(2)
 end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
     Private.EnterZone()
-    if isLogin then
-        Private.ScheduleStateUpdates(5)
-    elseif isReload then
-        Private.ScheduleStateUpdates(2)
-    else
-        Private.TriggerStateUpdates()
-    end
 
     if not isLogin and not isReload then return end
+
+    Private.ScheduleStateUpdates(isLogin and 5 or 2)
 
     -- when logging in or reloading mid-queue, the first queue status mutation
     -- is inaccurate if not set before it happens
@@ -849,8 +855,8 @@ function Module:READY_CHECK(_, initiatedByName, duration)
         Memory.readyCheckButtonTicker = nil
     end, 0.1)
 
-    Private.ScheduleStateUpdates(1)
     Private.RefreshPlayerTable()
+    Private.ScheduleSendSyncData()
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
@@ -976,8 +982,6 @@ function Private.InitializeGroupQueueFrame()
     settingsButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
 
     queueFrame.SettingsButton = settingsButton
-
-    Private.ScheduleStateUpdates(1)
 end
 
 function Module:ADDON_LOADED(_, addonName)
