@@ -122,7 +122,6 @@ local Memory = {
 
 local CommunicationEvent = {
     SyncData = 'Bgc:syncData',
-    NotifyMercDuration = 'Bgc:notifyMerc', -- replaced by Bgc:syncData
     ReadyCheckHeartbeat = 'Bgc:rchb',
     EnterBattleground = 'Bgc:enterBg',
     DeclineBattleground = 'Bgc:declineBg',
@@ -141,7 +140,6 @@ function Private.SendSyncData()
     local channel, player = GetMessageDestination()
     local payload = PackData(Memory.syncDataPayloadBuffer)
 
-    Module:SendCommMessage(CommunicationEvent.NotifyMercDuration, payload, channel, player) -- remove in future
     Module:SendCommMessage(CommunicationEvent.SyncData, payload, channel, player)
     Memory.syncDataPayloadBuffer = nil
 end
@@ -445,14 +443,10 @@ end
 
 function Private.ProcessSyncData(payload, data)
     local time = GetTime()
-    -- renamed after 1.4.0, remove "remaining" index in the future
-    data.mercenaryExpiry = (payload.remainingMercenary or payload.remaining) + time
-    if payload.remainingDeserter then
-        -- added after 1.4.0, remove if check in the future
-        data.deserterExpiry = payload.remainingDeserter + time
-    end
 
-    data.addonVersion = payload.addonVersion or '<=1.4.1' -- added after 1.4.1
+    data.mercenaryExpiry = payload.remainingMercenary + time
+    data.deserterExpiry = payload.remainingDeserter + time
+    data.addonVersion = payload.addonVersion
     data.autoAcceptRole = payload.autoAcceptRole
 
     Private.RefreshPlayerTable()
@@ -578,7 +572,6 @@ function Module:OnEnable()
     self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
-    self:RegisterComm(CommunicationEvent.NotifyMercDuration, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.SyncData, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
     self:RegisterComm(CommunicationEvent.EnterBattleground, Private.OnEnterBattleground)
