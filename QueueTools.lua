@@ -559,7 +559,7 @@ function Private.OnDeclineBattleground(_, _, _, sender)
         data.battlegroundStatus = BattlegroundStatus.Declined
     end
 
-    if sender ~= GetRealUnitName('player') and IsLeaderOrAssistant(data.units.primary) then
+    if not data.units.player and data.units.primary and IsLeaderOrAssistant(data.units.primary) then
         Private.DisableEntryButton()
     end
 
