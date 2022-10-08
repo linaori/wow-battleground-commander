@@ -65,7 +65,7 @@ local Memory = {
                         [761]  = true,
                         [726]  = true,
                         [489]  = true,
-                        [1820] = true,
+                        [1280] = true,
                     },
                     settings = {
                         maxInstructions = 5,
