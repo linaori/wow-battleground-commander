@@ -13,7 +13,7 @@ local Memory = {
             QueueTools = {
                 showGroupQueueFrame = false,
                 Automation = {
-                    acceptRoleSelection = false,
+                    acceptRoleSelection = true,
                     disableEntryButtonOnQueuePop = true,
                     disableEntryButtonOnCancel = true,
                 },
