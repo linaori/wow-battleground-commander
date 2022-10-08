@@ -513,15 +513,22 @@ function Private.OnEnterBattleground(_, _, _, sender)
         data.battlegroundStatus = BattlegroundStatus.Entered
     end
 
+    local units = data.units
+    if not units.player
+        and units.primary
+        and Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnQueuePop
+        and IsLeaderOrAssistant(units.primary)
+    then
+        Private.RestoreEntryButton()
+    end
+
     Private.RefreshPlayerTable()
 end
 
 function Private.RestoreEntryButton()
     local button = _G.PVPReadyDialogEnterBattleButton
-    if not button:IsEnabled() and button:GetText() == L['Hold Shift'] then
-        button:SetEnabled(true)
-        button:SetText(Memory.disableEntryButtonOriginalText)
-    end
+    button:SetEnabled(true)
+    button:SetText(Memory.disableEntryButtonOriginalText)
 
     if Memory.disableEntryButtonTicker == nil then return end
 
@@ -529,21 +536,16 @@ function Private.RestoreEntryButton()
     Memory.disableEntryButtonTicker = nil
 end
 
-function Private.DisableEntryButton()
-    if not Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnCancel then return end
-    if Memory.disableEntryButtonTicker then return end
-
+function Private.DisableEntryButton(text)
     local button = _G.PVPReadyDialogEnterBattleButton
-    if not button:IsEnabled() then return end
     button:SetEnabled(false)
-    button:SetText(L['Hold Shift'])
+    button:SetText(text)
 
+    if Memory.disableEntryButtonTicker then return end
     Memory.disableEntryButtonTicker = Module:ScheduleRepeatingTimer(function ()
         if IsShiftKeyDown() then Private.RestoreEntryButton() end
-    end, 0.2)
+    end, 0.3)
 end
-
-Module.DisableEntryButton = Private.DisableEntryButton
 
 function Private.OnDeclineBattleground(_, _, _, sender)
     local data = GetPlayerDataByName(sender)
@@ -553,8 +555,13 @@ function Private.OnDeclineBattleground(_, _, _, sender)
         data.battlegroundStatus = BattlegroundStatus.Declined
     end
 
-    if not data.units.player and data.units.primary and IsLeaderOrAssistant(data.units.primary) then
-        Private.DisableEntryButton()
+    local units = data.units
+    if not units.player
+        and units.primary
+        and Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnCancel
+        and IsLeaderOrAssistant(units.primary)
+    then
+        Private.DisableEntryButton(L['Cancelled (Shift)'])
     end
 
     Private.RefreshPlayerTable()
@@ -668,6 +675,13 @@ function Private.DetectQueuePop(previousState, newState)
     if newState.status ~= QueueStatus.Confirm then return end
 
     ForEachUnitData(function(data) data.battlegroundStatus = BattlegroundStatus.Waiting end)
+
+    if Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnQueuePop
+        and GetNumGroupMembers() > 1
+        and not IsLeaderOrAssistant('player')
+    then
+        Private.DisableEntryButton(L['Waiting (Shift)'])
+    end
 
     Private.RefreshPlayerTable()
 end

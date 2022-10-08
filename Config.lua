@@ -14,6 +14,7 @@ local Memory = {
                 showGroupQueueFrame = false,
                 Automation = {
                     acceptRoleSelection = false,
+                    disableEntryButtonOnQueuePop = true,
                     disableEntryButtonOnCancel = true,
                 },
                 InspectQueue = {
@@ -162,6 +163,15 @@ function Namespace.Config.GetConfigurationSetup()
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('acceptRoleSelection') end,
                                 order = 1,
                             },
+                            disableEntryButtonOnQueuePop = {
+                                name = L['Disable Entry Button by Default'],
+                                desc = L['The entry button requires shift to be held first, or the group leader to enter.'],
+                                type = 'toggle',
+                                width = 'full',
+                                set = function (_, value) Namespace.QueueTools:SetAutomationSetting('disableEntryButtonOnQueuePop', value) end,
+                                get = function () return Namespace.QueueTools:GetAutomationSetting('disableEntryButtonOnQueuePop') end,
+                                order = 2,
+                            },
                             disableEntryButtonOnCancel = {
                                 name = L['Disable Entry Button on Cancel'],
                                 desc = L['Disables the entry button when the group leader cancels entry, hold shift to re-enable the button'],
@@ -169,7 +179,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 width = 'full',
                                 set = function (_, value) Namespace.QueueTools:SetAutomationSetting('disableEntryButtonOnCancel', value) end,
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('disableEntryButtonOnCancel') end,
-                                order = 2,
+                                order = 3,
                             },
                         },
                     },
