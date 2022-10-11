@@ -33,7 +33,6 @@ local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitClass = UnitClass
 local UnitDebuff = UnitDebuff
-local UnitGUID = UnitGUID
 local UnitAffectingCombat = UnitAffectingCombat
 local GetTime = GetTime
 local IsShiftKeyDown = IsShiftKeyDown
@@ -700,12 +699,9 @@ function Private.DetectBattlegroundExit(previousState, newState)
     if previousState.status ~= QueueStatus.Active then return end
     if newState.status ~= QueueStatus.None then return end
 
-    -- force refreshing the player data
     Private.TriggerStateUpdates()
 
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
-
-    Private.UpdateAuraTracking()
 end
 
 function Private.DetectQueuePause(previousState, newState, mapName)
@@ -795,8 +791,6 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if newState.status ~= QueueStatus.Active then return end
 
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
-
-    Private.UpdateAuraTracking()
 end
 
 function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
@@ -811,6 +805,8 @@ function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
     end
 
     Memory.queueState[queueId] = newState
+
+    Private.UpdateAuraTracking()
 end
 
 function Module:RefreshConfig()
@@ -842,12 +838,10 @@ function Module:PLAYER_REGEN_DISABLED()
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
-    local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
-    if (spellId ~= SpellIds.MercenaryContractBuff and spellId ~= SpellIds.DeserterDebuff) or sourceGUID ~= UnitGUID('player') then return end
+    local _, _, _, _, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
 
-    if subEvent == 'SPELL_AURA_APPLIED' or subEvent == 'SPELL_AURA_REFRESH' or subEvent == 'SPELL_AURA_REMOVED' then
-        Private.ScheduleSendSyncData()
-    end
+    if spellId ~= SpellIds.MercenaryContractBuff then return end
+    Private.ScheduleSendSyncData()
 end
 
 function Module:READY_CHECK(_, initiatedByName, duration)
