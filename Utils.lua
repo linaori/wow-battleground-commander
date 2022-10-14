@@ -40,6 +40,12 @@ Namespace.Utils.BattlegroundStatus = {
     Entered = 3,
 }
 
+Namespace.Utils.RoleCheckStatus = {
+    Nothing = 0,
+    Waiting = 1,
+    Ready = 2,
+}
+
 Namespace.Utils.RaidMarker = {
     YellowStar = '{rt1}',
     OrangeCircle = '{rt2}',

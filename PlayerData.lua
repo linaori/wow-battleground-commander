@@ -4,6 +4,7 @@ Namespace.PlayerData = {}
 
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
+local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local GetRealUnitName = Namespace.Utils.GetRealUnitName
@@ -33,6 +34,7 @@ local Memory = {
         --    units = {[1] => first unit, first unit = true, second unit = true},
         --    class = 'CLASS',
         --    readyState = ReadyCheckState,
+        --    roleCheckStatus = RoleCheckStatus,
         --    deserterExpiry = -1,
         --    mercenaryExpiry = nil,
         --    addonVersion = 'whatever remote version',
@@ -76,6 +78,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                     deserterExpiry = -1,
                     units = {primary = unit, [unit] = true},
                     battlegroundStatus = BattlegroundStatus.Nothing,
+                    roleCheckStatus = RoleCheckStatus.Nothing,
                     isConnected = UnitIsConnected(unit),
                 }
 

@@ -13,6 +13,7 @@ local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
+local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
 local IsLeaderOrAssistant = Namespace.Utils.IsLeaderOrAssistant
 local GetPlayerAuraExpiration = Namespace.Utils.GetPlayerAuraExpiration
 local RaidMarker = Namespace.Utils.RaidMarker
@@ -261,8 +262,6 @@ function Private.CreateTableRow(index, data)
     local readyCheckColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
-            local readyState = data.readyState
-            local battlegroundStatus = data.battlegroundStatus
 
             if not data.isConnected then
                 columnData.color = ColorList.Bad
@@ -277,11 +276,24 @@ function Private.CreateTableRow(index, data)
                 return format('%dm', timeDiff.fullMinutes) .. ' ' .. L['Deserter']
             end
 
+            local battlegroundStatus = data.battlegroundStatus
             if battlegroundStatus == BattlegroundStatus.Entered then
                 columnData.color = nil
                 return L['Entered']
             end
 
+            local roleCheckStatus = data.roleCheckStatus
+            if roleCheckStatus == RoleCheckStatus.Waiting then
+                columnData.color = ColorList.Warning
+                return L['Role Check']
+            end
+
+            if roleCheckStatus == RoleCheckStatus.Accepted then
+                columnData.color = ColorList.Good
+                return L['Accepted']
+            end
+
+            local readyState = data.readyState
             if readyState == ReadyCheckState.Declined then
                 columnData.color = ColorList.Bad
                 return L['Not Ready']
@@ -574,6 +586,9 @@ function Module:OnEnable()
     self:RegisterEvent('PLAYER_REGEN_DISABLED')
     self:RegisterEvent('UPDATE_BATTLEFIELD_STATUS')
     self:RegisterEvent('LFG_ROLE_CHECK_SHOW')
+    self:RegisterEvent('LFG_ROLE_CHECK_ROLE_CHOSEN')
+    self:RegisterEvent('LFG_ROLE_CHECK_DECLINED')
+    self:RegisterEvent('LFG_ROLE_CHECK_UPDATE')
     self:RegisterEvent('UNIT_CONNECTION')
     self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
@@ -611,6 +626,35 @@ function Module:UNIT_CONNECTION(_, unitTarget, isConnected)
     if not playerData then return end
 
     playerData.isConnected = isConnected
+end
+
+function Module:LFG_ROLE_CHECK_ROLE_CHOSEN(_, sender)
+    local data = GetPlayerDataByName(sender)
+    if not data then return end
+
+    data.roleCheckStatus = RoleCheckStatus.Accepted
+
+    Private.RefreshPlayerTable()
+end
+
+function Module:LFG_ROLE_CHECK_DECLINED()
+    ForEachPlayerData(function(data) data.roleCheckStatus = RoleCheckStatus.Nothing end)
+
+    Private.RefreshPlayerTable()
+end
+
+function Module:LFG_ROLE_CHECK_UPDATE()
+    local doRefresh = false
+    ForEachUnitData(function(data)
+        if data.roleCheckStatus == RoleCheckStatus.Nothing then
+            data.roleCheckStatus = RoleCheckStatus.Waiting
+            doRefresh = true
+        end
+    end)
+
+    if not doRefresh then return end
+
+    Private.RefreshPlayerTable()
 end
 
 function Module:LFG_ROLE_CHECK_SHOW()
@@ -689,7 +733,10 @@ function Private.DetectQueueEntry(previousState, newState)
     if previousState.status ~= QueueStatus.None then return end
     if newState.status ~= QueueStatus.Queued then return end
 
-    ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.None end)
+    ForEachPlayerData(function(data)
+        data.battlegroundStatus = BattlegroundStatus.Nothing
+        data.roleCheckStatus = RoleCheckStatus.Nothing
+    end)
 
     Private.RestoreEntryButton()
     Private.RefreshPlayerTable()
