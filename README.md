@@ -2,21 +2,39 @@
 Provides quality of life features for Battlegrounds. 
 
 ### Queue Tools
-This adds extra ready check tools, as well as being able to see who has a deserter debuff, mercenary contract, and
-whether the player has auto queue enabled. As the mercenary contract is invisible to other players, the players you want
-to see the contract for need to have this addon installed.
+This adds a bunch of tools that will help group leaders get the info they need to queue or cancel whenever needed.
 
 #### Automatic Role Selection
-You can enable automatic role selection for battlegrounds to reduce a manual step that delays entry.
+You can enable automatic role selection for battlegrounds to reduce a manual step that delays entry. You can find this
+option above the role selection in the PvP window, or in the addon settings.
+
+#### Queue Entry and Decline Tools
+When a queue entry window shows, for non-group leaders the "Enter" button is disabled by default, and additionally
+this button will be disabled if the group leader cancels. This behavior can be changed in the settings, and holding the
+shift button will re-enable the button. When the group leader enters the battleground and has BGC, it will also enable
+the enter button for non-group leaders.
+
+The group leader has the ability to automatically do a ready check when a queue entry is cancelled and if not
+all group members declined within a certain time limit.
+
+#### Group Information
+This window can be accessed through the PvP window by checking the "Group Info" box. This list shows all players in your
+group and shows various bits of info used to queue. You can also do a ready check from here, and open the settings.
+You'll be able to see the following information in the columns:
+ - if that player has "Automatic Role Selection" enabled (BGC required by that player)
+ - if that player has the Mercenary Contract buff, and how long remaining (BGC required by that player)
+ - status column which shows various bits of info:
+   - ready check status
+   - role selection status
+   - deserter debuff remaining
+   - if the queue entry window showed up
+   - if that player entered (BGC required by that player)
+   - if that player declined entry (BGC required by that player)
 
 #### Queue Pause Detection
 Free choice of automatically notifying the group when the queue is paused, resumed, and doing a ready check to verify
 who is and isn't ready. These options can also be limited to being a group leader or assist. Additionally, if someone
 else with this addon does an automated ready check, it will try to automatically accept it.
-
-#### Queue Entry and Decline Tools
-The ability to automatically do a ready check when a queue entry is cancelled, and automated "Enter" or "Cancel"
-messages when the group leader clicks either of those buttons.
 
 ### Battleground Tools
 Extra conveniences for Battlegrounds.
