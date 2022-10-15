@@ -59,11 +59,11 @@ local SpellIds = {
 local tableStructure = {
     {
         name = '',
-        width = 25,
+        width = 20,
     },
     {
         name = '',
-        width = 120,
+        width = 125,
         align = 'LEFT',
     },
     {
@@ -194,7 +194,19 @@ function Private.TriggerDeserterUpdate(data)
     end
 end
 
-function Private.CreateTableRow(index, data)
+function Private.CreateTableRow(data)
+    local indexColumn = {
+        value = function ()
+            if data.isLeader then
+                return [[|TInterface\GroupFrame\UI-Group-LeaderIcon:16|t]]
+            elseif data.isAssist then
+                return [[|TInterface\GroupFrame\UI-Group-AssistantIcon:16|t]]
+            end
+
+            return ''
+        end,
+    }
+
     local nameColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
@@ -322,7 +334,7 @@ function Private.CreateTableRow(index, data)
     }
 
     return { cols = {
-        { value = index },
+        indexColumn,
         nameColumn,
         autoAcceptRoleColumn,
         mercenaryColumn,
@@ -358,7 +370,7 @@ function Private.RebuildGroupInformationTable(unitPlayerData)
     local tableCache, count = {}, 0
     for _, playerData in pairs(unitPlayerData) do
         count = count + 1
-        tableCache[count] = Private.CreateTableRow(count, playerData)
+        tableCache[count] = Private.CreateTableRow(playerData)
     end
 
     Memory.playerTableCache = tableCache
