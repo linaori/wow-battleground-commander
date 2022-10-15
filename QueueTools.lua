@@ -103,7 +103,6 @@ local Memory = {
     readyCheckButtonTicker = nil,
     readyCheckClearTimeout = nil,
     readyCheckHeartbeatTimout = nil,
-    stateInitializedTimout = nil,
     disableEntryButtonTicker = nil,
 
     queueState = {
@@ -331,20 +330,12 @@ function Private.CreateTableRow(index, data)
     }, originalData = data }
 end
 
-function Private.RefreshPlayerTable()
+function Private.RefreshGroupInfoFrame()
     if not _G.BgcQueueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
 
     Private.UpdateReadyCheckButtonState()
 
     _G.BgcQueueFrame.PlayerTable:Refresh()
-end
-
-function Private.UpdatePlayerTableData()
-    if not _G.BgcQueueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
-
-    Private.UpdateReadyCheckButtonState()
-
-    _G.BgcQueueFrame.PlayerTable:SetData(Memory.playerTableCache)
 end
 
 function Private.GetRemainingAuraTime(spellId)
@@ -363,33 +354,28 @@ function Private.UpdateReadyCheckButtonState()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
 end
 
-function Private.ScheduleStateUpdates(delay)
-    if Memory.stateInitializedTimout then return end
-
-    Memory.stateInitializedTimout = Module:ScheduleTimer(Private.TriggerStateUpdates, delay)
-end
-
-function Private.TriggerStateUpdates()
+function Private.RebuildGroupInformationTable(unitPlayerData)
     local tableCache, count = {}, 0
-    for _, playerData in pairs(RebuildPlayerData()) do
+    for _, playerData in pairs(unitPlayerData) do
         count = count + 1
         tableCache[count] = Private.CreateTableRow(count, playerData)
     end
 
-    Memory.stateInitializedTimout = nil
     Memory.playerTableCache = tableCache
 
+    if _G.BgcQueueFrame and Namespace.Database.profile.QueueTools.showGroupQueueFrame then
+        _G.BgcQueueFrame.PlayerTable:SetData(tableCache)
+        Private.UpdateReadyCheckButtonState()
+    end
+
     Private.ScheduleSendSyncData()
-    Private.UpdatePlayerTableData()
-    Private.RefreshPlayerTable()
 end
 
-function Private.UpdateQueueFrameVisibility(newVisibility)
+function Private.UpdateGroupInfoVisibility(newVisibility)
     if not _G.BgcQueueFrame then return end
 
     _G.BgcQueueFrame:SetShown(newVisibility)
-
-    Private.UpdatePlayerTableData()
+    RebuildPlayerData()
 end
 
 function Private.InitializeBattlegroundModeCheckbox()
@@ -408,7 +394,7 @@ function Private.InitializeBattlegroundModeCheckbox()
         local newVisibility = self:GetChecked()
 
         Namespace.Database.profile.QueueTools.showGroupQueueFrame = newVisibility
-        Private.UpdateQueueFrameVisibility(newVisibility)
+        Private.UpdateGroupInfoVisibility(newVisibility)
         if newVisibility then
             PlaySound(CharacterPanelOpenSound)
         else
@@ -460,7 +446,7 @@ function Private.ProcessSyncData(payload, data)
     data.addonVersion = payload.addonVersion
     data.autoAcceptRole = payload.autoAcceptRole
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Private.OnSyncData(_, text, _, sender)
@@ -468,16 +454,9 @@ function Private.OnSyncData(_, text, _, sender)
     if not payload then return end
 
     local data = GetPlayerDataByName(sender)
-    if data then return Private.ProcessSyncData(payload, data) end
+    if not data then return end
 
-    -- in some cases after initial login the realm names are missing from
-    -- GetUnitName. Delaying in the hopes this is available when retrying
-    return Module:ScheduleTimer(function ()
-        data = GetPlayerDataByName(sender)
-        if not data then return log('Unable to find data for sender: ', sender) end
-
-        Private.ProcessSyncData(payload, data)
-    end, 5)
+    Private.ProcessSyncData(payload, data)
 end
 
 function Private.OnReadyCheckHeartbeat(_, text, _, sender)
@@ -533,7 +512,7 @@ function Private.OnEnterBattleground(_, _, _, sender)
         Private.RestoreEntryButton()
     end
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Private.RestoreEntryButton()
@@ -575,7 +554,7 @@ function Private.OnDeclineBattleground(_, _, _, sender)
         Private.DisableEntryButton(L['Cancelled (Shift)'])
     end
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Module:OnEnable()
@@ -619,6 +598,8 @@ function Module:OnEnable()
     local enterButton = _G.PVPReadyDialogEnterBattleButton
     enterButton:HookScript('OnClick', Private.OnClickEnterBattleground)
     Memory.disableEntryButtonOriginalText = enterButton:GetText()
+
+    Namespace.PlayerData.RegisterOnUpdate('rebuild_group_information', Private.RebuildGroupInformationTable)
 end
 
 function Module:UNIT_CONNECTION(_, unitTarget, isConnected)
@@ -634,13 +615,13 @@ function Module:LFG_ROLE_CHECK_ROLE_CHOSEN(_, sender)
 
     data.roleCheckStatus = RoleCheckStatus.Accepted
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Module:LFG_ROLE_CHECK_DECLINED()
     ForEachPlayerData(function(data) data.roleCheckStatus = RoleCheckStatus.Nothing end)
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Module:LFG_ROLE_CHECK_UPDATE()
@@ -654,7 +635,7 @@ function Module:LFG_ROLE_CHECK_UPDATE()
 
     if not doRefresh then return end
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Module:LFG_ROLE_CHECK_SHOW()
@@ -674,16 +655,13 @@ function Module:LFG_ROLE_CHECK_SHOW()
 end
 
 function Module:GROUP_ROSTER_UPDATE()
-    Private.UpdateReadyCheckButtonState()
-    Private.ScheduleStateUpdates(2)
+    RebuildPlayerData()
 end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
     Private.EnterZone()
 
     if not isLogin and not isReload then return end
-
-    Private.ScheduleStateUpdates(isLogin and 5 or 2)
 
     -- when logging in or reloading mid-queue, the first queue status mutation
     -- is inaccurate if not set before it happens
@@ -726,7 +704,7 @@ function Private.DetectQueuePop(previousState, newState)
         Private.DisableEntryButton(L['Waiting (Shift)'])
     end
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Private.DetectQueueEntry(previousState, newState)
@@ -739,15 +717,14 @@ function Private.DetectQueueEntry(previousState, newState)
     end)
 
     Private.RestoreEntryButton()
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Private.DetectBattlegroundExit(previousState, newState)
     if previousState.status ~= QueueStatus.Active then return end
     if newState.status ~= QueueStatus.None then return end
 
-    Private.TriggerStateUpdates()
-
+    RebuildPlayerData()
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
 end
 
@@ -857,7 +834,7 @@ function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
 end
 
 function Module:RefreshConfig()
-    Private.UpdateQueueFrameVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
+    Private.UpdateGroupInfoVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
     Private.ScheduleSendSyncData()
 end
 
@@ -922,7 +899,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
         Memory.readyCheckButtonTicker = nil
     end, 0.1)
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
     Private.ScheduleSendSyncData()
 end
 
@@ -932,7 +909,7 @@ function Module:READY_CHECK_CONFIRM(_, unit, ready)
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Module:READY_CHECK_FINISHED()
@@ -956,11 +933,11 @@ function Module:READY_CHECK_FINISHED()
 
         ForEachPlayerData(function(data) data.readyState = ReadyCheckState.Nothing end)
 
-        Private.RefreshPlayerTable()
+        Private.RefreshGroupInfoFrame()
         Memory.readyCheckClearTimeout = nil
     end, 10)
 
-    Private.RefreshPlayerTable()
+    Private.RefreshGroupInfoFrame()
 end
 
 function Private.InitializeGroupQueueFrame()
@@ -973,7 +950,7 @@ function Private.InitializeGroupQueueFrame()
     queueFrame.TitleText:SetText(L['Group Information'])
     queueFrame.CloseButton:SetScript('OnClick', function ()
         Namespace.Database.profile.QueueTools.showGroupQueueFrame = false
-        Private.UpdateQueueFrameVisibility(false)
+        Private.UpdateGroupInfoVisibility(false)
         _G.BgcBattlegroundModeCheckbox:SetChecked(false)
         PlaySound(CharacterPanelCloseSound)
     end)
@@ -999,7 +976,7 @@ function Private.InitializeGroupQueueFrame()
     }, true)
 
     playerTable.frame:SetScript('OnShow', function (self)
-        self.refreshTimer = Module:ScheduleRepeatingTimer(Private.RefreshPlayerTable, 10)
+        self.refreshTimer = Module:ScheduleRepeatingTimer(Private.RefreshGroupInfoFrame, 5)
     end)
     playerTable.frame:SetScript('OnHide', function (self)
         Module:CancelTimer(self.refreshTimer)
@@ -1057,7 +1034,7 @@ function Module:ADDON_LOADED(_, addonName)
         Private.InitializeBattlegroundModeCheckbox()
         Private.InitializeGroupQueueFrame()
         _G.PVPUIFrame:HookScript('OnShow', function ()
-            Private.UpdateQueueFrameVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
+            Private.UpdateGroupInfoVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
         end)
         self:UnregisterEvent('ADDON_LOADED')
     end

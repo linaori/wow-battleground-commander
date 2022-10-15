@@ -8,7 +8,7 @@ local LibDD = Namespace.Libs.LibDropDown
 Namespace.BattlegroundTools = Module
 
 local Channel = Namespace.Communication.Channel
-local GetGroupLeaderUnit = Namespace.Utils.GetGroupLeaderUnit
+local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
@@ -535,8 +535,8 @@ function Private.SendWantBattlegroundLead()
     if channel == Channel.Whisper then return end
 
     if Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.enableManualRequest then
-        local groupLeader = GetRealUnitName(GetGroupLeaderUnit())
-        if mem.ackLeader == nil or groupLeader ~= mem.ackLeader then
+        local groupLeader = GetGroupLeaderData()
+        if groupLeader and (mem.ackLeader == nil or groupLeader.name ~= mem.ackLeader) then
             -- re-buffer the timer each time the leader changes to give them enough time to reply
             if mem.ackTimer then Module:CancelTimer(mem.ackTimer) end
 
@@ -546,24 +546,6 @@ function Private.SendWantBattlegroundLead()
     end
 
     Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, '1', channel)
-end
-
-function Private.GetRaidLeaderUnit()
-    local groupType, maxSize, type = GetGroupType(), 6, 'party'
-    if groupType == 'solo' then return nil end
-
-    if groupType == GroupType.InstanceRaid or groupType == GroupType.Raid then
-        maxSize, type = 40, 'raid'
-    end
-
-    for i = 1, maxSize do
-        local unit = type .. i
-        if UnitIsGroupLeader(unit) then
-            return unit
-        end
-    end
-
-    return nil
 end
 
 function Private.RequestRaidLead()
