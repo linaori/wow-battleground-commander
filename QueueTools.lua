@@ -627,6 +627,12 @@ function Module:LFG_ROLE_CHECK_ROLE_CHOSEN(_, sender)
 
     data.roleCheckStatus = RoleCheckStatus.Accepted
 
+    if data.isLeader then
+        -- The leader does not get a LFG_ROLE_CHECK_SHOW event so sync the info
+        -- here for just the leader
+        Private.ScheduleSendSyncData()
+    end
+
     Private.RefreshGroupInfoFrame()
 end
 
