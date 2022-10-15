@@ -563,7 +563,7 @@ function Private.OnDeclineBattleground(_, _, _, sender)
         and Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnCancel
         and IsLeaderOrAssistant(units.primary)
     then
-        Private.DisableEntryButton(L['Cancelled (Shift)'])
+        Private.DisableEntryButton([[|TInterface\RaidFrame\ReadyCheck-NotReady:15|t ]] .. L['Cancel (Shift)'])
     end
 
     Private.RefreshGroupInfoFrame()
@@ -719,7 +719,7 @@ function Private.DetectQueuePop(previousState, newState)
         and GetNumGroupMembers() > 1
         and not IsLeaderOrAssistant('player')
     then
-        Private.DisableEntryButton(L['Waiting (Shift)'])
+        Private.DisableEntryButton([[|TInterface\RaidFrame\ReadyCheck-Waiting:15|t ]] .. L['Waiting (Shift)'])
     end
 
     Private.RefreshGroupInfoFrame()
