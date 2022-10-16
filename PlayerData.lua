@@ -61,9 +61,22 @@ function Namespace.PlayerData.RegisterOnUpdate(listenerName, callback)
     Memory.OnUpdateCallbacks[listenerName] = callback
 end
 
+function Private.RefreshNameForData(data)
+    local unit = data.units.primary
+    if not unit then return end
+    if data.name ~= UNKNOWNOBJECT and data.name ~= nil then return end
+
+    data.name = GetRealUnitName(unit)
+end
+
+Namespace.PlayerData.RefreshNameForData = Private.RefreshNameForData
+
 function Namespace.PlayerData.GetGroupLeaderData()
-    for _, playerData in pairs(Memory.UnitPlayerData) do
-        if playerData.isLeader then return playerData end
+    for _, data in pairs(Memory.UnitPlayerData) do
+        if data.isLeader then
+            Private.RefreshNameForData(data)
+            return data
+        end
     end
 
     return nil
@@ -111,9 +124,9 @@ function Namespace.PlayerData.RebuildPlayerData()
                 data.units[unit] = true
 
                 if not data.units.primary then
+                    data.units.primary = unit
                     data.name = GetRealUnitName(unit)
                     data.isConnected = UnitIsConnected(unit)
-                    data.units.primary = unit
                     data.isLeader = UnitIsGroupLeader(unit)
                     data.isAssist = UnitIsGroupAssistant(unit)
                 end
@@ -149,9 +162,7 @@ end
 
 function Namespace.PlayerData.GetPlayerDataByName(name)
     for _, data in pairs(Memory.AllPlayerData) do
-        if data.units.primary and (data.name == UNKNOWNOBJECT or data.name == nil) then
-            data.name = GetRealUnitName(data.units.primary)
-        end
+        Private.RefreshNameForData(data)
 
         if data.name == name then
             return data

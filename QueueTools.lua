@@ -10,6 +10,7 @@ local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
 local RebuildPlayerData = Namespace.PlayerData.RebuildPlayerData
 local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
+local RefreshNameForData = Namespace.PlayerData.RefreshNameForData
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
@@ -211,10 +212,7 @@ function Private.CreateTableRow(data)
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
 
-            if data.name == UNKNOWNOBJECT or data.name == nil then
-                -- try to update the name as it wasn't available on initial check
-                data.name = GetRealUnitName(data.units.primary)
-            end
+            RefreshNameForData(data)
 
             local name, color
             if data.name == UNKNOWNOBJECT then

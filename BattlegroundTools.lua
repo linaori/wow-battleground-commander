@@ -25,6 +25,7 @@ local GetMaxBattlefieldID = GetMaxBattlefieldID
 local GetBattlefieldStatus = GetBattlefieldStatus
 local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
 local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
+local UNKNOWNOBJECT = UNKNOWNOBJECT
 local concat = table.concat
 local format = string.format
 local floor = math.floor
@@ -519,8 +520,14 @@ function Private.SendManualChatMessages()
     mem.ackTimer = nil
     if not config.enableManualRequest or not Private.CanRequestLead() then return end
 
-    local message = config.manualRequestMessage:gsub('{leader}', mem.ackLeader)
-    if config.sendWhisper then SendChatMessage(message, Channel.Whisper, nil, mem.ackLeader) end
+    local groupLeader = GetGroupLeaderData()
+    if not groupLeader then return end
+
+    local name = groupLeader.name
+    if name == UNKNOWNOBJECT then return end
+
+    local message = config.manualRequestMessage:gsub('{leader}', name)
+    if config.sendWhisper then SendChatMessage(message, Channel.Whisper, nil, name) end
     if config.sendSay and Memory.currentZoneId ~= 0 then SendChatMessage(message, Channel.Say) end
     if config.sendRaid and GetGroupType() == GroupType.Raid then SendChatMessage(message, Channel.Raid) end
 end
