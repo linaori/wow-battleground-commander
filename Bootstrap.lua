@@ -83,7 +83,7 @@ function Addon:OpenSettingsPanel()
     local frames = Memory.OptionsFrames
 
     if Settings then
-        Settings.OpenToCategory(frames.QueueTools.name)
+        Settings.OpenToCategory(frames.Information.name)
     else
         -- open twice or it might not work
         InterfaceOptionsFrame_OpenToCategory(frames.QueueTools)

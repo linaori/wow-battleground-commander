@@ -963,7 +963,12 @@ function Private.InitializeGroupQueueFrame()
     queueFrame:SetSize(350, PVPUIFrame:GetHeight() - 2)
     queueFrame:SetPoint('TOPLEFT', PVPUIFrame, 'TOPRIGHT', 11, 0)
     queueFrame:SetPoint('BOTTOMLEFT', PVPUIFrame, 'BOTTOMRIGHT', 11, 0)
-    queueFrame.TitleText:SetText(L['Group Information'])
+    -- diff function in 10.0
+    if queueFrame.SetTitle then
+        queueFrame:SetTitle(L['Group Information'])
+    else
+        queueFrame.TitleText:SetText(L['Group Information'])
+    end
     queueFrame.CloseButton:SetScript('OnClick', function ()
         Namespace.Database.profile.QueueTools.showGroupQueueFrame = false
         Private.UpdateGroupInfoVisibility(false)
