@@ -210,12 +210,7 @@ function Private.InitializeInstructionFrame()
 
     local instructionFrame = CreateFrame('Frame', 'bgcInstructionFrame', _G.UIParent, _G.BackdropTemplateMixin and 'BackdropTemplate')
     instructionFrame:SetFrameStrata('LOW')
-    -- diff function in 10.0
-    if instructionFrame.SetResizeBounds then
-        instructionFrame:SetResizeBounds(100, 50)
-    else
-        instructionFrame:SetMinResize(100, 50)
-    end
+    instructionFrame:SetResizeBounds(100, 50)
     instructionFrame:SetClampedToScreen(true)
     instructionFrame:SetMovable(true)
     instructionFrame:RegisterForDrag('LeftButton')

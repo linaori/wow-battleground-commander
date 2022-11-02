@@ -382,10 +382,11 @@ function Private.RebuildGroupInformationTable(unitPlayerData)
 end
 
 function Private.UpdateGroupInfoVisibility(newVisibility)
+    RebuildPlayerData()
+
     if not _G.BgcQueueFrame then return end
 
     _G.BgcQueueFrame:SetShown(newVisibility)
-    RebuildPlayerData()
 end
 
 function Private.InitializeBattlegroundModeCheckbox()
@@ -507,7 +508,7 @@ end
 
 function Private.OnEnterBattleground(_, _, _, sender)
     local data = GetPlayerDataByName(sender)
-    if not data then return end
+    if not data then return Namespace.Debug.Log('Missing player data on enter', sender) end
 
     if data.battlegroundStatus == BattlegroundStatus.Waiting then
         data.battlegroundStatus = BattlegroundStatus.Entered
@@ -963,12 +964,7 @@ function Private.InitializeGroupQueueFrame()
     queueFrame:SetSize(350, PVPUIFrame:GetHeight() - 2)
     queueFrame:SetPoint('TOPLEFT', PVPUIFrame, 'TOPRIGHT', 11, 0)
     queueFrame:SetPoint('BOTTOMLEFT', PVPUIFrame, 'BOTTOMRIGHT', 11, 0)
-    -- diff function in 10.0
-    if queueFrame.SetTitle then
-        queueFrame:SetTitle(L['Group Information'])
-    else
-        queueFrame.TitleText:SetText(L['Group Information'])
-    end
+    queueFrame:SetTitle(L['Group Information'])
     queueFrame.CloseButton:SetScript('OnClick', function ()
         Namespace.Database.profile.QueueTools.showGroupQueueFrame = false
         Private.UpdateGroupInfoVisibility(false)

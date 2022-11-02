@@ -4,8 +4,7 @@ Namespace.Utils = {}
 
 local IsInRaid = IsInRaid
 local IsInGroup = IsInGroup
-local OldGetPlayerAuraBySpellID = GetPlayerAuraBySpellID
-local GetPlayerAuraBySpellID = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+local GetPlayerAuraBySpellID = C_UnitAuras.GetPlayerAuraBySpellID
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
 local UnitNameUnmodified = UnitNameUnmodified
@@ -121,16 +120,7 @@ function Namespace.Utils.GetRealUnitName(unit)
 end
 
 function Namespace.Utils.GetPlayerAuraExpiration(spellId)
-    if GetPlayerAuraBySpellID then
-        local aura = GetPlayerAuraBySpellID(spellId)
+    local aura = GetPlayerAuraBySpellID(spellId)
 
-        return aura and aura.expirationTime or nil
-    end
-
-    --- bc layer for 9.2 to 10.0
-    --- https://wowpedia.fandom.com/wiki/API_C_UnitAuras.GetPlayerAuraBySpellID
-    --- https://wowpedia.fandom.com/wiki/API_GetPlayerAuraBySpellID
-    local _, _, _, _, _, expirationTime = OldGetPlayerAuraBySpellID(spellId)
-
-    return expirationTime
+    return aura and aura.expirationTime or nil
 end
