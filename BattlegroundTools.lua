@@ -473,14 +473,14 @@ function Private.CanRequestLead()
 end
 
 function Private.SendAcknowledgeWantBattlegroundLead()
+    Memory.WantBattlegroundLead.ackWantLeadTimer = nil
+
     if not UnitIsGroupLeader('player') then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end
 
     Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, '1', channel)
-
-    Memory.WantBattlegroundLead.ackWantLeadTimer = nil
 end
 
 function Private.OnWantBattlegroundLead(_, _, _, sender)
@@ -489,7 +489,7 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
 
     local mem = Memory.WantBattlegroundLead
     if not mem.ackWantLeadTimer then
-        mem.ackWantLeadTimer = Module:ScheduleTimer(Private.SendAcknowledgeWantBattlegroundLead, 2)
+        mem.ackWantLeadTimer = Module:ScheduleTimer(Private.SendAcknowledgeWantBattlegroundLead, 1)
     end
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
@@ -498,6 +498,7 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
         PromoteToLeader(sender)
         return Addon:PrintMessage(format(L['Automatically giving lead to %s'], sender))
     end
+
     if config.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
 
     if not mem.requestedBy[sender] then
@@ -542,7 +543,7 @@ function Private.SendWantBattlegroundLead()
             -- re-buffer the timer each time the leader changes to give them enough time to reply
             if mem.ackTimer then Module:CancelTimer(mem.ackTimer) end
 
-            mem.ackLeader = groupLeader
+            mem.ackLeader = groupLeader.name
             mem.ackTimer = Module:ScheduleTimer(Private.SendManualChatMessages, 5)
         end
     end
