@@ -267,12 +267,13 @@ function Module:OnInitialize()
     Private.InitializeInstructionFrame()
 end
 
-function Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+function Private.TriggerUpdateWantBattlegroundLeadDialogFrame(forceHide)
     local mem = Memory.WantBattlegroundLead
     local dialog = mem.DialogFrame
     if not dialog then return end
 
-    if mem.requestedByCount == 0 or not UnitIsGroupLeader('player') then
+    -- when PromoteToLeader is called in the same update as UnitIsGroupLeader, it still returns true :(
+    if forceHide or mem.requestedByCount == 0 or not UnitIsGroupLeader('player') then
         return dialog:SetShown(false)
     end
 
@@ -496,7 +497,9 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
     if config.wantLead then return end
     if config.automaticallyAccept[sender] then
         PromoteToLeader(sender)
-        return Addon:PrintMessage(format(L['Automatically giving lead to %s'], sender))
+        Addon:PrintMessage(format(L['Automatically giving lead to %s'], sender))
+
+        return Private.TriggerUpdateWantBattlegroundLeadDialogFrame(true)
     end
 
     if config.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
@@ -592,17 +595,19 @@ function Private.AcceptManualBattlegroundLeaderRequest()
     local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
     local automaticallyAccept = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.automaticallyAccept
 
+    local forceHide = false
     Private.ProcessDropDownOptions(function (name)
         mem.requestedBy[name] = nil
         mem.requestedByCount = mem.requestedByCount - 1
         if remember then automaticallyAccept[name] = true end
 
         PromoteToLeader(name)
+        forceHide = true
 
         return true -- only ever attempt once
     end)
 
-    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+    Private.TriggerUpdateWantBattlegroundLeadDialogFrame(forceHide)
 end
 
 function Private.RejectManualBattlegroundLeaderRequest()
