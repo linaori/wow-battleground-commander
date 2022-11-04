@@ -497,7 +497,7 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
     if config.wantLead then return end
     if config.automaticallyAccept[sender] then
         PromoteToLeader(sender)
-        Module:Print(format(L['Automatically giving lead to %s'], sender))
+        Addon:Print(format(L['Automatically giving lead to %s'], sender))
 
         return Private.TriggerUpdateWantBattlegroundLeadDialogFrame(true)
     end

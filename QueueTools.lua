@@ -477,7 +477,7 @@ function Private.OnReadyCheckHeartbeat(_, text, _, sender)
         if not skipVisibility and not _G.ReadyCheckFrameYesButton:IsVisible() then return end
 
         _G.ReadyCheckFrameYesButton:Click()
-        Module:Print(format(L['Accepted automated ready check with message: "%s"'], text))
+        Addon:Print(format(L['Accepted automated ready check with message: "%s"'], text))
     end
 
     -- due to the async nature, the ready check might come later than the
@@ -692,7 +692,7 @@ function Private.SendReadyCheckHeartbeat(message)
     if not Private.CanDoReadyCheck() then return end
 
     DoReadyCheck()
-    Module:Print(format(L['Sending automated ready check with message: "%s"'], message))
+    Addon:Print(format(L['Sending automated ready check with message: "%s"'], message))
     Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, message, GetMessageDestination())
 end
 
@@ -764,7 +764,7 @@ function Private.DetectQueuePause(previousState, newState, mapName)
         local message = Private.TwoLanguages('Queue paused for %s', mapName)
         if GetNumGroupMembers() == 0 then
             -- just return, you got no friends to do a ready check with anyway
-            return Module:Print(message)
+            return Addon:Print(message)
         end
 
         local channel = GetMessageDestination()
@@ -788,7 +788,7 @@ function Private.DetectQueueResume(previousState, newState, mapName)
 
     local message = Private.TwoLanguages('Queue resumed for %s', mapName)
     if GetNumGroupMembers() == 0 then
-        return Module:Print(message)
+        return Addon:Print(message)
     end
 
     local channel = GetMessageDestination()
