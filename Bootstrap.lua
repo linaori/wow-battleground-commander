@@ -3,7 +3,6 @@ local LibStub, AddonName, Namespace = LibStub, ...
 local Settings = Settings
 local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategory
 local format = string.format
-local print = print
 
 local Memory = {
     OptionsFrames = {},
@@ -35,10 +34,6 @@ Namespace.Libs = {
 local Addon = Namespace.Libs.AceAddon:NewAddon(AddonName, 'AceConsole-3.0')
 
 Namespace.Addon = Addon
-
-function Addon:PrintMessage(message)
-    print(self:PrependChatTemplate(message))
-end
 
 function Addon:PrependChatTemplate(message)
     return format(Namespace.Meta.chatTemplate, message)
