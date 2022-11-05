@@ -12,6 +12,7 @@ local RebuildPlayerData = Namespace.PlayerData.RebuildPlayerData
 local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
 local RefreshNameForData = Namespace.PlayerData.RefreshNameForData
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
+local Roles = Namespace.PlayerData.Roles
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
 local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
@@ -198,9 +199,9 @@ end
 function Private.CreateTableRow(data)
     local indexColumn = {
         value = function ()
-            if data.isLeader then
+            if data.role == Roles.Leader then
                 return [[|TInterface\GroupFrame\UI-Group-LeaderIcon:16|t]]
-            elseif data.isAssist then
+            elseif data.role == Roles.Assist then
                 return [[|TInterface\GroupFrame\UI-Group-AssistantIcon:16|t]]
             end
 
@@ -609,9 +610,9 @@ function Module:OnEnable()
     local enterButton = _G.PVPReadyDialogEnterBattleButton
     enterButton:HookScript('OnClick', Private.OnClickEnterBattleground)
     Memory.disableEntryButtonOriginalText = enterButton:GetText()
-
-    Namespace.PlayerData.RegisterOnUpdate('rebuild_group_information', Private.RebuildGroupInformationTable)
 end
+
+Namespace.PlayerData.RegisterOnUpdate('rebuild_group_information', Private.RebuildGroupInformationTable)
 
 function Module:UNIT_CONNECTION(_, unitTarget, isConnected)
     local playerData = GetPlayerDataByUnit(unitTarget)
@@ -626,7 +627,7 @@ function Module:LFG_ROLE_CHECK_ROLE_CHOSEN(_, sender)
 
     data.roleCheckStatus = RoleCheckStatus.Accepted
 
-    if data.isLeader then
+    if data.role == Roles.Leader then
         -- The leader does not get a LFG_ROLE_CHECK_SHOW event so sync the info
         -- here for just the leader
         Private.ScheduleSendSyncData()

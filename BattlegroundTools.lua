@@ -9,6 +9,7 @@ Namespace.BattlegroundTools = Module
 
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
+local Roles = Namespace.PlayerData.Roles
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
@@ -357,7 +358,6 @@ end
 
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
-    self:RegisterEvent('PARTY_LEADER_CHANGED')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
 
     self:RegisterComm(CommunicationEvent.WantBattlegroundLead, Private.OnWantBattlegroundLead)
@@ -380,13 +380,21 @@ function Module:OnEnable()
     Private.ApplyLogs(Memory.InstructionFrame.Text)
 end
 
+Namespace.PlayerData.RegisterOnRoleChange('request_raid_lead', function (_, _, newRole)
+    if newRole ~= Roles.Leader then return end
+
+    Private.RequestRaidLead()
+end)
+
+Namespace.PlayerData.RegisterOnRoleChange('update_raid_icon_markers', function (playerData, _, newRole)
+    if newRole ~= Roles.Leader or not playerData.units.player then return end
+    if not Private.PlayerIsInBattleground() then return end
+
+    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderMark)
+end)
+
 function Module:CHAT_MSG_RAID_WARNING(_, message)
     Private.AddLog(message)
-end
-
-function Module:PARTY_LEADER_CHANGED()
-    Private.RequestRaidLead()
-    Private.UpdateRaidMarkers()
 end
 
 function Module:RefreshConfig()
@@ -559,13 +567,6 @@ function Private.SendWantBattlegroundLead()
     end
 
     Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, '1', channel)
-end
-
-function Private.UpdateRaidMarkers()
-    if not UnitIsGroupLeader('player') then return end
-    if not Private.PlayerIsInBattleground() then return end
-
-    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderMark)
 end
 
 function Private.RequestRaidLead()
