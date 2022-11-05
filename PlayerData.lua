@@ -57,6 +57,9 @@ local Memory = {
     UnitPlayerData = {
         -- same as AllPlayerData, but only those with sequentially indexed units
     },
+    UnitIndexPlayerData = {
+        -- same as UnitPlayerData but indexed per unit, which means duplicate tables may exist
+    },
     OnUpdateCallbacks = {
         -- [name] => function,
     },
@@ -117,6 +120,7 @@ function Namespace.PlayerData.RebuildPlayerData()
         data.units = {}
     end
 
+    local unitIndexedPlayerData = {}
     local unitPlayerData = {}
     for _, unit in pairs(Private.GetUnitListForCurrentGroupType()) do
         if UnitExists(unit) and UnitIsPlayer(unit) then
@@ -149,6 +153,7 @@ function Namespace.PlayerData.RebuildPlayerData()
             end
 
             unitPlayerData[dataIndex] = data
+            unitIndexedPlayerData[unit] = data
         end
     end
 
@@ -181,6 +186,7 @@ function Namespace.PlayerData.RebuildPlayerData()
         end
     end
 
+    Memory.UnitIndexPlayerData = unitIndexedPlayerData
     Memory.UnitPlayerData = unitPlayerData
     Memory.LeaderData = leader
     Memory.AssistData = assists
@@ -193,9 +199,8 @@ function Namespace.PlayerData.RebuildPlayerData()
 end
 
 function Namespace.PlayerData.GetPlayerDataByUnit(unit)
-    for _, data in pairs(Memory.UnitPlayerData) do
-        if data.units[unit] then return data end
-    end
+    local data = Memory.UnitIndexPlayerData[unit]
+    if data then return data end
 
     -- fallback to getting the name of the unit in case of weird scenarios
     -- where "target" or "nameplate1" is sent
