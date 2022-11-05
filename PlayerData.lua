@@ -107,13 +107,49 @@ function Private.GetUnitListForCurrentGroupType()
     return PlayerDataTargets.solo
 end
 
-local Roles = {
-    Member = 0,
-    Assist = 1,
-    Leader = 2,
+local Role = {
+    Unknown = nil,
+    Member = 'Member',
+    Assist = 'Assist',
+    Leader = 'Leader',
 }
 
-Namespace.PlayerData.Roles = Roles
+Namespace.PlayerData.Role = Role
+
+function Namespace.PlayerData.RebuildRoleData()
+    local roleChangeEvents = {}
+    local eventIndex = 0
+    local assistIndex = 0
+    local leader, assists = nil, {}
+    for _, playerData in pairs(Memory.UnitPlayerData) do
+        local newRole = UnitIsGroupLeader(playerData.units.primary) and Role.Leader or UnitIsGroupAssistant(playerData.units.primary) and Role.Assist or Role.Member
+        local oldRole = playerData.role or nil
+
+        playerData.role = newRole
+
+        if newRole ~= oldRole then
+            eventIndex = eventIndex + 1
+            roleChangeEvents[eventIndex] = {playerData, oldRole, newRole}
+        end
+
+        if newRole == Role.Leader then
+            leader = playerData
+        elseif newRole == Role.Assist then
+            assistIndex = assistIndex + 1
+            assists[assistIndex] = playerData
+        end
+    end
+
+    for _, eventData in pairs(roleChangeEvents) do
+        local playerData, oldRole, newRole = unpack(eventData)
+        for _, callback in pairs(Memory.OnRoleChangeCallbacks) do
+            callback(playerData, oldRole, newRole)
+        end
+    end
+
+    Memory.LeaderData = leader
+    Memory.AssistData = assists
+end
 
 function Namespace.PlayerData.RebuildPlayerData()
     for _, data in pairs(Memory.AllPlayerData) do
@@ -136,7 +172,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                     battlegroundStatus = BattlegroundStatus.Nothing,
                     roleCheckStatus = RoleCheckStatus.Nothing,
                     isConnected = UnitIsConnected(unit),
-                    role = UnitIsGroupLeader(unit) and Roles.Leader or UnitIsGroupAssistant(unit) and Roles.Assist or Roles.Member
+                    role = Role.Unknown,
                 }
 
                 Memory.AllPlayerData[dataIndex] = data
@@ -148,7 +184,6 @@ function Namespace.PlayerData.RebuildPlayerData()
                     data.units.primary = unit
                     data.name = GetRealUnitName(unit)
                     data.isConnected = UnitIsConnected(unit)
-                    data.role = UnitIsGroupLeader(unit) and Roles.Leader or UnitIsGroupAssistant(unit) and Roles.Assist or Roles.Member
                 end
             end
 
@@ -157,39 +192,8 @@ function Namespace.PlayerData.RebuildPlayerData()
         end
     end
 
-    local roleChangeEvents = {}
-    local eventIndex = 0
-    local assistIndex = 0
-    local leader, assists = nil, {}
-    for guid, playerData in pairs(unitPlayerData) do
-        local newRole = playerData.role
-        local oldPlayerData = Memory.UnitPlayerData[guid]
-        local oldRole = oldPlayerData and oldPlayerData.role or nil
-
-        if newRole ~= oldRole then
-            eventIndex = eventIndex + 1
-            roleChangeEvents[eventIndex] = {playerData, oldRole, newRole}
-        end
-
-        if newRole == Roles.Leader then
-            leader = playerData
-        elseif newRole == Roles.Assist then
-            assistIndex = assistIndex + 1
-            assists[assistIndex] = playerData
-        end
-    end
-
-    for _, eventData in pairs(roleChangeEvents) do
-        local playerData, oldRole, newRole = unpack(eventData)
-        for _, callback in pairs(Memory.OnRoleChangeCallbacks) do
-            callback(playerData, oldRole, newRole)
-        end
-    end
-
     Memory.UnitIndexPlayerData = unitIndexedPlayerData
     Memory.UnitPlayerData = unitPlayerData
-    Memory.LeaderData = leader
-    Memory.AssistData = assists
 
     for _, callback in pairs(Memory.OnUpdateCallbacks) do
         callback(unitPlayerData)

@@ -41,6 +41,7 @@ local Memory = {
                 },
                 LeaderTools = {
                     leaderMark = 0,
+                    leaderSound = 1,
                 },
                 InstructionFrame = {
                     show = true,
@@ -537,6 +538,19 @@ function Namespace.Config.GetConfigurationSetup()
                                 type = 'header',
                                 order = 6,
                             },
+                            leaderSound = {
+                                name = L['Leader promotion sound'],
+                                desc = L['Play a sound when you are promoted or demoted from being raid leader.'],
+                                type = 'toggle',
+                                set = function (_, input) Namespace.BattlegroundTools:SetLeaderToolsSetting('leaderSound', input) end,
+                                get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderSound') end,
+                                order = 7,
+                            },
+                            leaderMarkSpacer = {
+                                name = '',
+                                type = 'description',
+                                order = 7.1,
+                            },
                             leaderMark = {
                                 name = L['My raid mark'],
                                 desc = L['Automatically assign the configured raid mark when you become leader.'],
@@ -554,18 +568,18 @@ function Namespace.Config.GetConfigurationSetup()
                                 },
                                 set = function (_, input) Namespace.BattlegroundTools:SetLeaderToolsSetting('leaderMark', input) end,
                                 get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderMark') end,
-                                order = 7,
+                                order = 8,
                             },
                             decisionAutomation = {
                                 name = L['Decision Automation'],
                                 type = 'header',
-                                order = 8,
+                                order = 9,
                             },
                             acceptRejectDescription = {
                                 name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'],
                                 type = 'description',
                                 width = 'full',
-                                order = 9,
+                                order = 10,
                             },
                             automaticallyAccept = {
                                 name = L['Automatically Accept Request'],
@@ -575,7 +589,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 multiline = 10,
                                 set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyAccept', textToKeyedTable(input)) end,
                                 get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyAccept')) end,
-                                order = 10,
+                                order = 11,
                             },
                             automaticallyReject = {
                                 name = L['Automatically Reject Request'],
@@ -585,7 +599,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 multiline = 10,
                                 set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyReject', textToKeyedTable(input)) end,
                                 get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyReject')) end,
-                                order = 11,
+                                order = 12,
                             },
                         },
                     },

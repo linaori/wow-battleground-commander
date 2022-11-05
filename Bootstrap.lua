@@ -31,7 +31,7 @@ Namespace.Libs = {
     LibDropDown = LibStub('LibUIDropDownMenu-4.0'),
 }
 
-local Addon = Namespace.Libs.AceAddon:NewAddon(AddonName, 'AceConsole-3.0')
+local Addon = Namespace.Libs.AceAddon:NewAddon(AddonName, 'AceConsole-3.0', 'AceEvent-3.0')
 
 Namespace.Addon = Addon
 
@@ -55,6 +55,9 @@ function Addon:OnInitialize()
         BattlegroundTools = ACD:AddToBlizOptions(AddonName, configurationSetup.args.BattlegroundTools.name, Namespace.Meta.nameShort, 'BattlegroundTools'),
         Profiles = ACD:AddToBlizOptions(AddonName, configurationSetup.args.Profiles.name, Namespace.Meta.nameShort, 'Profiles'),
     }
+
+    self:RegisterEvent('GROUP_ROSTER_UPDATE', Namespace.PlayerData.RebuildPlayerData)
+    self:RegisterEvent('PARTY_LEADER_CHANGED', Namespace.PlayerData.RebuildRoleData)
 
     self:RegisterChatCommand('bgc', 'ChatCommand')
     self:RegisterChatCommand('battlegroundcommander', 'ChatCommand')

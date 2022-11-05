@@ -9,10 +9,11 @@ Namespace.QueueTools = Module
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
 local RebuildPlayerData = Namespace.PlayerData.RebuildPlayerData
+local RebuildRoleData = Namespace.PlayerData.RebuildRoleData
 local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
 local RefreshNameForData = Namespace.PlayerData.RefreshNameForData
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
-local Roles = Namespace.PlayerData.Roles
+local Role = Namespace.PlayerData.Role
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
 local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
@@ -199,9 +200,9 @@ end
 function Private.CreateTableRow(data)
     local indexColumn = {
         value = function ()
-            if data.role == Roles.Leader then
+            if data.role == Role.Leader then
                 return [[|TInterface\GroupFrame\UI-Group-LeaderIcon:16|t]]
-            elseif data.role == Roles.Assist then
+            elseif data.role == Role.Assist then
                 return [[|TInterface\GroupFrame\UI-Group-AssistantIcon:16|t]]
             end
 
@@ -384,6 +385,7 @@ end
 
 function Private.UpdateGroupInfoVisibility(newVisibility)
     RebuildPlayerData()
+    RebuildRoleData()
 
     if not _G.BgcQueueFrame then return end
 
@@ -581,13 +583,14 @@ function Module:OnEnable()
     self:RegisterEvent('LFG_ROLE_CHECK_DECLINED')
     self:RegisterEvent('LFG_ROLE_CHECK_UPDATE')
     self:RegisterEvent('UNIT_CONNECTION')
-    self:RegisterEvent('GROUP_ROSTER_UPDATE')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
     self:RegisterComm(CommunicationEvent.SyncData, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
     self:RegisterComm(CommunicationEvent.EnterBattleground, Private.OnEnterBattleground)
     self:RegisterComm(CommunicationEvent.DeclineBattleground, Private.OnDeclineBattleground)
+
+    Namespace.PlayerData.RegisterOnUpdate('rebuild_group_information', Private.RebuildGroupInformationTable)
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
@@ -612,8 +615,6 @@ function Module:OnEnable()
     Memory.disableEntryButtonOriginalText = enterButton:GetText()
 end
 
-Namespace.PlayerData.RegisterOnUpdate('rebuild_group_information', Private.RebuildGroupInformationTable)
-
 function Module:UNIT_CONNECTION(_, unitTarget, isConnected)
     local playerData = GetPlayerDataByUnit(unitTarget)
     if not playerData then return end
@@ -627,7 +628,7 @@ function Module:LFG_ROLE_CHECK_ROLE_CHOSEN(_, sender)
 
     data.roleCheckStatus = RoleCheckStatus.Accepted
 
-    if data.role == Roles.Leader then
+    if data.role == Role.Leader then
         -- The leader does not get a LFG_ROLE_CHECK_SHOW event so sync the info
         -- here for just the leader
         Private.ScheduleSendSyncData()
@@ -670,10 +671,6 @@ function Module:LFG_ROLE_CHECK_SHOW()
     if not button then return end
 
     button:Click()
-end
-
-function Module:GROUP_ROSTER_UPDATE()
-    RebuildPlayerData()
 end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
@@ -743,6 +740,7 @@ function Private.DetectBattlegroundExit(previousState, newState)
     if newState.status ~= QueueStatus.None then return end
 
     RebuildPlayerData()
+    RebuildRoleData()
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
 end
 

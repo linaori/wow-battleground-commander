@@ -9,7 +9,7 @@ Namespace.BattlegroundTools = Module
 
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
-local Roles = Namespace.PlayerData.Roles
+local Role = Namespace.PlayerData.Role
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
@@ -52,7 +52,6 @@ local Memory = {
         requestedByCount = 0,
         ackTimer = nil,
         ackLeader = nil,
-        ackWantLeadTimer = nil
     },
 
     InstructionFrame = nil,
@@ -356,6 +355,24 @@ function Private.EnterZone()
     Private.RequestRaidLead()
 end
 
+function Private.RequestRaidLeadListener(_, _, newRole)
+    if newRole ~= Role.Leader then return end
+
+    Private.RequestRaidLead()
+end
+
+function Private.PlayLeaderSoundListener(playerData, oldRole, newRole)
+    if not playerData.units.player then return end
+    if not Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderSound then return end
+    if not Private.PlayerIsInBattleground() then return end
+
+    if oldRole and newRole == Role.Leader then
+        PlaySound(ActivateWarmodeSound)
+    elseif newRole and oldRole == Role.Leader then
+        PlaySound(DeactivateWarmodeSound)
+    end
+end
+
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
@@ -369,6 +386,9 @@ function Module:OnEnable()
 
     Private.InitializeBattlegroundLeaderDialog()
 
+    Namespace.PlayerData.RegisterOnRoleChange('request_raid_lead', Private.RequestRaidLeadListener)
+    Namespace.PlayerData.RegisterOnRoleChange('play_leader_sound', Private.PlayLeaderSoundListener)
+
     self:RefreshConfig()
 
     Private.AddLog(L['Battleground Commander loaded'])
@@ -380,14 +400,8 @@ function Module:OnEnable()
     Private.ApplyLogs(Memory.InstructionFrame.Text)
 end
 
-Namespace.PlayerData.RegisterOnRoleChange('request_raid_lead', function (_, _, newRole)
-    if newRole ~= Roles.Leader then return end
-
-    Private.RequestRaidLead()
-end)
-
 Namespace.PlayerData.RegisterOnRoleChange('update_raid_icon_markers', function (playerData, _, newRole)
-    if newRole ~= Roles.Leader or not playerData.units.player then return end
+    if newRole ~= Role.Leader or not playerData.units.player then return end
     if not Private.PlayerIsInBattleground() then return end
 
     SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderMark)
@@ -488,25 +502,14 @@ function Private.CanRequestLead()
     return Private.PlayerIsInBattleground()
 end
 
-function Private.SendAcknowledgeWantBattlegroundLead()
-    Memory.WantBattlegroundLead.ackWantLeadTimer = nil
-
+function Private.OnWantBattlegroundLead(_, _, _, sender)
+    if sender == GetRealUnitName('player') then return end
     if not UnitIsGroupLeader('player') then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end
 
     Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, '1', channel)
-end
-
-function Private.OnWantBattlegroundLead(_, _, _, sender)
-    if sender == GetRealUnitName('player') then return end
-    if not UnitIsGroupLeader('player') then return end
-
-    local mem = Memory.WantBattlegroundLead
-    if not mem.ackWantLeadTimer then
-        mem.ackWantLeadTimer = Module:ScheduleTimer(Private.SendAcknowledgeWantBattlegroundLead, 1)
-    end
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     if config.wantLead then return end
