@@ -41,6 +41,7 @@ globals = {
     'PlaySound',
     'PromoteToLeader',
     'SendChatMessage',
+    'SetRaidTarget',
     'Settings',
     'UnitAffectingCombat',
     'UnitClass',

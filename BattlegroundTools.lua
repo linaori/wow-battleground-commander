@@ -21,6 +21,7 @@ local PromoteToLeader = PromoteToLeader
 local PlaySound = PlaySound
 local UnitIsGroupLeader = UnitIsGroupLeader
 local SendChatMessage = SendChatMessage
+local SetRaidTarget = SetRaidTarget
 local GetMaxBattlefieldID = GetMaxBattlefieldID
 local GetBattlefieldStatus = GetBattlefieldStatus
 local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
@@ -385,6 +386,7 @@ end
 
 function Module:PARTY_LEADER_CHANGED()
     Private.RequestRaidLead()
+    Private.UpdateRaidMarkers()
 end
 
 function Module:RefreshConfig()
@@ -459,11 +461,9 @@ function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
     mem.ackLeader = nil
 end
 
-function Private.CanRequestLead()
+function Private.PlayerIsInBattleground()
     if Memory.currentZoneId == 0 then return false end
     if not Namespace.BattlegroundTools.Zones[Memory.currentZoneId] then return false end
-    if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return false end
-    if UnitIsGroupLeader('player') then return false end
 
     for i = 1, GetMaxBattlefieldID() do
         local status = GetBattlefieldStatus(i)
@@ -471,6 +471,13 @@ function Private.CanRequestLead()
     end
 
     return false
+end
+
+function Private.CanRequestLead()
+    if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return false end
+    if UnitIsGroupLeader('player') then return false end
+
+    return Private.PlayerIsInBattleground()
 end
 
 function Private.SendAcknowledgeWantBattlegroundLead()
@@ -552,6 +559,13 @@ function Private.SendWantBattlegroundLead()
     end
 
     Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, '1', channel)
+end
+
+function Private.UpdateRaidMarkers()
+    if not UnitIsGroupLeader('player') then return end
+    if not Private.PlayerIsInBattleground() then return end
+
+    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderMark)
 end
 
 function Private.RequestRaidLead()
@@ -767,4 +781,12 @@ end
 
 function Module:GetWantLeadSetting(key)
     return Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead[key]
+end
+
+function Module:SetLeaderToolsSetting(key, value)
+    Namespace.Database.profile.BattlegroundTools.LeaderTools[key] = value
+end
+
+function Module:GetLeaderToolsSetting(key)
+    return Namespace.Database.profile.BattlegroundTools.LeaderTools[key]
 end

@@ -143,3 +143,7 @@ L['Ready Check on Pause'] = 'Проверка готовности при пау
 L['Do a ready check whenever a queue pause is detected'] = 'Делать проверку готовности, если очередь встала на паузу'
 L['Only as Leader or Assist'] = 'Только как лидер или помошник лидера'
 L['Enable the queue pause detection features only when you are party leader or assist'] = 'Включить мониторинг паузы очереди только если вы лидер или помощник лидера'
+L['Setup Automation'] = true
+L['My raid mark'] = true
+L['Automatically assign the configured raid mark when you become leader.'] = true
+L['Do not mark me'] = true

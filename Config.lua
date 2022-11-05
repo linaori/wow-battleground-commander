@@ -39,6 +39,9 @@ local Memory = {
                     sendSay = true,
                     sendRaid = true,
                 },
+                LeaderTools = {
+                    leaderMark = 0,
+                },
                 InstructionFrame = {
                     show = true,
                     move = true,
@@ -529,16 +532,40 @@ function Namespace.Config.GetConfigurationSetup()
                                 get = function () return Namespace.BattlegroundTools:GetWantLeadSetting('sendRaid') end,
                                 order = 5,
                             },
-                            automationBehavior = {
-                                name = L['Decision Automation'],
+                            setupAutomation = {
+                                name = L['Setup Automation'],
                                 type = 'header',
                                 order = 6,
+                            },
+                            leaderMark = {
+                                name = L['My raid mark'],
+                                desc = L['Automatically assign the configured raid mark when you become leader.'],
+                                type = 'select',
+                                values = {
+                                    [0] = L['Do not mark me'],
+                                    [1] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_1:16:16|t]],
+                                    [2] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_2:16:16|t]],
+                                    [3] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_3:16:16|t]],
+                                    [4] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_4:16:16|t]],
+                                    [5] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_5:16:16|t]],
+                                    [6] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_6:16:16|t]],
+                                    [7] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_7:16:16|t]],
+                                    [8] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_8:16:16|t]],
+                                },
+                                set = function (_, input) Namespace.BattlegroundTools:SetLeaderToolsSetting('leaderMark', input) end,
+                                get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderMark') end,
+                                order = 7,
+                            },
+                            decisionAutomation = {
+                                name = L['Decision Automation'],
+                                type = 'header',
+                                order = 8,
                             },
                             acceptRejectDescription = {
                                 name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'],
                                 type = 'description',
                                 width = 'full',
-                                order = 7,
+                                order = 9,
                             },
                             automaticallyAccept = {
                                 name = L['Automatically Accept Request'],
@@ -548,7 +575,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 multiline = 10,
                                 set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyAccept', textToKeyedTable(input)) end,
                                 get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyAccept')) end,
-                                order = 8,
+                                order = 10,
                             },
                             automaticallyReject = {
                                 name = L['Automatically Reject Request'],
@@ -558,7 +585,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 multiline = 10,
                                 set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyReject', textToKeyedTable(input)) end,
                                 get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyReject')) end,
-                                order = 9,
+                                order = 11,
                             },
                         },
                     },

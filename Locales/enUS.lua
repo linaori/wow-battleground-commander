@@ -143,3 +143,7 @@ L['Ready Check on Pause'] = true
 L['Do a ready check whenever a queue pause is detected'] = true
 L['Only as Leader or Assist'] = true
 L['Enable the queue pause detection features only when you are party leader or assist'] = true
+L['Setup Automation'] = true
+L['My raid mark'] = true
+L['Automatically assign the configured raid mark when you become leader.'] = true
+L['Do not mark me'] = true
