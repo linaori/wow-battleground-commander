@@ -356,7 +356,7 @@ end
 
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
-    self:RegisterEvent('GROUP_ROSTER_UPDATE')
+    self:RegisterEvent('PARTY_LEADER_CHANGED')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
 
     self:RegisterComm(CommunicationEvent.WantBattlegroundLead, Private.OnWantBattlegroundLead)
@@ -383,7 +383,7 @@ function Module:CHAT_MSG_RAID_WARNING(_, message)
     Private.AddLog(message)
 end
 
-function Module:GROUP_ROSTER_UPDATE()
+function Module:PARTY_LEADER_CHANGED()
     Private.RequestRaidLead()
 end
 
