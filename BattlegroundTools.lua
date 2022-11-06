@@ -14,6 +14,7 @@ local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local CreateFrame = CreateFrame
+local FlashClientIcon = FlashClientIcon
 local GetTime = GetTime
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
 local GetInstanceInfo = GetInstanceInfo
@@ -25,6 +26,7 @@ local SendChatMessage = SendChatMessage
 local SetRaidTarget = SetRaidTarget
 local GetMaxBattlefieldID = GetMaxBattlefieldID
 local GetBattlefieldStatus = GetBattlefieldStatus
+local ReadyCheckSound = SOUNDKIT.READY_CHECK
 local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
 local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
 local UNKNOWNOBJECT = UNKNOWNOBJECT
@@ -686,6 +688,11 @@ function Private.InitializeBattlegroundLeaderDialog()
     dialog:SetBackdropBorderColor(0.7, 0.7, 0.7, 1)
     dialog:SetScript('OnMouseDown', function(self) self:StartMoving() end)
     dialog:SetScript('OnMouseUp', function(self) self:StopMovingOrSizing() end)
+    dialog:SetScript('OnShow', function(self)
+        if not self:IsVisible() then return end
+        PlaySound(ReadyCheckSound)
+        FlashClientIcon()
+    end)
 
     local dialogText = dialog:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
     dialogText:SetText(L['Lead Requested'])

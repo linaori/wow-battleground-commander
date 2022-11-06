@@ -21,6 +21,7 @@ globals = {
     'CombatLogGetCurrentEventInfo',
     'CreateFrame',
     'DoReadyCheck',
+    'FlashClientIcon',
     'GetBattlefieldStatus',
     'GetInstanceInfo',
     'GetInstanceInfo',
