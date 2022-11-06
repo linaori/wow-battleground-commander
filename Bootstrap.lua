@@ -1,7 +1,6 @@
 local LibStub, AddonName, Namespace = LibStub, ...
 
 local Settings = Settings
-local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategory
 local format = string.format
 
 local Memory = {
@@ -60,6 +59,7 @@ function Addon:OnInitialize()
     self:RegisterEvent('PARTY_LEADER_CHANGED', Namespace.PlayerData.RebuildRoleData)
 
     self:RegisterChatCommand('bgc', 'ChatCommand')
+    self:RegisterChatCommand('bgca', Namespace.BattlegroundTools.PromoteTargetAssistant)
     self:RegisterChatCommand('battlegroundcommander', 'ChatCommand')
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'MigrateConfig')
@@ -78,15 +78,7 @@ function Addon:MigrateConfig()
 end
 
 function Addon:OpenSettingsPanel()
-    local frames = Memory.OptionsFrames
-
-    if Settings then
-        Settings.OpenToCategory(frames.Information.name)
-    else
-        -- open twice or it might not work
-        InterfaceOptionsFrame_OpenToCategory(frames.QueueTools)
-        InterfaceOptionsFrame_OpenToCategory(frames.QueueTools)
-    end
+    Settings.OpenToCategory(Memory.OptionsFrames.Information.name)
 end
 
 function Addon:ChatCommand(input)

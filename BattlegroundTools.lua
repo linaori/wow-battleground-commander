@@ -9,10 +9,12 @@ Namespace.BattlegroundTools = Module
 
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
+local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local Role = Namespace.PlayerData.Role
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
+local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local CreateFrame = CreateFrame
 local FlashClientIcon = FlashClientIcon
 local GetTime = GetTime
@@ -20,6 +22,8 @@ local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
 local GetInstanceInfo = GetInstanceInfo
 local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local PromoteToLeader = PromoteToLeader
+local PromoteToAssistant = PromoteToAssistant
+local DemoteAssistant = DemoteAssistant
 local PlaySound = PlaySound
 local UnitIsGroupLeader = UnitIsGroupLeader
 local SendChatMessage = SendChatMessage
@@ -382,6 +386,34 @@ function Private.UpdateRaidLeaderIconListener(playerData, _, newRole)
     SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
 end
 
+--- this listener in specific deals with automatic promotion and demotion of players when PLAYER gets lead
+function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _, newRole)
+    if newRole ~= Role.Leader or not playerData.units.player then return end
+    if not Private.PlayerIsInBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
+
+    local automaticAssist = Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticAssist
+    ForEachUnitData(function (data)
+        if data.role == Role.Member and automaticAssist[data.name] then
+            PromoteToAssistant(data.units.primary)
+        elseif data.role == Role.Assist and not automaticAssist[data.name] then
+            DemoteAssistant(data.units.primary)
+        end
+    end)
+end
+
+--- this listener in specific deals with new members becoming assistant
+function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRole)
+    if oldRole or newRole ~= Role.Member or playerData.units.player then return end
+    if not Private.PlayerIsInBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
+
+    local leader = GetGroupLeaderData()
+    if not leader or not leader.units.player then return end
+
+    if Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticAssist[playerData.name] then
+        PromoteToAssistant(playerData.name)
+    end
+end
+
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
@@ -398,6 +430,8 @@ function Module:OnEnable()
     Namespace.PlayerData.RegisterOnRoleChange('request_raid_lead', Private.RequestRaidLeadListener)
     Namespace.PlayerData.RegisterOnRoleChange('play_leader_sound', Private.PlayLeaderSoundListener)
     Namespace.PlayerData.RegisterOnRoleChange('update_raid_leader_icon', Private.UpdateRaidLeaderIconListener)
+    Namespace.PlayerData.RegisterOnRoleChange('promote_assistant_when_player_becomes_leader', Private.PromoteAssistantsWhenPlayerBecomesLeaderListener)
+    Namespace.PlayerData.RegisterOnRoleChange('promote_new_member_to_assistant', Private.PromoteNewMemberToAssistantListener)
 
     self:RefreshConfig()
 
@@ -408,6 +442,18 @@ function Module:OnEnable()
     end
 
     Private.ApplyLogs(Memory.InstructionFrame.Text)
+end
+
+function Module.PromoteTargetAssistant()
+    local data = GetPlayerDataByUnit('target')
+    if not data then return Addon:Print(L['Select a target and then run /bgca to add them to the auto assist list']) end
+    if data.units.player then return end
+
+    Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticAssist[data.name] = true
+
+    if data.role == Role.Member then PromoteToAssistant(data.units.primary) end
+
+    Addon:Print(format(L['%s will now automatically be promoted to assistant in battlegrounds'], data.name))
 end
 
 function Module:CHAT_MSG_RAID_WARNING(_, message)
