@@ -40,7 +40,7 @@ local Memory = {
                     sendRaid = true,
                 },
                 LeaderTools = {
-                    leaderMark = 0,
+                    leaderIcon = 0,
                     leaderSound = 1,
                 },
                 InstructionFrame = {
@@ -546,12 +546,12 @@ function Namespace.Config.GetConfigurationSetup()
                                 get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderSound') end,
                                 order = 7,
                             },
-                            leaderMarkSpacer = {
+                            leaderIconSpacer = {
                                 name = '',
                                 type = 'description',
                                 order = 7.1,
                             },
-                            leaderMark = {
+                            leaderIcon = {
                                 name = L['My raid mark'],
                                 desc = L['Automatically assign the configured raid mark when you become leader.'],
                                 type = 'select',
@@ -566,8 +566,8 @@ function Namespace.Config.GetConfigurationSetup()
                                     [7] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_7:16:16|t]],
                                     [8] = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_8:16:16|t]],
                                 },
-                                set = function (_, input) Namespace.BattlegroundTools:SetLeaderToolsSetting('leaderMark', input) end,
-                                get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderMark') end,
+                                set = function (_, input) Namespace.BattlegroundTools:SetLeaderToolsSetting('leaderIcon', input) end,
+                                get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderIcon') end,
                                 order = 8,
                             },
                             decisionAutomation = {

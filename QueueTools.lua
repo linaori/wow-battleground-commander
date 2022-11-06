@@ -9,7 +9,6 @@ Namespace.QueueTools = Module
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
 local RebuildPlayerData = Namespace.PlayerData.RebuildPlayerData
-local RebuildRoleData = Namespace.PlayerData.RebuildRoleData
 local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
 local RefreshNameForData = Namespace.PlayerData.RefreshNameForData
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
@@ -385,7 +384,6 @@ end
 
 function Private.UpdateGroupInfoVisibility(newVisibility)
     RebuildPlayerData()
-    RebuildRoleData()
 
     if not _G.BgcQueueFrame then return end
 
@@ -740,7 +738,6 @@ function Private.DetectBattlegroundExit(previousState, newState)
     if newState.status ~= QueueStatus.None then return end
 
     RebuildPlayerData()
-    RebuildRoleData()
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
 end
 

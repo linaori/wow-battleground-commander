@@ -373,6 +373,13 @@ function Private.PlayLeaderSoundListener(playerData, oldRole, newRole)
     end
 end
 
+function Private.UpdateRaidLeaderIconListener(playerData, _, newRole)
+    if newRole ~= Role.Leader or not playerData.units.player then return end
+    if not Private.PlayerIsInBattleground() then return end
+
+    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
+end
+
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
@@ -388,6 +395,7 @@ function Module:OnEnable()
 
     Namespace.PlayerData.RegisterOnRoleChange('request_raid_lead', Private.RequestRaidLeadListener)
     Namespace.PlayerData.RegisterOnRoleChange('play_leader_sound', Private.PlayLeaderSoundListener)
+    Namespace.PlayerData.RegisterOnRoleChange('update_raid_leader_icon', Private.UpdateRaidLeaderIconListener)
 
     self:RefreshConfig()
 
@@ -399,13 +407,6 @@ function Module:OnEnable()
 
     Private.ApplyLogs(Memory.InstructionFrame.Text)
 end
-
-Namespace.PlayerData.RegisterOnRoleChange('update_raid_icon_markers', function (playerData, _, newRole)
-    if newRole ~= Role.Leader or not playerData.units.player then return end
-    if not Private.PlayerIsInBattleground() then return end
-
-    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderMark)
-end)
 
 function Module:CHAT_MSG_RAID_WARNING(_, message)
     Private.AddLog(message)
@@ -578,7 +579,7 @@ function Private.RequestRaidLead()
     if mem.wantLeadTimer then return end
     if not Private.CanRequestLead() then return end
 
-    mem.wantLeadTimer = Module:ScheduleTimer(Private.SendWantBattlegroundLead, 3)
+    mem.wantLeadTimer = Module:ScheduleTimer(Private.SendWantBattlegroundLead, 4)
 end
 
 function Private.ProcessDropDownOptions(onNameSelected)
