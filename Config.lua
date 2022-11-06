@@ -2,6 +2,7 @@ local AddonName, Namespace = ...
 
 local pairs = pairs
 local concat = table.concat
+local tsort = table.sort
 local format = string.format
 
 Namespace.Config = {}
@@ -107,21 +108,23 @@ function Namespace.Config.GetConfigurationSetup()
     if Memory.ConfigurationSetup then return Memory.ConfigurationSetup end
 
     local function textToKeyedTable(input)
-        local table = {}
+        local nameTable = {}
         for name in input:gmatch("[^\n]+") do
-            table[name:gsub('%s+', '')] = true
+            nameTable[name:gsub('%s+', '')] = true
         end
 
-        return table
+        return nameTable
     end
 
-    local function keyedTableToText(table)
+    local function keyedTableToText(nameTable)
         local text = {}
         local i = 0
-        for name in pairs(table) do
+        for name in pairs(nameTable) do
             i = i + 1
             text[i] = name
         end
+
+        tsort(text)
 
         return concat(text, "\n")
     end

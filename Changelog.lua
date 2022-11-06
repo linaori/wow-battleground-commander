@@ -14,6 +14,7 @@ Namespace.Changelog = {
             'Internal rework to detect when someone in the raid becomes member, assistant, or lead, to improve accuracy for automation tools',
             'Some minor performance improvements when the addon tries to find the current raid leader, or a specific unit (like player, raid5, party2 etc)',
             'Reworked the options ui to utilize the space more efficiently',
+            'Names in the accept/reject lead input, and the automatic assistant input, are now sorted'
         },
         bugs = {
             'Fixed an issue where requesting lead would miss when lead was given without the raid roster changing',
