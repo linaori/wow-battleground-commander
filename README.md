@@ -43,9 +43,13 @@ Extra conveniences for Battlegrounds.
 This frame shows Raid Warnings from your raid leader with a time to indicate how long ago this message was sent. You can
 configure this frame to load only in specific zones, and it will filter out duplicate messages.
 
-#### Battleground Leader
+#### Requesting Lead
 Users with this addon can request lead from other users with this addon. The leader will receive the option to give lead
 or reject the request, and remember the choice in the future.
+
+#### Leader Setup
+Allows the leader to automatically place a raid marker on themselves when they get lead, and lets the leader
+automatically assign assist to raid members based on their name.
 
 ## Official Download Locations
 You can find this addon on: [CurseForge.com](https://www.curseforge.com/wow/addons/battleground-commander), 
