@@ -141,10 +141,11 @@ function Namespace.Config.GetConfigurationSetup()
                 order = 1,
                 args = {
                     version = {
-                        name =  format(L['Version'] .. ': %s (%s)', Namespace.Meta.version, Namespace.Meta.date),
+                        name = format(L['Version'] .. ': %s (%s)\n ', Namespace.Meta.version, Namespace.Meta.date),
                         type = 'description',
                         width = 'full',
                         fontSize = 'medium',
+                        order = 1,
                     },
                 }
             },
@@ -231,8 +232,9 @@ function Namespace.Config.GetConfigurationSetup()
                                 order = 5,
                             },
                             entryManagementDescription = {
-                                name = L['These features are only enabled when you are the group or raid leader'],
+                                name = L['These features are only enabled when you are the group or raid leader'] .. '\n ',
                                 type = 'description',
+                                fontSize = 'medium',
                                 width = 'full',
                                 order = 6,
                             },
@@ -541,8 +543,9 @@ function Namespace.Config.GetConfigurationSetup()
                                 order = 9,
                             },
                             nameListDescription = {
-                                name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'],
+                                name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'] .. '\n ',
                                 type = 'description',
+                                fontSize = 'medium',
                                 width = 'full',
                                 order = 10,
                             },
@@ -611,6 +614,60 @@ function Namespace.Config.GetConfigurationSetup()
             },
         },
     }
+
+    local function header(text, order) return {
+        name = text,
+        type = 'header',
+        width = 'full',
+        order = order,
+    } end
+
+    local function sectionTitle(text, order) return {
+        name = text,
+        type = 'description',
+        fontSize = 'large',
+        width = 'full',
+        order = order,
+    } end
+
+    local function description(list, order) return {
+        name = ' - ' .. concat(list, '\n - ') .. '\n ',
+        type = 'description',
+        fontSize = 'medium',
+        width = 'full',
+        order = order,
+    } end
+
+    local changelogSection = Memory.ConfigurationSetup.args.Information.args
+    local order = 1
+    for _, changelog in pairs(Namespace.Changelog) do
+        order = order + 1
+        changelogSection['changelog' .. order] = header('Version: ' .. changelog.version, order)
+
+        if changelog.features then
+            order = order + 1
+            changelogSection['changelog' .. order] = sectionTitle('Features', order)
+
+            order = order + 1
+            changelogSection['changelog' .. order] = description(changelog.features, order)
+        end
+
+        if changelog.improvements then
+            order = order + 1
+            changelogSection['changelog' .. order] = sectionTitle('Improvements', order)
+
+            order = order + 1
+            changelogSection['changelog' .. order] = description(changelog.improvements, order)
+        end
+
+        if changelog.bugs then
+            order = order + 1
+            changelogSection['changelog' .. order] = sectionTitle('Bugs', order)
+
+            order = order + 1
+            changelogSection['changelog' .. order] = description(changelog.bugs, order)
+        end
+    end
 
     return Memory.ConfigurationSetup
 end

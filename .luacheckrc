@@ -63,6 +63,7 @@ globals = {
     'SOUNDKIT',
     'UNKNOWNOBJECT',
 
+    'date',
     'math',
     'pairs',
     'print',

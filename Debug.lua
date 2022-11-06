@@ -1,12 +1,15 @@
 local Private, _, Namespace = {}, ...
 
 Namespace.Debug = {}
+
+local type, pairs, tostring, print, concat, select, date = type, pairs, tostring, print, table.concat, select, date
+
 --@debug@
 Namespace.Debug.enabled = true
 Namespace.Meta.version = '10.0.0-dev'
+Namespace.Meta.date = date('!%Y-%m-%dT%TZ')
 --@end-debug@
 
-local type, pairs, tostring, print, concat, select = type, pairs, tostring, print, table.concat, select
 function Private.ToString(o)
     if type(o) == 'table' then
         local s = '{ '
