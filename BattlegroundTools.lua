@@ -523,7 +523,8 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
         return Private.TriggerUpdateWantBattlegroundLeadDialogFrame(true)
     end
 
-    if config.automaticallyReject[sender] or Memory.WantBattlegroundLead.recentlyRejected[sender] then return end
+    local mem = Memory.WantBattlegroundLead
+    if config.automaticallyReject[sender] or mem.recentlyRejected[sender] then return end
 
     if not mem.requestedBy[sender] then
         mem.requestedBy[sender] = true

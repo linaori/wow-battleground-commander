@@ -150,3 +150,5 @@ L['Automatically assign the configured raid mark when you become leader.'] = tru
 L['Do not mark me'] = true
 L['Leader promotion sound'] = true
 L['Play a sound when you are promoted or demoted from being raid leader.'] = true
+L['Leader Setup'] = true
+L['Requesting Lead'] = true

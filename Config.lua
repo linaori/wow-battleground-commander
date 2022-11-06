@@ -151,6 +151,7 @@ function Namespace.Config.GetConfigurationSetup()
             QueueTools = {
                 name = L['Queue Tools'],
                 type = 'group',
+                childGroups = 'tab',
                 order = 2,
                 args = {
                     Automation = {
@@ -278,6 +279,7 @@ function Namespace.Config.GetConfigurationSetup()
             BattlegroundTools = {
                 name = L['Battleground Tools'],
                 type = 'group',
+                childGroups = 'tab',
                 order = 3,
                 args = {
                     InstructionsFrame = {
@@ -397,7 +399,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 step = 1,
                                 set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('backgroundInset', value) end,
                                 get = function () return Namespace.BattlegroundTools:GetFrameSetting('backgroundInset') end,
-                                order = 16,
+                                order = 15,
                             },
                             backgroundColor = {
                                 name = L['Background Color'],
@@ -408,7 +410,7 @@ function Namespace.Config.GetConfigurationSetup()
                                     local color = Namespace.BattlegroundTools:GetFrameSetting('backgroundColor')
                                     return color.r, color.g, color.b, color.a
                                 end,
-                                order = 18,
+                                order = 16,
                             },
                             borderTexture = {
                                 name = L['Border Texture'],
@@ -418,7 +420,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 values = LibSharedMediaBorders,
                                 set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('borderTexture', value) end,
                                 get = function () return Namespace.BattlegroundTools:GetFrameSetting('borderTexture') end,
-                                order = 15,
+                                order = 17,
                             },
                             borderSize = {
                                 name = L['Border Size'],
@@ -429,7 +431,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 step = 1,
                                 set = function (_, value) Namespace.BattlegroundTools:SetFrameSetting('borderSize', value) end,
                                 get = function () return Namespace.BattlegroundTools:GetFrameSetting('borderSize') end,
-                                order = 17,
+                                order = 18,
                             },
                             borderColor = {
                                 name = L['Border Color'],
@@ -487,7 +489,7 @@ function Namespace.Config.GetConfigurationSetup()
                         },
                     },
                     WantBattlegroundLead = {
-                        name = L['Battleground Leader'],
+                        name = L['Requesting Lead'],
                         type = 'group',
                         order = 2,
                         args = {
@@ -533,11 +535,44 @@ function Namespace.Config.GetConfigurationSetup()
                                 get = function () return Namespace.BattlegroundTools:GetWantLeadSetting('sendRaid') end,
                                 order = 5,
                             },
-                            setupAutomation = {
-                                name = L['Setup Automation'],
+                            decisionAutomation = {
+                                name = L['Decision Automation'],
                                 type = 'header',
-                                order = 6,
+                                order = 9,
                             },
+                            nameListDescription = {
+                                name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'],
+                                type = 'description',
+                                width = 'full',
+                                order = 10,
+                            },
+                            automaticallyAccept = {
+                                name = L['Automatically Accept Request'],
+                                desc = L['Players to automatically accept when they request lead'],
+                                type = 'input',
+                                width = 1.7,
+                                multiline = 10,
+                                set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyAccept', textToKeyedTable(input)) end,
+                                get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyAccept')) end,
+                                order = 11,
+                            },
+                            automaticallyReject = {
+                                name = L['Automatically Reject Request'],
+                                desc = L['Players to automatically reject when they request lead'],
+                                type = 'input',
+                                width = 1.7,
+                                multiline = 10,
+                                set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyReject', textToKeyedTable(input)) end,
+                                get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyReject')) end,
+                                order = 12,
+                            },
+                        },
+                    },
+                    LeaderSetup = {
+                        name = L['Leader Setup'],
+                        type = 'group',
+                        order = 3,
+                        args = {
                             leaderSound = {
                                 name = L['Leader promotion sound'],
                                 desc = L['Play a sound when you are promoted or demoted from being raid leader.'],
@@ -569,37 +604,6 @@ function Namespace.Config.GetConfigurationSetup()
                                 set = function (_, input) Namespace.BattlegroundTools:SetLeaderToolsSetting('leaderIcon', input) end,
                                 get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderIcon') end,
                                 order = 8,
-                            },
-                            decisionAutomation = {
-                                name = L['Decision Automation'],
-                                type = 'header',
-                                order = 9,
-                            },
-                            acceptRejectDescription = {
-                                name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'],
-                                type = 'description',
-                                width = 'full',
-                                order = 10,
-                            },
-                            automaticallyAccept = {
-                                name = L['Automatically Accept Request'],
-                                desc = L['Players to automatically accept when they request lead'],
-                                type = 'input',
-                                width = 'full',
-                                multiline = 10,
-                                set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyAccept', textToKeyedTable(input)) end,
-                                get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyAccept')) end,
-                                order = 11,
-                            },
-                            automaticallyReject = {
-                                name = L['Automatically Reject Request'],
-                                desc = L['Players to automatically reject when they request lead'],
-                                type = 'input',
-                                width = 'full',
-                                multiline = 10,
-                                set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('automaticallyReject', textToKeyedTable(input)) end,
-                                get = function () return keyedTableToText(Namespace.BattlegroundTools:GetWantLeadSetting('automaticallyReject')) end,
-                                order = 12,
                             },
                         },
                     },
