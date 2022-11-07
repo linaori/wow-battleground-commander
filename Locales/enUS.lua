@@ -156,3 +156,7 @@ L['Players to automatically make assistant in raid'] = true
 L['You can add new names by targeting someone and then execute the following slash command: "/bgca".'] = true
 L['Select a target and then run /bgca to add them to the auto assist list'] = true
 L['%s will now automatically be promoted to assistant in battlegrounds'] = true
+L['Automatically demote players not listed'] = true
+L['When someone gets assistant, or was assistant when you get lead, it will automatically demote these players to member'] = true
+L['Automatically promote players listed'] = true
+L['When someone in this list is in your battleground while you are leader, they will get promoted to assistant'] = true

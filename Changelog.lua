@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.0-6',
+        improvements = {
+            'Added a toggle to control automatic promotion and demotion behavior',
+        },
+    },
+    {
         version = '10.0.0-5',
         features = {
             'Added an option to mark yourself with an icon when you become lead',

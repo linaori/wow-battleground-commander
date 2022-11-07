@@ -43,6 +43,8 @@ local Memory = {
                 LeaderTools = {
                     leaderIcon = 0,
                     leaderSound = 1,
+                    demoteUnlisted = false,
+                    promoteListed = true,
                     automaticAssist = {},
                 },
                 InstructionFrame = {
@@ -617,19 +619,30 @@ function Namespace.Config.GetConfigurationSetup()
                                 type = 'header',
                                 order = 4,
                             },
-                            nameListDescription = {
-                                name = L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'] .. '\n ',
-                                type = 'description',
-                                fontSize = 'medium',
+                            promoteListed = {
+                                name = L['Automatically promote players listed'],
+                                desc = L['When someone in this list is in your battleground while you are leader, they will get promoted to assistant'],
+                                type = 'toggle',
                                 width = 'full',
+                                set = function (_, input) return Namespace.BattlegroundTools:SetLeaderToolsSetting('promoteListed', input) end,
+                                get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('promoteListed') end,
                                 order = 5,
                             },
-                            assistantAutomationDescription = {
-                                name = L['You can add new names by targeting someone and then execute the following slash command: "/bgca".'] .. '\n ',
+                            demoteUnlisted = {
+                                name = L['Automatically demote players not listed'],
+                                desc = L['When someone gets assistant, or was assistant when you get lead, it will automatically demote these players to member'],
+                                type = 'toggle',
+                                width = 'full',
+                                set = function (_, input) return Namespace.BattlegroundTools:SetLeaderToolsSetting('demoteUnlisted', input) end,
+                                get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('demoteUnlisted') end,
+                                order = 6,
+                            },
+                            nameListDescription = {
+                                name = '\n' .. L['Each player name goes on a new line. The format is "Playername" for players from your realm, and "Playername-Realname" for other realms.'] .. ' ' .. L['You can add new names by targeting someone and then execute the following slash command: "/bgca".'] .. '\n ',
                                 type = 'description',
                                 fontSize = 'medium',
                                 width = 'full',
-                                order = 5,
+                                order = 7,
                             },
                             automaticallyAccept = {
                                 name = '',
@@ -639,7 +652,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 multiline = 10,
                                 set = function (_, input) return Namespace.BattlegroundTools:SetLeaderToolsSetting('automaticAssist', textToKeyedTable(input)) end,
                                 get = function () return keyedTableToText(Namespace.BattlegroundTools:GetLeaderToolsSetting('automaticAssist')) end,
-                                order = 6,
+                                order = 9,
                             },
                         },
                     },

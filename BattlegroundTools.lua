@@ -391,11 +391,17 @@ function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _,
     if newRole ~= Role.Leader or not playerData.units.player then return end
     if not Private.PlayerIsInBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
 
-    local automaticAssist = Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticAssist
+    local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools
+    local automaticAssist = leaderTools.automaticAssist
+    local demoteUnlisted = leaderTools.demoteUnlisted
+    local promoteListed = leaderTools.promoteListed
+
+    if not promoteListed and not demoteUnlisted then return end
+
     ForEachUnitData(function (data)
-        if data.role == Role.Member and automaticAssist[data.name] then
+        if promoteListed and data.role == Role.Member and automaticAssist[data.name] then
             PromoteToAssistant(data.units.primary)
-        elseif data.role == Role.Assist and not automaticAssist[data.name] then
+        elseif demoteUnlisted and data.role == Role.Assist and not automaticAssist[data.name] then
             DemoteAssistant(data.units.primary)
         end
     end)
