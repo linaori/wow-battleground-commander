@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.0-7',
+        bugs = {
+            'Fixed the issue of demoting assists automatically back to member if not listed when manually promoted',
+        },
+    },
+    {
         version = '10.0.0-6',
         improvements = {
             'Added a toggle to control automatic promotion and demotion behavior',

@@ -410,12 +410,16 @@ end
 --- this listener in specific deals with new members becoming assistant
 function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRole)
     if oldRole or newRole ~= Role.Member or playerData.units.player then return end
+
+    local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools
+    if not leaderTools.promoteListed then return end
+
     if not Private.PlayerIsInBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
 
     local leader = GetGroupLeaderData()
     if not leader or not leader.units.player then return end
 
-    if Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticAssist[playerData.name] then
+    if leaderTools.automaticAssist[playerData.name] then
         PromoteToAssistant(playerData.name)
     end
 end

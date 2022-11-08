@@ -124,6 +124,8 @@ function Namespace.PlayerData.RebuildRoleData()
         Memory.MembersData = {}
     end
 
+    Memory.lastKnownGroupType = groupType
+
     local roleChangeEvents = {}
     local eventIndex = 0
     local leader, assists, members = nil, {}, {}
