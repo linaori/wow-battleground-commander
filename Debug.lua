@@ -6,7 +6,7 @@ local type, pairs, tostring, print, concat, select, date = type, pairs, tostring
 
 --@debug@
 Namespace.Debug.enabled = true
-Namespace.Meta.version = '10.0.0-dev'
+Namespace.Meta.version = '10.0.2-dev'
 Namespace.Meta.date = date('!%Y-%m-%dT%TZ')
 --@end-debug@
 
