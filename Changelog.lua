@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.0-8',
+        improvements = {
+            'Updated TOC for 10.0.2, pre-patch phase 2',
+        },
+    },
+    {
         version = '10.0.0-7',
         bugs = {
             'Fixed the issue of demoting assists automatically back to member if not listed when manually promoted',
