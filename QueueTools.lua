@@ -22,6 +22,8 @@ local RaidMarker = Namespace.Utils.RaidMarker
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
+local InActiveBattleground = Namespace.Battleground.InActiveBattleground
+local AllowQueuePause = Namespace.Battleground.AllowQueuePause
 local DoReadyCheck = DoReadyCheck
 local GetInstanceInfo = GetInstanceInfo
 local CreateFrame = CreateFrame
@@ -29,8 +31,6 @@ local PlaySound = PlaySound
 local CharacterPanelOpenSound = SOUNDKIT.IG_CHARACTER_INFO_OPEN
 local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetNumGroupMembers = GetNumGroupMembers
-local GetBattlefieldStatus = GetBattlefieldStatus
-local GetMaxBattlefieldID = GetMaxBattlefieldID
 local GetLFGRoleUpdate = GetLFGRoleUpdate
 local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
@@ -85,17 +85,9 @@ local tableStructure = {
     }
 }
 
-local QueueStatus = {
-    Queued = 'queued',
-    Confirm = 'confirm',
-    Active = 'active',
-    None = 'none',
-    Error = 'error',
-}
+local QueueStatus = Namespace.Battleground.QueueStatus
 
 local Memory = {
-    currentZoneId = nil,
-
     -- seems like you can't do a second ready check for about 5~6 seconds, even if the "finished" event is faster
     readyCheckGracePeriod = 6,
 
@@ -106,14 +98,6 @@ local Memory = {
     readyCheckClearTimeout = nil,
     readyCheckHeartbeatTimout = nil,
     disableEntryButtonTicker = nil,
-
-    queueState = {
-        --[0] = {
-        --    status = QueueStatus,
-        --    queueSuspended = boolean
-        --},
-    },
-    queueStateChangeListeners = {},
 
     playerTableCache = {},
 
@@ -355,12 +339,6 @@ function Private.GetRemainingAuraTime(spellId)
     return expirationTime and expirationTime - GetTime() or -1
 end
 
-function Private.EnterZone()
-    local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
-    if instanceType == 'none' then currentZoneId = 0 end
-    Memory.currentZoneId = currentZoneId
-end
-
 function Private.UpdateReadyCheckButtonState()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
 end
@@ -575,13 +553,11 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK_FINISHED')
     self:RegisterEvent('PLAYER_REGEN_ENABLED')
     self:RegisterEvent('PLAYER_REGEN_DISABLED')
-    self:RegisterEvent('UPDATE_BATTLEFIELD_STATUS')
     self:RegisterEvent('LFG_ROLE_CHECK_SHOW')
     self:RegisterEvent('LFG_ROLE_CHECK_ROLE_CHOSEN')
     self:RegisterEvent('LFG_ROLE_CHECK_DECLINED')
     self:RegisterEvent('LFG_ROLE_CHECK_UPDATE')
     self:RegisterEvent('UNIT_CONNECTION')
-    self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
     self:RegisterComm(CommunicationEvent.SyncData, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
@@ -594,15 +570,14 @@ function Module:OnEnable()
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 
-    Memory.queueStateChangeListeners = {
-        Private.DetectQueueEntry,
-        Private.DetectQueuePop,
-        Private.DetectBattlegroundExit,
-        Private.DetectQueuePause,
-        Private.DetectQueueResume,
-        Private.DetectQueueCancelAfterConfirm,
-        Private.DetectBattlegroundEntryAfterConfirm,
-    }
+    Namespace.Battleground.RegisterQueueStateListener('update_group_information', Private.DetectQueueEntry);
+    Namespace.Battleground.RegisterQueueStateListener('protect_entry_button', Private.DetectQueuePop);
+    Namespace.Battleground.RegisterQueueStateListener('rebuild_post_bg_group_info', Private.DetectBattlegroundExit);
+    Namespace.Battleground.RegisterQueueStateListener('alert_queue_paused', Private.DetectQueuePause);
+    Namespace.Battleground.RegisterQueueStateListener('notify_queue_resume', Private.DetectQueueResume);
+    Namespace.Battleground.RegisterQueueStateListener('ensure_nobody_entered', Private.DetectQueueCancelAfterConfirm);
+    Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm);
+    Namespace.Battleground.RegisterQueueStateListener('update_mercenary_aura_tracking', Private.UpdateAuraTracking);
 
     Private.UpdateAuraTracking()
 
@@ -669,19 +644,6 @@ function Module:LFG_ROLE_CHECK_SHOW()
     if not button then return end
 
     button:Click()
-end
-
-function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
-    Private.EnterZone()
-
-    if not isLogin and not isReload then return end
-
-    -- when logging in or reloading mid-queue, the first queue status mutation
-    -- is inaccurate if not set before it happens
-    for queueId = 1, GetMaxBattlefieldID() do
-        local status, _, _, _, suspendedQueue = GetBattlefieldStatus(queueId)
-        Memory.queueState[queueId] = { status = status, suspendedQueue = suspendedQueue }
-    end
 end
 
 function Private.SendReadyCheckHeartbeat(message)
@@ -751,10 +713,7 @@ function Private.DetectQueuePause(previousState, newState, mapName)
     local isLeader = IsLeaderOrAssistant('player')
     if config.onlyAsLeader and not isLeader then return end
 
-    for _, state in pairs(Memory.queueState) do
-        local otherStatus = state.status
-        if otherStatus == QueueStatus.Active or otherStatus == QueueStatus.Confirm then return end
-    end
+    if AllowQueuePause() then return end
 
     if config.sendPausedMessage then
         local message = Private.TwoLanguages('Queue paused for %s', mapName)
@@ -830,36 +789,14 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
 end
 
-function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
-    local previousState = Memory.queueState[queueId] or { status = QueueStatus.None, suspendedQueue = false }
-    local status, mapName, _, _, suspendedQueue = GetBattlefieldStatus(queueId)
-    local newState = { status = status, suspendedQueue = suspendedQueue }
-
-    if newState.status == previousState.status and newState.suspendedQueue == previousState.suspendedQueue then return end
-
-    for _, listener in pairs(Memory.queueStateChangeListeners) do
-        listener(previousState, newState, mapName)
-    end
-
-    Memory.queueState[queueId] = newState
-
-    Private.UpdateAuraTracking()
-end
-
 function Module:RefreshConfig()
     Private.UpdateGroupInfoVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
     Private.ScheduleSendSyncData()
 end
 
 function Private.UpdateAuraTracking()
-    if UnitAffectingCombat('player') then
+    if UnitAffectingCombat('player') or InActiveBattleground() then
         return Module:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
-    end
-
-    for _, state in pairs(Memory.queueState) do
-        if state.status == QueueStatus.Active then
-            return Module:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
-        end
     end
 
     -- only track outside of combat and outside of battlegrounds

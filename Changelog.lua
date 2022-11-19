@@ -2,6 +2,15 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-10',
+        improvements = {
+            'Ensured internal logic works the same everywhere when it comes to detecting battleground status',
+        },
+        bugs = {
+            'Fixed an error when opening the group info while not in a group'
+        },
+    },
+    {
         version = '10.0.2-9',
         features = {
             'Added an option to automatically mark raid members. Target a player and run /bgcm in chat to add them to the list. You can also manually add players in the "Battleground Tools -> Leader Setup -> Decision Automation" section',

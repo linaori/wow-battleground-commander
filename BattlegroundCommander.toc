@@ -33,7 +33,7 @@ Config.lua
 Debug.lua
 Utils.lua
 PlayerData.lua
-
+Battleground.lua
 Communication.lua
 
 Locales\enUS.lua

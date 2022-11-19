@@ -15,6 +15,7 @@ local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
+local InActiveBattleground = Namespace.Battleground.InActiveBattleground
 local CreateFrame = CreateFrame
 local FlashClientIcon = FlashClientIcon
 local GetTime = GetTime
@@ -28,8 +29,6 @@ local PlaySound = PlaySound
 local UnitIsGroupLeader = UnitIsGroupLeader
 local SendChatMessage = SendChatMessage
 local SetRaidTarget = SetRaidTarget
-local GetMaxBattlefieldID = GetMaxBattlefieldID
-local GetBattlefieldStatus = GetBattlefieldStatus
 local ReadyCheckSound = SOUNDKIT.READY_CHECK
 local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
 local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
@@ -370,7 +369,7 @@ end
 function Private.PlayLeaderSoundListener(playerData, oldRole, newRole)
     if not playerData.units.player then return end
     if not Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderSound then return end
-    if not Private.PlayerIsInBattleground() then return end
+    if not InActiveBattleground() then return end
 
     if oldRole and newRole == Role.Leader then
         PlaySound(ActivateWarmodeSound)
@@ -381,7 +380,7 @@ end
 
 function Private.UpdateRaidLeaderIconListener(playerData, _, newRole)
     if newRole ~= Role.Leader or not playerData.units.player then return end
-    if not Private.PlayerIsInBattleground() then return end
+    if not InActiveBattleground() then return end
 
     SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
 
@@ -391,7 +390,7 @@ end
 --- this listener in specific deals with automatic promotion and demotion of players when PLAYER gets lead
 function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _, newRole)
     if newRole ~= Role.Leader or not playerData.units.player then return end
-    if not Private.PlayerIsInBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
+    if not InActiveBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
 
     local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools
     local automaticAssist = leaderTools.automaticAssist
@@ -416,7 +415,7 @@ function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRol
     local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools
     if not leaderTools.promoteListed then return end
 
-    if not Private.PlayerIsInBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
+    if not InActiveBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
 
     local leader = GetGroupLeaderData()
     if not leader or not leader.units.player then return end
@@ -450,9 +449,10 @@ function Private.MarkRaidMembers()
 end
 
 function Private.MarkRaidMembersIfLeadingBackground()
+    if not InActiveBattleground() then return end
+
     local leader = GetGroupLeaderData()
-    if not leader.units.player then return end
-    if not Private.PlayerIsInBattleground() then return end
+    if not leader or not leader.units.player then return end
 
     Private.MarkRaidMembers()
 end
@@ -589,23 +589,11 @@ function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
     mem.ackLeader = nil
 end
 
-function Private.PlayerIsInBattleground()
-    if Memory.currentZoneId == 0 then return false end
-    if not Namespace.BattlegroundTools.Zones[Memory.currentZoneId] then return false end
-
-    for i = 1, GetMaxBattlefieldID() do
-        local status = GetBattlefieldStatus(i)
-        if status == 'active' then return true end
-    end
-
-    return false
-end
-
 function Private.CanRequestLead()
     if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return false end
     if UnitIsGroupLeader('player') then return false end
 
-    return Private.PlayerIsInBattleground()
+    return InActiveBattleground()
 end
 
 function Private.OnWantBattlegroundLead(_, _, _, sender)
