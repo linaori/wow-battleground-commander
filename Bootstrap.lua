@@ -59,7 +59,8 @@ function Addon:OnInitialize()
     self:RegisterEvent('PARTY_LEADER_CHANGED', Namespace.PlayerData.RebuildRoleData)
 
     self:RegisterChatCommand('bgc', 'ChatCommand')
-    self:RegisterChatCommand('bgca', Namespace.BattlegroundTools.PromoteTargetAssistant)
+    self:RegisterChatCommand('bgca', Namespace.BattlegroundTools.AutomaticallyPromoteTargetAssistant)
+    self:RegisterChatCommand('bgcm', Namespace.BattlegroundTools.AutomaticallyMarkTarget)
     self:RegisterChatCommand('battlegroundcommander', 'ChatCommand')
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'MigrateConfig')

@@ -384,6 +384,8 @@ function Private.UpdateRaidLeaderIconListener(playerData, _, newRole)
     if not Private.PlayerIsInBattleground() then return end
 
     SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
+
+    Private.MarkRaidMembers()
 end
 
 --- this listener in specific deals with automatic promotion and demotion of players when PLAYER gets lead
@@ -424,6 +426,37 @@ function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRol
     end
 end
 
+function Private.MarkRaidMembers()
+    local config = Namespace.Database.profile.BattlegroundTools.LeaderTools
+    local icons = {}
+    local iconCount = 0
+    local assignedCount = 0
+    for markerIndex, enabled in pairs(config.availableIcons) do
+        if enabled then
+            iconCount = iconCount + 1
+            icons[iconCount] = markerIndex
+        end
+    end
+
+    ForEachUnitData(function(playerData)
+        if iconCount == assignedCount then return false end
+
+        local shouldMark = config.alsoMarkListedAssists and config.automaticAssist[playerData.name] or config.automaticIcon[playerData.name]
+        if shouldMark then
+            assignedCount = assignedCount + 1
+            SetRaidTarget(playerData.units.primary, icons[assignedCount])
+        end
+    end)
+end
+
+function Private.MarkRaidMembersIfLeadingBackground()
+    local leader = GetGroupLeaderData()
+    if not leader.units.player then return end
+    if not Private.PlayerIsInBattleground() then return end
+
+    Private.MarkRaidMembers()
+end
+
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
@@ -443,6 +476,8 @@ function Module:OnEnable()
     Namespace.PlayerData.RegisterOnRoleChange('promote_assistant_when_player_becomes_leader', Private.PromoteAssistantsWhenPlayerBecomesLeaderListener)
     Namespace.PlayerData.RegisterOnRoleChange('promote_new_member_to_assistant', Private.PromoteNewMemberToAssistantListener)
 
+    Namespace.PlayerData.RegisterOnUpdate('mark_players', Private.MarkRaidMembersIfLeadingBackground)
+
     self:RefreshConfig()
 
     Private.AddLog(L['Battleground Commander loaded'])
@@ -454,7 +489,7 @@ function Module:OnEnable()
     Private.ApplyLogs(Memory.InstructionFrame.Text)
 end
 
-function Module.PromoteTargetAssistant()
+function Module.AutomaticallyPromoteTargetAssistant()
     local data = GetPlayerDataByUnit('target')
     if not data then return Addon:Print(L['Select a target and then run /bgca to add them to the auto assist list']) end
     if data.units.player then return end
@@ -464,6 +499,18 @@ function Module.PromoteTargetAssistant()
     if data.role == Role.Member then PromoteToAssistant(data.units.primary) end
 
     Addon:Print(format(L['%s will now automatically be promoted to assistant in battlegrounds'], data.name))
+end
+
+function Module.AutomaticallyMarkTarget()
+    local data = GetPlayerDataByUnit('target')
+    if not data then return Addon:Print(L['Select a target and then run /bgcm to add them to the automatic marking list']) end
+    if data.units.player then return end
+
+    Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticIcon[data.name] = true
+
+    Private.MarkRaidMembersIfLeadingBackground()
+
+    Addon:Print(format(L['%s will now automatically be marked in battlegrounds'], data.name))
 end
 
 function Module:CHAT_MSG_RAID_WARNING(_, message)
@@ -853,9 +900,30 @@ function Module:GetWantLeadSetting(key)
 end
 
 function Module:SetLeaderToolsSetting(key, value)
-    Namespace.Database.profile.BattlegroundTools.LeaderTools[key] = value
+    local config = Namespace.Database.profile.BattlegroundTools.LeaderTools
+    if key ~= 'leaderIcon' then
+        config[key] = value
+        return
+    end
+
+    -- swap around values
+    local oldValue = config.leaderIcon
+    config.availableIcons[oldValue] = config.availableIcons[value]
+    config.availableIcons[value] = false
+    config.leaderIcon = value
 end
 
 function Module:GetLeaderToolsSetting(key)
     return Namespace.Database.profile.BattlegroundTools.LeaderTools[key]
+end
+
+function Module:SetMarkerIndexSetting(markerIndex, value)
+    local config = Namespace.Database.profile.BattlegroundTools.LeaderTools
+    if value and config.leaderIcon == markerIndex then return end
+
+    config.availableIcons[markerIndex] = value
+end
+
+function Module:GetMarkerIndexSetting(markerIndex)
+    return Namespace.Database.profile.BattlegroundTools.LeaderTools.availableIcons[markerIndex]
 end

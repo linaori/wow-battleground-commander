@@ -32,7 +32,6 @@ globals = {
     'GetNumGroupMembers',
     'GetPlayerAuraBySpellID',
     'GetRealmName',
-    'GetRealmName',
     'GetTime',
     'GetUnitName',
     'InCombatLockdown',

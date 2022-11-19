@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-9',
+        features = {
+            'Added an option to automatically mark raid members. Target a player and run /bgcm in chat to add them to the list. You can also manually add players in the "Battleground Tools -> Leader Setup -> Decision Automation" section',
+        },
+    },
+    {
         version = '10.0.2-8',
         improvements = {
             'Updated TOC for 10.0.2, pre-patch phase 2',
@@ -26,7 +32,7 @@ Namespace.Changelog = {
             'Added an option to play a sound when you are promoted to, or demoted from lead',
             'Added a ready check sound and taskbar flash when the popup to give lead is shown',
             'Added a changelog inside the addon',
-            'Added an option to automatically promote members to assistant. Target a player and run /bgca in chat to add them to the list. You can also manually add players in the "Battleground Tools -> Leader Setup -> Automatic Assistant" section',
+            'Added an option to automatically promote members to assistant. Target a player and run /bgca in chat to add them to the list. You can also manually add players in the "Battleground Tools -> Leader Setup -> Decision Automation" section',
         },
         improvements = {
             'Internal rework to detect when someone in the raid becomes member, assistant, or lead, to improve accuracy for automation tools',
