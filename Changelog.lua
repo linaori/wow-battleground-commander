@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-11',
+        bugs = {
+            'Fixed an issue where the instruction window sometimes would not go away',
+        },
+    },
+    {
         version = '10.0.2-10',
         improvements = {
             'Players who are marked should no longer be randomly swapping marks',

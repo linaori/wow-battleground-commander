@@ -307,10 +307,11 @@ function Private.TriggerUpdateInstructionFrame()
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
     local currentZoneId = GetCurrentZoneId()
     if frameConfig.show and frameConfig.zones[currentZoneId] then
-        Module:ShowInstructionsFrame()
-    else
-        Module:HideInstructionsFrame()
+        if not Memory.InstructionFrame:IsShown() then Module:ShowInstructionsFrame() end
+        return
     end
+
+    Module:HideInstructionsFrame()
 end
 
 function Private.RequestRaidLeadListener(_, _, newRole)
@@ -563,6 +564,7 @@ function Module:ShowInstructionsFrame()
     if Memory.InstructionFrame.timer then return end
     Memory.InstructionFrame.timer = self:ScheduleRepeatingTimer(function ()
         Private.ApplyLogs(Memory.InstructionFrame.Text)
+        Private.TriggerUpdateInstructionFrame()
     end, 0.2)
 end
 
