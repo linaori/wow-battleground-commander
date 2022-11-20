@@ -167,3 +167,4 @@ L['Include assist list in marking'] = true
 L['Also mark players with raid icons when listed in the list of automatic assists'] = true
 L['Select a target and then run /bgcm to add them to the automatic marking list'] = true
 L['%s will now automatically be marked in battlegrounds'] = true
+L['Marked %s with %s'] = true

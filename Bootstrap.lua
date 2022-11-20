@@ -76,6 +76,8 @@ function Addon:MigrateConfig()
         inspectQueue.doReadyCheckOnQueuePause = false
         inspectQueue.doReadyCheck = nil
     end
+
+    Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[0] = nil
 end
 
 function Addon:OpenSettingsPanel()

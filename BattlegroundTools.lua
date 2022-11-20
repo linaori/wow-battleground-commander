@@ -17,7 +17,6 @@ local GetGroupType = Namespace.Utils.GetGroupType
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
 local QueueStatus = Namespace.Battleground.QueueStatus
-local Zones = Namespace.Battleground.Zones
 local GetCurrentZoneId = Namespace.Battleground.GetCurrentZoneId
 local CreateFrame = CreateFrame
 local FlashClientIcon = FlashClientIcon
@@ -49,6 +48,10 @@ local CommunicationEvent = {
 
 local Memory = {
     currentZoneId = nil,
+
+    iconSlots = {
+        -- [iconIndex] = name or boolean,
+    },
 
     WantBattlegroundLead = {
         wantLeadTimer = nil,
@@ -332,8 +335,6 @@ function Private.UpdateRaidLeaderIconListener(playerData, _, newRole)
     if newRole ~= Role.Leader or not playerData.units.player then return end
     if not InActiveBattleground() then return end
 
-    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
-
     Private.MarkRaidMembers()
 end
 
@@ -341,6 +342,8 @@ end
 function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _, newRole)
     if newRole ~= Role.Leader or not playerData.units.player then return end
     if not InActiveBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
+
+    Private.InitializeIconSlots()
 
     local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools
     local automaticAssist = leaderTools.automaticAssist
@@ -375,30 +378,49 @@ function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRol
     end
 end
 
-function Private.MarkRaidMembers()
-    local config = Namespace.Database.profile.BattlegroundTools.LeaderTools
-    local icons = {}
-    local iconCount = 0
-    local assignedCount = 0
-    for markerIndex, enabled in pairs(config.availableIcons) do
-        if enabled then
-            iconCount = iconCount + 1
-            icons[iconCount] = markerIndex
+function Private.SetPlayerIcon(playerName, unit)
+    for iconIndex, usable in pairs(Memory.iconSlots) do
+        if usable == true then
+            SetRaidTarget(unit, iconIndex)
+            Memory.iconSlots[iconIndex] = playerName
+
+            Addon:Print(format(L['Marked %s with %s'], playerName, format([[|TInterface\TargetingFrame\UI-RaidTargetingIcon_%d:16:16|t]], iconIndex)))
+            return
+        end
+    end
+end
+
+function Private.CountAvailableMarks()
+    local count = 0
+    for _, name in pairs(Memory.iconSlots) do
+        if name == true then
+            count = count + 1
         end
     end
 
-    ForEachUnitData(function(playerData)
-        if iconCount == assignedCount then return false end
+    return count
+end
 
-        local shouldMark = config.alsoMarkListedAssists and config.automaticAssist[playerData.name] or config.automaticIcon[playerData.name]
+function Private.MarkRaidMembers()
+    local config = Namespace.Database.profile.BattlegroundTools.LeaderTools
+
+    local marksLeft = Private.CountAvailableMarks()
+
+    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
+
+    ForEachUnitData(function(playerData)
+        if marksLeft == 0 then return end
+
+        local name = playerData.name
+        local shouldMark = config.alsoMarkListedAssists and config.automaticAssist[name] or config.automaticIcon[name]
         if shouldMark then
-            assignedCount = assignedCount + 1
-            SetRaidTarget(playerData.units.primary, icons[assignedCount])
+            marksLeft = marksLeft - 1
+            Private.SetPlayerIcon(name, playerData.units.primary)
         end
     end)
 end
 
-function Private.MarkRaidMembersIfLeadingBackground()
+function Private.MarkRaidMembersIfLeadingBattleground()
     if not InActiveBattleground() then return end
 
     local leader = GetGroupLeaderData()
@@ -415,15 +437,15 @@ function Private.DetectBattlegroundExit(previousState, newState)
         Private.ResetLogs()
     end
 
-    Private.TriggerUpdateInstructionFrame()
+    Module:HideInstructionsFrame()
     Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
 
-function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
+function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, mapName)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
 
-    Private.AddLog(format(L['Entered %s'], Zones[GetCurrentZoneId()]))
+    Private.AddLog(format(L['Entered %s'], mapName))
 
     local wantLead = Memory.WantBattlegroundLead
     wantLead.requestedBy = {}
@@ -433,6 +455,21 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
 
     Private.TriggerUpdateInstructionFrame()
     Private.RequestRaidLead()
+end
+
+function Private.InitializeIconSlots()
+    local availableIcons = Namespace.Database.profile.BattlegroundTools.LeaderTools.availableIcons
+
+    Memory.iconSlots = {
+        [1] = availableIcons[1],
+        [2] = availableIcons[2],
+        [3] = availableIcons[3],
+        [4] = availableIcons[4],
+        [5] = availableIcons[5],
+        [6] = availableIcons[6],
+        [7] = availableIcons[7],
+        [8] = availableIcons[8],
+    }
 end
 
 function Module:OnEnable()
@@ -454,7 +491,7 @@ function Module:OnEnable()
     Namespace.PlayerData.RegisterOnRoleChange('promote_assistant_when_player_becomes_leader', Private.PromoteAssistantsWhenPlayerBecomesLeaderListener)
     Namespace.PlayerData.RegisterOnRoleChange('promote_new_member_to_assistant', Private.PromoteNewMemberToAssistantListener)
 
-    Namespace.PlayerData.RegisterOnUpdate('mark_players', Private.MarkRaidMembersIfLeadingBackground)
+    Namespace.PlayerData.RegisterOnUpdate('mark_players', Private.MarkRaidMembersIfLeadingBattleground)
 
     Namespace.Battleground.RegisterQueueStateListener('reset_logs', Private.DetectBattlegroundExit)
     Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm)
@@ -471,9 +508,10 @@ function Module:OnEnable()
 end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
+    Private.TriggerUpdateInstructionFrame()
+
     if not isLogin and not isReload then return end
 
-    Private.TriggerUpdateInstructionFrame()
     Private.RequestRaidLead()
 end
 
@@ -496,7 +534,7 @@ function Module.AutomaticallyMarkTarget()
 
     Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticIcon[data.name] = true
 
-    Private.MarkRaidMembersIfLeadingBackground()
+    Private.MarkRaidMembersIfLeadingBattleground()
 
     Addon:Print(format(L['%s will now automatically be marked in battlegrounds'], data.name))
 end
@@ -882,16 +920,17 @@ end
 
 function Module:SetLeaderToolsSetting(key, value)
     local config = Namespace.Database.profile.BattlegroundTools.LeaderTools
-    if key ~= 'leaderIcon' then
-        config[key] = value
-        return
+    if key == 'leaderIcon' then
+        -- swap around values
+        local oldValue = config.leaderIcon
+        config.availableIcons[oldValue] = config.availableIcons[value]
+        config.availableIcons[value] = false
     end
 
-    -- swap around values
-    local oldValue = config.leaderIcon
-    config.availableIcons[oldValue] = config.availableIcons[value]
-    config.availableIcons[value] = false
-    config.leaderIcon = value
+    config[key] = value
+
+    Private.InitializeIconSlots()
+    Private.MarkRaidMembersIfLeadingBattleground()
 end
 
 function Module:GetLeaderToolsSetting(key)

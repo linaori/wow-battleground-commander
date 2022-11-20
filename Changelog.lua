@@ -4,11 +4,14 @@ Namespace.Changelog = {
     {
         version = '10.0.2-10',
         improvements = {
+            'Players who are marked should no longer be randomly swapping marks',
             'Ensured internal logic works the same everywhere when it comes to detecting battleground status',
             'When "Requesting Lead -> Send Raid is enabled, it will now also use the instance chat',
+            'Removed "Open World" as option from the instructions window',
+            'Changing "Leader Setup" settings now also re-marks accordingly',
         },
         bugs = {
-            'Fixed an error when opening the group info while not in a group'
+            'Fixed an error when opening the group info while not in a group',
         },
     },
     {

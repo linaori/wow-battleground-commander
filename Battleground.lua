@@ -20,7 +20,6 @@ local QueueStatus = {
 }
 
 local Zones = {
-    [0]    = L['Open World'],
     [30]   = L['Alterac Valley'],
     [2197] = L['Alterac Valley (Korrak\'s Revenge)'],
     [1191] = L['Ashran'],
