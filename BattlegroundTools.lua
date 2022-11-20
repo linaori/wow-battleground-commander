@@ -16,11 +16,13 @@ local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
+local QueueStatus = Namespace.Battleground.QueueStatus
+local Zones = Namespace.Battleground.Zones
+local GetCurrentZoneId = Namespace.Battleground.GetCurrentZoneId
 local CreateFrame = CreateFrame
 local FlashClientIcon = FlashClientIcon
 local GetTime = GetTime
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
-local GetInstanceInfo = GetInstanceInfo
 local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local PromoteToLeader = PromoteToLeader
 local PromoteToAssistant = PromoteToAssistant
@@ -68,30 +70,6 @@ local Memory = {
         size = 0,
         timer = nil,
     },
-}
-
-Namespace.BattlegroundTools.Zones = {
-    [0]    = L['Open World'],
-    [30]   = L['Alterac Valley'],
-    [2197] = L['Alterac Valley (Korrak\'s Revenge)'],
-    [1191] = L['Ashran'],
-    [2118] = L['Battle for Wintergrasp'],
-    [628]  = L['Isle of Conquest'],
-    [2107] = L['Arathi Basin'],
-    [529]  = L['Arathi Basin (Classic)'],
-    [1681] = L['Arathi Basin (Winter)'],
-    [2177] = L['Arathi Basin Comp Stomp'],
-    [1105] = L['Deepwind Gorge'],
-    [566]  = L['Eye of the Storm'],
-    [968]  = L['Eye of the Storm (Rated)'],
-    [1803] = L['Seething Shore'],
-    [727]  = L['Silvershard Mines'],
-    [607]  = L['Strand of the Ancients'],
-    [998]  = L['Temple of Kotmogu'],
-    [761]  = L['The Battle for Gilneas'],
-    [726]  = L['Twin Peaks'],
-    [489]  = L['Warsong Gulch'],
-    [1280] = L['Southshore vs. Tarren Mill'],
 }
 
 function Private.ApplyFont(textObject, fontConfig)
@@ -324,40 +302,12 @@ end
 
 function Private.TriggerUpdateInstructionFrame()
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
-    local currentZoneId = Memory.currentZoneId
+    local currentZoneId = GetCurrentZoneId()
     if frameConfig.show and frameConfig.zones[currentZoneId] then
-        if currentZoneId ~= 0 then
-            Private.AddLog(format(L['Entered %s'], Namespace.BattlegroundTools.Zones[currentZoneId]))
-        end
         Module:ShowInstructionsFrame()
     else
         Module:HideInstructionsFrame()
     end
-end
-
-function Private.EnterZone()
-    local _, instanceType, _, _, _, _, _, currentZoneId = GetInstanceInfo()
-    if instanceType == 'none' then currentZoneId = 0 end
-
-    if Memory.currentZoneId ~= 0
-        and currentZoneId == 0
-        and Namespace.BattlegroundTools.Zones[Memory.currentZoneId]
-        and Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings.clearFrameOnExitBattleground
-    then
-        Private.ResetLogs()
-    end
-
-    Memory.currentZoneId = currentZoneId
-
-    local wantLead = Memory.WantBattlegroundLead
-    wantLead.requestedBy = {}
-    wantLead.recentlyRejected = {}
-    wantLead.requestedByCount = 0
-    wantLead.ackLeader = nil
-
-    Private.TriggerUpdateInstructionFrame()
-    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
-    Private.RequestRaidLead()
 end
 
 function Private.RequestRaidLeadListener(_, _, newRole)
@@ -457,9 +407,37 @@ function Private.MarkRaidMembersIfLeadingBackground()
     Private.MarkRaidMembers()
 end
 
+function Private.DetectBattlegroundExit(previousState, newState)
+    if previousState.status ~= QueueStatus.Active then return end
+    if newState.status ~= QueueStatus.None then return end
+
+    if Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings.clearFrameOnExitBattleground then
+        Private.ResetLogs()
+    end
+
+    Private.TriggerUpdateInstructionFrame()
+    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+end
+
+function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
+    if previousState.status ~= QueueStatus.Confirm then return end
+    if newState.status ~= QueueStatus.Active then return end
+
+    Private.AddLog(format(L['Entered %s'], Zones[GetCurrentZoneId()]))
+
+    local wantLead = Memory.WantBattlegroundLead
+    wantLead.requestedBy = {}
+    wantLead.recentlyRejected = {}
+    wantLead.requestedByCount = 0
+    wantLead.ackLeader = nil
+
+    Private.TriggerUpdateInstructionFrame()
+    Private.RequestRaidLead()
+end
+
 function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
-    self:RegisterEvent('PLAYER_ENTERING_WORLD', Private.EnterZone)
+    self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
     self:RegisterComm(CommunicationEvent.WantBattlegroundLead, Private.OnWantBattlegroundLead)
     self:RegisterComm(CommunicationEvent.AcknowledgeWantBattlegroundLead, Private.OnAcknowledgeWantBattlegroundLead)
@@ -478,6 +456,9 @@ function Module:OnEnable()
 
     Namespace.PlayerData.RegisterOnUpdate('mark_players', Private.MarkRaidMembersIfLeadingBackground)
 
+    Namespace.Battleground.RegisterQueueStateListener('reset_logs', Private.DetectBattlegroundExit)
+    Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm)
+
     self:RefreshConfig()
 
     Private.AddLog(L['Battleground Commander loaded'])
@@ -487,6 +468,13 @@ function Module:OnEnable()
     end
 
     Private.ApplyLogs(Memory.InstructionFrame.Text)
+end
+
+function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
+    if not isLogin and not isReload then return end
+
+    Private.TriggerUpdateInstructionFrame()
+    Private.RequestRaidLead()
 end
 
 function Module.AutomaticallyPromoteTargetAssistant()
@@ -640,8 +628,13 @@ function Private.SendManualChatMessages()
 
     local message = config.manualRequestMessage:gsub('{leader}', name)
     if config.sendWhisper then SendChatMessage(message, Channel.Whisper, nil, name) end
-    if config.sendSay and Memory.currentZoneId ~= 0 then SendChatMessage(message, Channel.Say) end
-    if config.sendRaid and GetGroupType() == GroupType.Raid then SendChatMessage(message, Channel.Raid) end
+    if config.sendSay then SendChatMessage(message, Channel.Say) end
+
+    if config.sendRaid then
+        local groupType = GetGroupType()
+        if groupType == GroupType.Raid then SendChatMessage(message, Channel.Raid) end
+        if groupType == GroupType.InstanceRaid then SendChatMessage(message, Channel.Instance) end
+    end
 end
 
 function Private.SendWantBattlegroundLead()

@@ -5,6 +5,7 @@ Namespace.Changelog = {
         version = '10.0.2-10',
         improvements = {
             'Ensured internal logic works the same everywhere when it comes to detecting battleground status',
+            'When "Requesting Lead -> Send Raid is enabled, it will now also use the instance chat',
         },
         bugs = {
             'Fixed an error when opening the group info while not in a group'

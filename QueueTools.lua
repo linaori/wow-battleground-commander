@@ -24,6 +24,7 @@ local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
 local AllowQueuePause = Namespace.Battleground.AllowQueuePause
+local QueueStatus = Namespace.Battleground.QueueStatus
 local DoReadyCheck = DoReadyCheck
 local GetInstanceInfo = GetInstanceInfo
 local CreateFrame = CreateFrame
@@ -84,8 +85,6 @@ local tableStructure = {
         align = 'CENTER',
     }
 }
-
-local QueueStatus = Namespace.Battleground.QueueStatus
 
 local Memory = {
     -- seems like you can't do a second ready check for about 5~6 seconds, even if the "finished" event is faster
@@ -570,14 +569,14 @@ function Module:OnEnable()
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
 
-    Namespace.Battleground.RegisterQueueStateListener('update_group_information', Private.DetectQueueEntry);
-    Namespace.Battleground.RegisterQueueStateListener('protect_entry_button', Private.DetectQueuePop);
-    Namespace.Battleground.RegisterQueueStateListener('rebuild_post_bg_group_info', Private.DetectBattlegroundExit);
-    Namespace.Battleground.RegisterQueueStateListener('alert_queue_paused', Private.DetectQueuePause);
-    Namespace.Battleground.RegisterQueueStateListener('notify_queue_resume', Private.DetectQueueResume);
-    Namespace.Battleground.RegisterQueueStateListener('ensure_nobody_entered', Private.DetectQueueCancelAfterConfirm);
-    Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm);
-    Namespace.Battleground.RegisterQueueStateListener('update_mercenary_aura_tracking', Private.UpdateAuraTracking);
+    Namespace.Battleground.RegisterQueueStateListener('update_group_information', Private.DetectQueueEntry)
+    Namespace.Battleground.RegisterQueueStateListener('protect_entry_button', Private.DetectQueuePop)
+    Namespace.Battleground.RegisterQueueStateListener('rebuild_post_bg_group_info', Private.DetectBattlegroundExit)
+    Namespace.Battleground.RegisterQueueStateListener('alert_queue_paused', Private.DetectQueuePause)
+    Namespace.Battleground.RegisterQueueStateListener('notify_queue_resume', Private.DetectQueueResume)
+    Namespace.Battleground.RegisterQueueStateListener('ensure_nobody_entered', Private.DetectQueueCancelAfterConfirm)
+    Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm)
+    Namespace.Battleground.RegisterQueueStateListener('update_mercenary_aura_tracking', Private.UpdateAuraTracking)
 
     Private.UpdateAuraTracking()
 

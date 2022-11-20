@@ -501,7 +501,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 name = L['Select Zones'],
                                 desc = L['Select the zones where the frame should appear when enabled'],
                                 type = 'multiselect',
-                                values = Namespace.BattlegroundTools.Zones,
+                                values = Namespace.Battleground.Zones,
                                 set = function (_, zoneId, value) Namespace.BattlegroundTools:SetZoneId(zoneId, value) end,
                                 get = function (_, zoneId) return Namespace.BattlegroundTools:GetZoneId(zoneId) end,
                                 order = 25,
@@ -548,7 +548,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 order = 4,
                             },
                             sendRaid = {
-                                name = L['Send Raid (/r)'],
+                                name = L['Send Raid (/r, /i)'],
                                 type = 'toggle',
                                 width = 'full',
                                 set = function (_, input) return Namespace.BattlegroundTools:SetWantLeadSetting('sendRaid', input) end,

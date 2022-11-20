@@ -32,13 +32,14 @@ Changelog.lua
 Config.lua
 Debug.lua
 Utils.lua
-PlayerData.lua
-Battleground.lua
-Communication.lua
 
 Locales\enUS.lua
 Locales\deDE.lua
 Locales\ruRU.lua
+
+PlayerData.lua
+Battleground.lua
+Communication.lua
 
 QueueTools.lua
 BattlegroundTools.lua
