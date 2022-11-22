@@ -29,9 +29,9 @@ Libs\LibUIDropDownMenu\LibUIDropDownMenu\LibUIDropDownMenu.lua
 
 Bootstrap.lua
 Changelog.lua
+Utils.lua
 Config.lua
 Debug.lua
-Utils.lua
 
 Locales\enUS.lua
 Locales\deDE.lua

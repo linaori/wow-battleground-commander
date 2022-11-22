@@ -14,6 +14,8 @@ local UnitExists = UnitExists
 local UnitIsConnected = UnitIsConnected
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
+local UnitClass = UnitClass
+local GetClassColor = C_ClassColor.GetClassColor
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local pairs = pairs
 local unpack = unpack
@@ -54,6 +56,8 @@ local Memory = {
         --    battlegroundStatus = BattlegroundStatus
         --    isConnected = boolean,
         --    role = Role,
+        --    class = "CLASS",
+        --    classColor = ColorMixin,
         --},
     },
     LeaderData = nil, -- the AllPlayerData table for just the leader
@@ -89,15 +93,22 @@ function Namespace.PlayerData.RegisterOnRoleChange(listenerName, callback)
     Memory.OnRoleChangeCallbacks[listenerName] = callback
 end
 
-function Private.RefreshNameForData(data)
+function Private.RefreshMissingData(data)
     local unit = data.units.primary
     if not unit then return end
-    if data.name ~= UNKNOWNOBJECT and data.name ~= nil then return end
 
-    data.name = GetRealUnitName(unit)
+    if data.name == UNKNOWNOBJECT or not data.name then
+        data.name = GetRealUnitName(unit)
+    end
+
+    if not data.class or not data.classColor then
+        local _, class = UnitClass(data.units.primary)
+        data.class = class
+        data.classColor = class and GetClassColor(class) or nil
+    end
 end
 
-Namespace.PlayerData.RefreshNameForData = Private.RefreshNameForData
+Namespace.PlayerData.RefreshMissingData = Private.RefreshMissingData
 
 function Namespace.PlayerData.GetGroupLeaderData()
     return Memory.LeaderData
@@ -181,6 +192,7 @@ function Namespace.PlayerData.RebuildPlayerData()
             local dataIndex = UnitGUID(unit)
             local data = Memory.AllPlayerData[dataIndex]
             if not data then
+                local _, class = UnitClass(unit)
                 data = {
                     guid = dataIndex,
                     name = GetRealUnitName(unit),
@@ -191,6 +203,8 @@ function Namespace.PlayerData.RebuildPlayerData()
                     roleCheckStatus = RoleCheckStatus.Nothing,
                     isConnected = UnitIsConnected(unit),
                     role = UnitIsGroupLeader(unit) and Role.Leader or UnitIsGroupAssistant(unit) and Role.Assist or Role.Member,
+                    class = class,
+                    classColor =  class and GetClassColor(class) or nil
                 }
 
                 Memory.AllPlayerData[dataIndex] = data
@@ -237,7 +251,7 @@ end
 
 function Namespace.PlayerData.GetPlayerDataByName(name)
     for _, data in pairs(Memory.AllPlayerData) do
-        Private.RefreshNameForData(data)
+        Private.RefreshMissingData(data)
 
         if data.name == name then
             return data

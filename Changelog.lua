@@ -2,6 +2,18 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-12',
+        features = {
+            'Added shortcuts in the config to configure players options: "Add player from group", "Add recently played with", "Add player by name"',
+        },
+        improvements = {
+            'Reworked the config for player management. Each player now has a dedicated config section under "Battleground Tools -> Player Management"',
+        },
+        bugs = {
+            'Fixed a bug where the instruction frame did not properly update after reloading in a battleground',
+        },
+    },
+    {
         version = '10.0.2-11',
         bugs = {
             'Fixed an issue where the instruction window sometimes would not go away',

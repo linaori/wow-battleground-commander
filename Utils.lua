@@ -44,7 +44,7 @@ Namespace.Utils.RoleCheckStatus = {
     Ready = 2,
 }
 
-Namespace.Utils.RaidMarker = {
+Namespace.Utils.RaidIconChatStyle = {
     YellowStar = '{rt1}',
     OrangeCircle = '{rt2}',
     PurpleDiamond = '{rt3}',
@@ -53,6 +53,29 @@ Namespace.Utils.RaidMarker = {
     BlueSquare = '{rt6}',
     RedCross = '{rt7}',
     WhiteSkull = '{rt8}',
+}
+
+Namespace.Utils.RaidIconChatTexture = {
+    YellowStar = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_1:16:16|t]],
+    OrangeCircle = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_2:16:16|t]],
+    PurpleDiamond = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_3:16:16|t]],
+    GreenTriangle = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_4:16:16|t]],
+    SilverMoon = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_5:16:16|t]],
+    BlueSquare = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_6:16:16|t]],
+    RedCross = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_7:16:16|t]],
+    WhiteSkull = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_8:16:16|t]],
+}
+
+Namespace.Utils.RaidIconIndex = {
+    NoIcon = 0,
+    YellowStar = 1,
+    OrangeCircle = 2,
+    PurpleDiamond = 3,
+    GreenTriangle = 4,
+    SilverMoon = 5,
+    BlueSquare = 6,
+    RedCross = 7,
+    WhiteSkull = 8,
 }
 
 function Namespace.Utils.TimeDiff(a, b)

@@ -10,7 +10,7 @@ local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
 local RebuildPlayerData = Namespace.PlayerData.RebuildPlayerData
 local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
-local RefreshNameForData = Namespace.PlayerData.RefreshNameForData
+local RefreshMissingData = Namespace.PlayerData.RefreshMissingData
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local Role = Namespace.PlayerData.Role
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
@@ -18,7 +18,7 @@ local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
 local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
 local IsLeaderOrAssistant = Namespace.Utils.IsLeaderOrAssistant
 local GetPlayerAuraExpiration = Namespace.Utils.GetPlayerAuraExpiration
-local RaidMarker = Namespace.Utils.RaidMarker
+local RaidIconChatStyle = Namespace.Utils.RaidIconChatStyle
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
@@ -35,13 +35,11 @@ local GetNumGroupMembers = GetNumGroupMembers
 local GetLFGRoleUpdate = GetLFGRoleUpdate
 local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
-local UnitClass = UnitClass
 local UnitDebuff = UnitDebuff
 local UnitAffectingCombat = UnitAffectingCombat
 local GetTime = GetTime
 local IsShiftKeyDown = IsShiftKeyDown
 local SendChatMessage = SendChatMessage
-local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local TimeDiff = Namespace.Utils.TimeDiff
@@ -196,17 +194,15 @@ function Private.CreateTableRow(data)
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
 
-            RefreshNameForData(data)
+            RefreshMissingData(data)
 
             local name, color
             if data.name == UNKNOWNOBJECT then
                 name = '...'
                 color = ColorList.UnknownClass
             else
-                local _, class = UnitClass(data.units.primary)
                 name = data.name
-
-                color = class and RAID_CLASS_COLORS[class] or ColorList.UnknownClass
+                color = data.classColor
             end
 
             columnData.color = { r = color.r, g = color.g, b = color.b, a = color.a }
@@ -479,7 +475,7 @@ function Private.OnClickEnterBattleground()
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
     if config.sendMessageOnBattlegroundEntry then
-        local message = concat({RaidMarker.GreenTriangle, Private.TwoLanguages('Enter'), RaidMarker.GreenTriangle}, ' ')
+        local message = concat({RaidIconChatStyle.GreenTriangle, Private.TwoLanguages('Enter'), RaidIconChatStyle.GreenTriangle}, ' ')
         SendChatMessage(Addon:PrependChatTemplate(message), channel)
     end
 end
@@ -776,7 +772,7 @@ function Private.DetectQueueCancelAfterConfirm(previousState, newState)
 
     if config.sendMessageOnQueueCancelAfterConfirm then
         local channel = GetMessageDestination()
-        local message = concat({RaidMarker.RedCross, Private.TwoLanguages('Cancel'), RaidMarker.RedCross}, ' ')
+        local message = concat({RaidIconChatStyle.RedCross, Private.TwoLanguages('Cancel'), RaidIconChatStyle.RedCross}, ' ')
         SendChatMessage(Addon:PrependChatTemplate(message), channel)
     end
 end

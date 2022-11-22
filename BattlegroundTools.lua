@@ -18,6 +18,7 @@ local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
 local QueueStatus = Namespace.Battleground.QueueStatus
 local GetCurrentZoneId = Namespace.Battleground.GetCurrentZoneId
+local RaidIconIndex = Namespace.Utils.RaidIconIndex
 local CreateFrame = CreateFrame
 local FlashClientIcon = FlashClientIcon
 local GetTime = GetTime
@@ -74,6 +75,21 @@ local Memory = {
         timer = nil,
     },
 }
+
+local GiveLeadBehavior = {
+    NoAutomation = 0,
+    GiveLead = 1,
+    RejectLead = 2,
+}
+
+local MarkBehavior = {
+    NoMark = 0,
+    AnyAvailable = 1,
+    PreferredMark = 2,
+}
+
+Namespace.BattlegroundTools.GiveLeadBehavior = GiveLeadBehavior
+Namespace.BattlegroundTools.MarkBehavior = MarkBehavior
 
 function Private.ApplyFont(textObject, fontConfig)
     textObject:SetFont(LSM:Fetch('font', fontConfig.family), fontConfig.size, fontConfig.flags)
@@ -307,11 +323,10 @@ function Private.TriggerUpdateInstructionFrame()
     local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
     local currentZoneId = GetCurrentZoneId()
     if frameConfig.show and frameConfig.zones[currentZoneId] then
-        if not Memory.InstructionFrame:IsShown() then Module:ShowInstructionsFrame() end
-        return
+        Module:ShowInstructionsFrame()
+    else
+        Module:HideInstructionsFrame()
     end
-
-    Module:HideInstructionsFrame()
 end
 
 function Private.RequestRaidLeadListener(_, _, newRole)
@@ -346,17 +361,11 @@ function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _,
 
     Private.InitializeIconSlots()
 
-    local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools
-    local automaticAssist = leaderTools.automaticAssist
-    local demoteUnlisted = leaderTools.demoteUnlisted
-    local promoteListed = leaderTools.promoteListed
-
-    if not promoteListed and not demoteUnlisted then return end
-
+    local demoteUnlisted = Namespace.Database.profile.BattlegroundTools.LeaderTools.demoteUnlisted
     ForEachUnitData(function (data)
-        if promoteListed and data.role == Role.Member and automaticAssist[data.name] then
+        if data.role == Role.Member and Module:GetPlayerConfigValue(data.name, 'promoteToAssistant') then
             PromoteToAssistant(data.units.primary)
-        elseif demoteUnlisted and data.role == Role.Assist and not automaticAssist[data.name] then
+        elseif demoteUnlisted and data.role == Role.Assist and not Module:GetPlayerConfigValue(data.name, 'promoteToAssistant') then
             DemoteAssistant(data.units.primary)
         end
     end)
@@ -366,15 +375,12 @@ end
 function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRole)
     if oldRole or newRole ~= Role.Member or playerData.units.player then return end
 
-    local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools
-    if not leaderTools.promoteListed then return end
-
     if not InActiveBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
 
     local leader = GetGroupLeaderData()
     if not leader or not leader.units.player then return end
 
-    if leaderTools.automaticAssist[playerData.name] then
+    if Module:GetPlayerConfigValue(playerData.name, 'promoteToAssistant') then
         PromoteToAssistant(playerData.name)
     end
 end
@@ -403,8 +409,6 @@ function Private.CountAvailableMarks()
 end
 
 function Private.MarkRaidMembers()
-    local config = Namespace.Database.profile.BattlegroundTools.LeaderTools
-
     local marksLeft = Private.CountAvailableMarks()
 
     SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
@@ -413,8 +417,7 @@ function Private.MarkRaidMembers()
         if marksLeft == 0 then return end
 
         local name = playerData.name
-        local shouldMark = config.alsoMarkListedAssists and config.automaticAssist[name] or config.automaticIcon[name]
-        if shouldMark then
+        if Module:GetPlayerConfigValue(name, 'markBehavior') == MarkBehavior.AnyAvailable then
             marksLeft = marksLeft - 1
             Private.SetPlayerIcon(name, playerData.units.primary)
         end
@@ -428,6 +431,24 @@ function Private.MarkRaidMembersIfLeadingBattleground()
     if not leader or not leader.units.player then return end
 
     Private.MarkRaidMembers()
+end
+
+function Private.UpdatePlayerConfigLabels(unitPlayerData)
+    local updated = false
+    for _, playerData in pairs(unitPlayerData) do
+        if playerData.classColor then
+            local config = Module:GetPlayerConfig(playerData.name)
+
+            if config and config.playerName == config.groupLabel then
+                config.groupLabel = playerData.classColor:WrapTextInColorCode(playerData.name)
+                updated = true
+            end
+        end
+    end
+
+    if not updated then return end
+
+    Addon:InitializePlayerConfig()
 end
 
 function Private.DetectBattlegroundExit(previousState, newState)
@@ -493,6 +514,7 @@ function Module:OnEnable()
     Namespace.PlayerData.RegisterOnRoleChange('promote_new_member_to_assistant', Private.PromoteNewMemberToAssistantListener)
 
     Namespace.PlayerData.RegisterOnUpdate('mark_players', Private.MarkRaidMembersIfLeadingBattleground)
+    Namespace.PlayerData.RegisterOnUpdate('update_player_config_labels', Private.UpdatePlayerConfigLabels)
 
     Namespace.Battleground.RegisterQueueStateListener('reset_logs', Private.DetectBattlegroundExit)
     Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm)
@@ -521,7 +543,8 @@ function Module.AutomaticallyPromoteTargetAssistant()
     if not data then return Addon:Print(L['Select a target and then run /bgca to add them to the auto assist list']) end
     if data.units.player then return end
 
-    Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticAssist[data.name] = true
+    Module:SetPlayerConfigValue(data.name, 'promoteToAssistant', true)
+    Addon:InitializePlayerConfig()
 
     if data.role == Role.Member then PromoteToAssistant(data.units.primary) end
 
@@ -533,7 +556,8 @@ function Module.AutomaticallyMarkTarget()
     if not data then return Addon:Print(L['Select a target and then run /bgcm to add them to the automatic marking list']) end
     if data.units.player then return end
 
-    Namespace.Database.profile.BattlegroundTools.LeaderTools.automaticIcon[data.name] = true
+    Module:SetPlayerConfigValue(data.name, 'markBehavior', MarkBehavior.AnyAvailable)
+    Addon:InitializePlayerConfig()
 
     Private.MarkRaidMembersIfLeadingBattleground()
 
@@ -635,7 +659,8 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     if config.wantLead then return end
-    if config.automaticallyAccept[sender] then
+    local giveLeadBehavior = Module:GetPlayerConfigValue(sender, 'giveLeadBehavior')
+    if giveLeadBehavior == GiveLeadBehavior.GiveLead then
         PromoteToLeader(sender)
         Addon:Print(format(L['Automatically giving lead to %s'], sender))
 
@@ -643,7 +668,7 @@ function Private.OnWantBattlegroundLead(_, _, _, sender)
     end
 
     local mem = Memory.WantBattlegroundLead
-    if config.automaticallyReject[sender] or mem.recentlyRejected[sender] then return end
+    if giveLeadBehavior == GiveLeadBehavior.RejectLead or mem.recentlyRejected[sender] then return end
 
     if not mem.requestedBy[sender] then
         mem.requestedBy[sender] = true
@@ -739,13 +764,12 @@ end
 function Private.AcceptManualBattlegroundLeaderRequest()
     local mem = Memory.WantBattlegroundLead
     local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
-    local automaticallyAccept = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.automaticallyAccept
 
     local forceHide = false
     Private.ProcessDropDownOptions(function (name)
         mem.requestedBy[name] = nil
         mem.requestedByCount = mem.requestedByCount - 1
-        if remember then automaticallyAccept[name] = true end
+        if remember then Module:SetPlayerConfigValue(name, 'giveLeadBehavior', GiveLeadBehavior.GiveLead) end
 
         PromoteToLeader(name)
         forceHide = true
@@ -759,14 +783,11 @@ end
 function Private.RejectManualBattlegroundLeaderRequest()
     local mem = Memory.WantBattlegroundLead
     local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
-    local automaticallyReject = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.automaticallyReject
     Private.ProcessDropDownOptions(function (name)
         mem.requestedBy[name] = nil
         mem.recentlyRejected[name] = true
         mem.requestedByCount = mem.requestedByCount - 1
-        if remember then
-            automaticallyReject[name] = true
-        end
+        if remember then Module:SetPlayerConfigValue(name, 'giveLeadBehavior', GiveLeadBehavior.RejectLead) end
 
         return false
     end)
@@ -948,4 +969,51 @@ end
 
 function Module:GetMarkerIndexSetting(markerIndex)
     return Namespace.Database.profile.BattlegroundTools.LeaderTools.availableIcons[markerIndex]
+end
+
+function Module:GetPlayerConfig(playerName)
+    return Namespace.Database.profile.BattlegroundTools.PlayerManagement[playerName]
+end
+
+function Module:GetPlayerConfigValue(playerName, configName)
+    local config = Namespace.Database.profile.BattlegroundTools.PlayerManagement[playerName]
+    if not config then return nil end
+
+    return config[configName]
+end
+
+function Module:SetPlayerConfigValue(playerName, configName, value)
+    local config = Namespace.Database.profile.BattlegroundTools.PlayerManagement[playerName] or self:CreatePlayerConfig(playerName)
+
+    config[configName] = value
+
+    Namespace.Libs.AceConfigRegistry:NotifyChange(AddonName)
+end
+
+function Module:CreatePlayerConfig(playerName)
+    local config = Namespace.Database.profile.BattlegroundTools
+
+    config.playerManagementIndex = config.playerManagementIndex + 1
+
+    local playerConfig = {
+        playerName = playerName,
+        groupLabel = playerName,
+        giveLeadBehavior = GiveLeadBehavior.NoAutomation,
+        MarkBehavior = MarkBehavior.NoMark,
+        promoteToAssistant = false,
+        preferredIcon = RaidIconIndex.NoIcon,
+        sortOrderIndex = config.playerManagementIndex
+    }
+
+    config.PlayerManagement[playerName] = playerConfig
+
+    return playerConfig
+end
+
+function Module:DeletePlayerConfig(playerName)
+    Namespace.Database.profile.BattlegroundTools.PlayerManagement[playerName] = nil
+end
+
+function Module:GetAllPlayerConfig()
+    return Namespace.Database.profile.BattlegroundTools.PlayerManagement
 end

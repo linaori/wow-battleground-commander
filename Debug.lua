@@ -8,6 +8,7 @@ local type, pairs, tostring, print, concat, select, date = type, pairs, tostring
 Namespace.Debug.enabled = true
 Namespace.Meta.version = '10.0.2-dev'
 Namespace.Meta.date = date('!%Y-%m-%dT%TZ')
+_G.BattlegroundCommander = Namespace
 --@end-debug@
 
 function Private.ToString(o)

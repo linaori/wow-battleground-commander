@@ -2,6 +2,7 @@ local LibStub, AddonName, Namespace = LibStub, ...
 
 local Settings = Settings
 local format = string.format
+local pairs = pairs
 
 local Memory = {
     OptionsFrames = {},
@@ -18,6 +19,7 @@ Namespace.Meta = {
 Namespace.Libs = {
     AceAddon = LibStub('AceAddon-3.0'),
     AceConfig = LibStub('AceConfig-3.0'),
+    AceConfigRegistry = LibStub('AceConfigRegistry-3.0'),
     AceConfigCmd = LibStub('AceConfigCmd-3.0'),
     AceConfigDialog = LibStub('AceConfigDialog-3.0'),
     AceDB = LibStub('AceDB-3.0'),
@@ -43,7 +45,6 @@ function Addon:OnInitialize()
 
     Namespace.Database = Namespace.Libs.AceDB:New('BattlegroundCommanderDatabase', Namespace.Config.GetDefaultConfiguration(), true)
     configurationSetup.args.Profiles = Namespace.Libs.AceDBOptions:GetOptionsTable(Namespace.Database)
-
     Namespace.Libs.AceConfig:RegisterOptionsTable(AddonName, configurationSetup)
 
     local ACD = Namespace.Libs.AceConfigDialog
@@ -68,6 +69,19 @@ function Addon:OnInitialize()
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'MigrateConfig')
 
     self:MigrateConfig()
+
+    Addon:InitializePlayerConfig()
+end
+
+function Addon:InitializePlayerConfig()
+    local configurationSetup = Namespace.Config.GetConfigurationSetup()
+
+    local PlayerManagement = configurationSetup.args.BattlegroundTools.args.PlayerManagement
+    for playerName, config in pairs(Namespace.BattlegroundTools:GetAllPlayerConfig()) do
+        PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
+    end
+
+    Namespace.Libs.AceConfigRegistry:NotifyChange(AddonName)
 end
 
 function Addon:MigrateConfig()
@@ -77,7 +91,46 @@ function Addon:MigrateConfig()
         inspectQueue.doReadyCheck = nil
     end
 
-    Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[0] = nil
+    local config = Namespace.Database.profile.BattlegroundTools
+    config.InstructionFrame.zones[0] = nil
+    config.LeaderTools.promoteListed = nil
+
+    local BattlegroundTools = Namespace.BattlegroundTools
+    if config.LeaderTools.automaticAssist then
+        for playerName, _ in pairs(config.LeaderTools.automaticAssist) do
+            BattlegroundTools:SetPlayerConfigValue(playerName, 'promoteToAssistant', true)
+            if config.LeaderTools.alsoMarkListedAssists then
+                BattlegroundTools:SetPlayerConfigValue(playerName, 'MarkBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
+            end
+        end
+
+        config.LeaderTools.alsoMarkListedAssists = nil
+        config.LeaderTools.automaticAssist = nil
+    end
+
+    if config.LeaderTools.automaticIcon then
+        for playerName, _ in pairs(config.LeaderTools.automaticIcon) do
+            BattlegroundTools:SetPlayerConfigValue(playerName, 'MarkBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
+        end
+
+        config.LeaderTools.automaticIcon = nil
+    end
+
+    if config.WantBattlegroundLead.automaticallyAccept then
+        for playerName, _ in pairs(config.WantBattlegroundLead.automaticallyAccept) do
+            BattlegroundTools:SetPlayerConfigValue(playerName, 'giveLeadBehavior', BattlegroundTools.GiveLeadBehavior.GiveLead)
+        end
+
+        config.WantBattlegroundLead.automaticallyAccept = nil
+    end
+
+    if config.WantBattlegroundLead.automaticallyReject then
+        for playerName, _ in pairs(config.WantBattlegroundLead.automaticallyReject) do
+            BattlegroundTools:SetPlayerConfigValue(playerName, 'giveLeadBehavior', BattlegroundTools.GiveLeadBehavior.RejectLead)
+        end
+
+        config.WantBattlegroundLead.automaticallyReject = nil
+    end
 end
 
 function Addon:OpenSettingsPanel()

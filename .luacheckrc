@@ -17,6 +17,7 @@ globals = {
     'BattlegroundCommanderDatabase',
 
     'C_ChatInfo',
+    'C_ClassColor',
     'C_UnitAuras',
     'CombatLogGetCurrentEventInfo',
     'CreateFrame',
@@ -59,7 +60,6 @@ globals = {
     'DEBUFF_MAX_DISPLAY',
     'LE_PARTY_CATEGORY_HOME',
     'LE_PARTY_CATEGORY_INSTANCE',
-    'RAID_CLASS_COLORS',
     'SOUNDKIT',
     'UNKNOWNOBJECT',
 
