@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-13',
+        bugs = {
+            'Fixed an issue where the new "BGC: Configure" option would show up in places it does not belong',
+        },
+    },
+    {
         version = '10.0.2-12',
         features = {
             'Added shortcuts in the config to configure players options: "Add player from group", "Add recently played with", "Add player by name"',
