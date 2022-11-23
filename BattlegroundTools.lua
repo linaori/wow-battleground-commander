@@ -530,13 +530,13 @@ function Module:OnEnable()
     Private.ApplyLogs(Memory.InstructionFrame.Text)
 
     Namespace.Libs.LibDropDownExtension:RegisterEvent('OnShow OnHide', function (dropdown, event, options)
+        local data = dropdown.unit and GetPlayerDataByUnit(dropdown.unit)
+        if not data then return end
+
         if event == 'OnShow' then
             options[1] = {
                 text = L['BGC: Configure'],
-                func = function ()
-                    local data = GetPlayerDataByUnit(dropdown.unit)
-                    Addon:OpenPlayerConfig(data and data.name or dropdown.name)
-                end
+                func = function () Addon:OpenPlayerConfig(data.name) end
             }
             return true
         elseif event == 'OnHide' then
