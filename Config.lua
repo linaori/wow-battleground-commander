@@ -126,6 +126,19 @@ function Namespace.Config.GetDefaultConfiguration()
     return Memory.DefaultConfiguration
 end
 
+function Namespace.Config.AddPlayerConfig(playerName)
+    local config
+    local playerData = Namespace.PlayerData.GetPlayerDataByName(playerName)
+    if playerData and playerData.classColor and not playerData.units.player then
+        config = Namespace.BattlegroundTools:GetPlayerConfig(playerName) or Namespace.BattlegroundTools:CreatePlayerConfig(playerName)
+        config.groupLabel = playerData.classColor:WrapTextInColorCode(playerName)
+
+        Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
+    end
+
+    Namespace.Libs.AceConfigRegistry:NotifyChange(AddonName)
+end
+
 function Namespace.Config.GetConfigurationSetup()
     if Memory.ConfigurationSetup then return Memory.ConfigurationSetup end
 
@@ -136,13 +149,7 @@ function Namespace.Config.GetConfigurationSetup()
     local LibSharedMediaBorders = Namespace.Libs.LibSharedMedia:HashTable('border')
 
     local function addPlayerConfig(_, playerName)
-        local config = Namespace.BattlegroundTools:CreatePlayerConfig(playerName)
-        local playerData = Namespace.PlayerData.GetPlayerDataByName(playerName)
-        if playerData and playerData.classColor then
-            config.groupLabel = playerData.classColor:WrapTextInColorCode(playerName)
-        end
-
-        Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
+        Namespace.Config.AddPlayerConfig(playerName)
     end
 
     Memory.ConfigurationSetup = {

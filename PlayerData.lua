@@ -139,7 +139,9 @@ function Namespace.PlayerData.RebuildRoleData()
 
     local roleChangeEvents = {}
     local eventIndex = 0
-    local leader, assists, members = nil, {}, {}
+    local leader
+    local assists = {}
+    local members = {}
     for guid, playerData in pairs(Memory.UnitPlayerData) do
         local unit = playerData.units.primary
         if UnitIsGroupLeader(unit) then

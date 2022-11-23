@@ -9,7 +9,6 @@ Namespace.BattlegroundTools = Module
 
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
-local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local Role = Namespace.PlayerData.Role
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
@@ -528,6 +527,18 @@ function Module:OnEnable()
     end
 
     Private.ApplyLogs(Memory.InstructionFrame.Text)
+
+    Namespace.Libs.LibDropDownExtension:RegisterEvent('OnShow OnHide', function (dropdown, event, options)
+        if event == 'OnShow' then
+            options[1] = {
+                text = L['BGC: Configure'],
+                func = function () Addon:OpenPlayerConfig(dropdown.name) end
+            }
+            return true
+        elseif event == 'OnHide' then
+            options[1] = nil
+        end
+    end, 1)
 end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
@@ -536,32 +547,6 @@ function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
     if not isLogin and not isReload then return end
 
     Private.RequestRaidLead()
-end
-
-function Module.AutomaticallyPromoteTargetAssistant()
-    local data = GetPlayerDataByUnit('target')
-    if not data then return Addon:Print(L['Select a target and then run /bgca to add them to the auto assist list']) end
-    if data.units.player then return end
-
-    Module:SetPlayerConfigValue(data.name, 'promoteToAssistant', true)
-    Addon:InitializePlayerConfig()
-
-    if data.role == Role.Member then PromoteToAssistant(data.units.primary) end
-
-    Addon:Print(format(L['%s will now automatically be promoted to assistant in battlegrounds'], data.name))
-end
-
-function Module.AutomaticallyMarkTarget()
-    local data = GetPlayerDataByUnit('target')
-    if not data then return Addon:Print(L['Select a target and then run /bgcm to add them to the automatic marking list']) end
-    if data.units.player then return end
-
-    Module:SetPlayerConfigValue(data.name, 'markBehavior', MarkBehavior.AnyAvailable)
-    Addon:InitializePlayerConfig()
-
-    Private.MarkRaidMembersIfLeadingBattleground()
-
-    Addon:Print(format(L['%s will now automatically be marked in battlegrounds'], data.name))
 end
 
 function Module:CHAT_MSG_RAID_WARNING(_, message)
@@ -986,8 +971,6 @@ function Module:SetPlayerConfigValue(playerName, configName, value)
     local config = Namespace.Database.profile.BattlegroundTools.PlayerManagement[playerName] or self:CreatePlayerConfig(playerName)
 
     config[configName] = value
-
-    Namespace.Libs.AceConfigRegistry:NotifyChange(AddonName)
 end
 
 function Module:CreatePlayerConfig(playerName)

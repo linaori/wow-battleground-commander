@@ -8,6 +8,7 @@ Namespace.Changelog = {
         },
         improvements = {
             'Reworked the config for player management. Each player now has a dedicated config section under "Battleground Tools -> Player Management"',
+            'Replaced /bgca and /bgcm by a right click context menu item: "BGC: Configure"'
         },
         bugs = {
             'Fixed a bug where the instruction frame did not properly update after reloading in a battleground',

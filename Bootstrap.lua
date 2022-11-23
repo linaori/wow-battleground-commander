@@ -30,6 +30,7 @@ Namespace.Libs = {
     LibSharedMedia = LibStub('LibSharedMedia-3.0'),
     ScrollingTable = LibStub('ScrollingTable'),
     LibDropDown = LibStub('LibUIDropDownMenu-4.0'),
+    LibDropDownExtension = LibStub('LibDropDownExtension-1.0'),
 }
 
 local Addon = Namespace.Libs.AceAddon:NewAddon(AddonName, 'AceConsole-3.0', 'AceEvent-3.0')
@@ -60,8 +61,6 @@ function Addon:OnInitialize()
     self:RegisterEvent('PARTY_LEADER_CHANGED', Namespace.PlayerData.RebuildRoleData)
 
     self:RegisterChatCommand('bgc', 'ChatCommand')
-    self:RegisterChatCommand('bgca', Namespace.BattlegroundTools.AutomaticallyPromoteTargetAssistant)
-    self:RegisterChatCommand('bgcm', Namespace.BattlegroundTools.AutomaticallyMarkTarget)
     self:RegisterChatCommand('battlegroundcommander', 'ChatCommand')
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'MigrateConfig')
@@ -135,6 +134,14 @@ end
 
 function Addon:OpenSettingsPanel()
     Settings.OpenToCategory(Memory.OptionsFrames.Information.name)
+end
+
+function Addon:OpenPlayerConfig(playerName)
+    Namespace.Config.AddPlayerConfig(playerName)
+
+    local ACD = Namespace.Libs.AceConfigDialog
+    ACD:Open('BattlegroundCommander', nil, 'BattlegroundTools', 'PlayerManagement')
+    ACD:SelectGroup('BattlegroundCommander', 'BattlegroundTools', 'PlayerManagement', playerName)
 end
 
 function Addon:ChatCommand(input)
