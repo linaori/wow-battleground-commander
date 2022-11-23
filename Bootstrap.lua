@@ -140,8 +140,8 @@ function Addon:OpenPlayerConfig(playerName)
     Namespace.Config.AddPlayerConfig(playerName)
 
     local ACD = Namespace.Libs.AceConfigDialog
-    ACD:Open('BattlegroundCommander', nil, 'BattlegroundTools', 'PlayerManagement')
-    ACD:SelectGroup('BattlegroundCommander', 'BattlegroundTools', 'PlayerManagement', playerName)
+    ACD:Open(AddonName, nil, 'BattlegroundTools', 'PlayerManagement')
+    ACD:SelectGroup(AddonName, 'BattlegroundTools', 'PlayerManagement', playerName)
 end
 
 function Addon:ChatCommand(input)

@@ -9,6 +9,7 @@ Namespace.BattlegroundTools = Module
 
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
+local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local Role = Namespace.PlayerData.Role
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local GroupType = Namespace.Utils.GroupType
@@ -532,7 +533,10 @@ function Module:OnEnable()
         if event == 'OnShow' then
             options[1] = {
                 text = L['BGC: Configure'],
-                func = function () Addon:OpenPlayerConfig(dropdown.name) end
+                func = function ()
+                    local data = GetPlayerDataByUnit(dropdown.unit)
+                    Addon:OpenPlayerConfig(data and data.name or dropdown.name)
+                end
             }
             return true
         elseif event == 'OnHide' then
