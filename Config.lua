@@ -684,14 +684,6 @@ function Namespace.Config.GetConfigurationSetup()
                                 set = addPlayerConfig,
                                 order = 2,
                             },
-                            addPlayerInput = {
-                                name = L['Add player by name'],
-                                type = 'input',
-                                width = 1.2,
-                                get = function () end,
-                                set = addPlayerConfig,
-                                order = 3,
-                            },
                         }
                     }
                 },

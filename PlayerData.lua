@@ -201,7 +201,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                     name = GetRealUnitName(unit),
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
-                    units = {primary = unit, [unit] = true},
+                    units = { primary = unit, [unit] = true },
                     battlegroundStatus = BattlegroundStatus.Nothing,
                     roleCheckStatus = RoleCheckStatus.Nothing,
                     isConnected = UnitIsConnected(unit),
