@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-14',
+        features = {
+            'Added a preferred icon for player configuration. When configured and you get lead, the player will be marked with the selected icon, or get another available icon if available. Players with a preferred icon will take precedence over players with "any available icon"',
+        },
+    },
+    {
         version = '10.0.2-13',
         bugs = {
             'Fixed an issue where the new "BGC: Configure" option would show up in places it does not belong',

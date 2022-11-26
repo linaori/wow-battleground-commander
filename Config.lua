@@ -39,7 +39,7 @@ local Memory = {
                     --     playerName = 'name-realm',
                     --     groupLabel = 'class color name',
                     --     giveLeadBehavior = GiveLeadBehavior,
-                    --     MarkBehavior = MarkBehavior,
+                    --     markBehavior = MarkBehavior,
                     --     promoteToAssistant = boolean,
                     --     preferredIcon = iconIndex,
                     --     sortOrderIndex = number,
@@ -605,8 +605,8 @@ function Namespace.Config.GetConfigurationSetup()
                                 order = 3,
                             },
                             availableIcons = {
-                                name = L['Available Icons'],
-                                desc = L['Available Icons to automatically mark people with'],
+                                name = L['Available icons'],
+                                desc = L['Available icons to automatically mark people with'],
                                 type = 'multiselect',
                                 values = {
                                     [RaidIconIndex.YellowStar] = RaidIconChatTexture.YellowStar,
@@ -808,48 +808,48 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                 style = 'radio',
                 values = {
                     [GiveLeadBehavior.NoAutomation] = L['No automation'],
-                    [GiveLeadBehavior.GiveLead] = L['Give Lead'],
-                    [GiveLeadBehavior.RejectLead] = L['Reject Lead'],
+                    [GiveLeadBehavior.GiveLead] = L['Give lead'],
+                    [GiveLeadBehavior.RejectLead] = L['Reject lead'],
                 },
                 set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'giveLeadBehavior', value) end,
                 get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'giveLeadBehavior') end,
                 order = 4,
             },
-            MarkBehavior = {
+            markBehavior = {
                 name = L['Mark this player'],
                 type = 'select',
                 style = 'radio',
                 values = {
                     [MarkBehavior.NoMark] = L['Do not mark'],
-                    [MarkBehavior.AnyAvailable] = L['Any available Icon'],
-                    --[MarkBehavior.PreferredMark] = L['Preferred Icon'],
+                    [MarkBehavior.AnyAvailable] = L['Any available icon'],
+                    [MarkBehavior.PreferredMark] = L['Preferred icon'],
                 },
                 set = function (_, value)
-                    --Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[config.playerName].args.preferredIcon.disabled = value ~= MarkBehavior.PreferredMark
-                    Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'MarkBehavior', value)
+                    Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[config.playerName].args.preferredIcon.disabled = value ~= MarkBehavior.PreferredMark
+                    Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'markBehavior', value)
                 end,
-                get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'MarkBehavior') end,
+                get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'markBehavior') end,
                 order = 5,
             },
-            --preferredIcon = {
-            --    name = L['Preferred Icon'],
-            --    desc = L['Try to mark with this icon. If this icon is not available, a random icon will be used'],
-            --    type = 'select',
-            --    disabled = config.MarkBehavior ~= MarkBehavior.PreferredMark,
-            --    values = {
-            --        [RaidIconIndex.YellowStar] = RaidIconChatTexture.YellowStar,
-            --        [RaidIconIndex.OrangeCircle] = RaidIconChatTexture.OrangeCircle,
-            --        [RaidIconIndex.PurpleDiamond] = RaidIconChatTexture.PurpleDiamond,
-            --        [RaidIconIndex.GreenTriangle] = RaidIconChatTexture.GreenTriangle,
-            --        [RaidIconIndex.SilverMoon] = RaidIconChatTexture.SilverMoon,
-            --        [RaidIconIndex.BlueSquare] = RaidIconChatTexture.BlueSquare,
-            --        [RaidIconIndex.RedCross] = RaidIconChatTexture.RedCross,
-            --        [RaidIconIndex.WhiteSkull] = RaidIconChatTexture.WhiteSkull,
-            --    },
-            --    set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'preferredIcon', value) end,
-            --    get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'preferredIcon') end,
-            --    order = 7,
-            --},
+            preferredIcon = {
+                name = L['Preferred icon'],
+                desc = L['Try to mark with this icon. If this icon is not available, a random icon will be used'],
+                type = 'select',
+                disabled = config.markBehavior ~= MarkBehavior.PreferredMark,
+                values = {
+                    [RaidIconIndex.YellowStar] = RaidIconChatTexture.YellowStar,
+                    [RaidIconIndex.OrangeCircle] = RaidIconChatTexture.OrangeCircle,
+                    [RaidIconIndex.PurpleDiamond] = RaidIconChatTexture.PurpleDiamond,
+                    [RaidIconIndex.GreenTriangle] = RaidIconChatTexture.GreenTriangle,
+                    [RaidIconIndex.SilverMoon] = RaidIconChatTexture.SilverMoon,
+                    [RaidIconIndex.BlueSquare] = RaidIconChatTexture.BlueSquare,
+                    [RaidIconIndex.RedCross] = RaidIconChatTexture.RedCross,
+                    [RaidIconIndex.WhiteSkull] = RaidIconChatTexture.WhiteSkull,
+                },
+                set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'preferredIcon', value) end,
+                get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'preferredIcon') end,
+                order = 7,
+            },
         }
     }
 end

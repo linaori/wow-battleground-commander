@@ -7,6 +7,7 @@ local LibDD = Namespace.Libs.LibDropDown
 
 Namespace.BattlegroundTools = Module
 
+local TimeDiff = Namespace.Utils.TimeDiff
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
@@ -36,11 +37,11 @@ local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
 local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local concat = table.concat
+local sort = table.sort
 local format = string.format
 local floor = math.floor
 local min = math.min
 local pairs = pairs
-local TimeDiff = Namespace.Utils.TimeDiff
 
 local CommunicationEvent = {
     WantBattlegroundLead = 'bgc:wantLead',
@@ -351,6 +352,7 @@ function Private.UpdateRaidLeaderIconListener(playerData, _, newRole)
     if newRole ~= Role.Leader or not playerData.units.player then return end
     if not InActiveBattleground() then return end
 
+    Memory.iconSlots = {}
     Private.MarkRaidMembers()
 end
 
@@ -358,8 +360,6 @@ end
 function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _, newRole)
     if newRole ~= Role.Leader or not playerData.units.player then return end
     if not InActiveBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
-
-    Private.InitializeIconSlots()
 
     local demoteUnlisted = Namespace.Database.profile.BattlegroundTools.LeaderTools.demoteUnlisted
     ForEachUnitData(function (data)
@@ -385,43 +385,64 @@ function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRol
     end
 end
 
-function Private.SetPlayerIcon(playerName, unit)
-    for iconIndex, usable in pairs(Memory.iconSlots) do
-        if usable == true then
-            SetRaidTarget(unit, iconIndex)
-            Memory.iconSlots[iconIndex] = playerName
+function Private.MarkRaidMembers()
+    local preferMarks = {}
+    local preferredFallback = {}
+    local remainingMarked = {}
 
-            Addon:Print(format(L['Marked %s with %s'], playerName, format([[|TInterface\TargetingFrame\UI-RaidTargetingIcon_%d:16:16|t]], iconIndex)))
+    local leaderIcon = Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon
+
+    ForEachUnitData(function(data)
+        local name = data.name
+        if data.units.player then
+            preferMarks[leaderIcon] = { name = name, unit = 'player' }
             return
         end
-    end
-end
 
-function Private.CountAvailableMarks()
-    local count = 0
-    for _, name in pairs(Memory.iconSlots) do
-        if name == true then
-            count = count + 1
-        end
-    end
-
-    return count
-end
-
-function Private.MarkRaidMembers()
-    local marksLeft = Private.CountAvailableMarks()
-
-    SetRaidTarget('player', Namespace.Database.profile.BattlegroundTools.LeaderTools.leaderIcon)
-
-    ForEachUnitData(function(playerData)
-        if marksLeft == 0 then return end
-
-        local name = playerData.name
-        if Module:GetPlayerConfigValue(name, 'markBehavior') == MarkBehavior.AnyAvailable then
-            marksLeft = marksLeft - 1
-            Private.SetPlayerIcon(name, playerData.units.primary)
+        local behavior =  Module:GetPlayerConfigValue(name, 'markBehavior')
+        if behavior == MarkBehavior.PreferredMark then
+            local preferredIcon = Module:GetPlayerConfigValue(name, 'preferredIcon')
+            if preferredIcon and not preferMarks[preferredIcon] then
+                preferMarks[preferredIcon] = { name = name, unit = data.units.primary }
+            else
+                preferredFallback[#preferredFallback + 1] = { name = name, unit = data.units.primary }
+            end
+        elseif behavior == MarkBehavior.AnyAvailable then
+            remainingMarked[#remainingMarked + 1] = { name = name, unit = data.units.primary }
         end
     end)
+
+    sort(preferredFallback)
+    sort(remainingMarked)
+
+    local fallbackIndex = 1
+    local remainingIndex = 1
+    local leaderTools = Namespace.Database.profile.BattlegroundTools.LeaderTools.availableIcons
+    for iconIndex = 1, 8 do
+        if not preferMarks[iconIndex] and leaderTools[iconIndex] then
+            if preferredFallback[fallbackIndex] then
+                preferMarks[iconIndex] = preferredFallback[fallbackIndex]
+                fallbackIndex = fallbackIndex + 1
+            elseif remainingMarked[remainingIndex] then
+                preferMarks[iconIndex] = remainingMarked[remainingIndex]
+                remainingIndex = remainingIndex + 1
+            end
+        end
+
+        if preferMarks[iconIndex] then
+            local proposedIcon = preferMarks[iconIndex]
+            local unit = proposedIcon.unit
+            local name = proposedIcon.name
+            if Memory.iconSlots[iconIndex] ~= name then
+                Memory.iconSlots[iconIndex] = name
+                SetRaidTarget(unit, iconIndex)
+
+                if unit ~= 'player' then
+                    Addon:Print(format(L['Marked %s with %s'], name, format([[|TInterface\TargetingFrame\UI-RaidTargetingIcon_%d:16:16|t]], iconIndex)))
+                end
+            end
+        end
+    end
 end
 
 function Private.MarkRaidMembersIfLeadingBattleground()
@@ -477,21 +498,6 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, ma
 
     Private.TriggerUpdateInstructionFrame()
     Private.RequestRaidLead()
-end
-
-function Private.InitializeIconSlots()
-    local availableIcons = Namespace.Database.profile.BattlegroundTools.LeaderTools.availableIcons
-
-    Memory.iconSlots = {
-        [1] = availableIcons[1],
-        [2] = availableIcons[2],
-        [3] = availableIcons[3],
-        [4] = availableIcons[4],
-        [5] = availableIcons[5],
-        [6] = availableIcons[6],
-        [7] = availableIcons[7],
-        [8] = availableIcons[8],
-    }
 end
 
 function Module:OnEnable()
@@ -937,12 +943,12 @@ function Module:SetLeaderToolsSetting(key, value)
         local oldValue = config.leaderIcon
         config.availableIcons[oldValue] = config.availableIcons[value]
         config.availableIcons[value] = false
+
+        Memory.iconSlots = {}
+        Private.MarkRaidMembersIfLeadingBattleground()
     end
 
     config[key] = value
-
-    Private.InitializeIconSlots()
-    Private.MarkRaidMembersIfLeadingBattleground()
 end
 
 function Module:GetLeaderToolsSetting(key)
@@ -975,6 +981,11 @@ function Module:SetPlayerConfigValue(playerName, configName, value)
     local config = Namespace.Database.profile.BattlegroundTools.PlayerManagement[playerName] or self:CreatePlayerConfig(playerName)
 
     config[configName] = value
+
+    if configName == 'markBehavior' or configName == 'preferredIcon' then
+        Memory.iconSlots = {}
+        Private.MarkRaidMembersIfLeadingBattleground()
+    end
 end
 
 function Module:CreatePlayerConfig(playerName)
@@ -986,7 +997,7 @@ function Module:CreatePlayerConfig(playerName)
         playerName = playerName,
         groupLabel = playerName,
         giveLeadBehavior = GiveLeadBehavior.NoAutomation,
-        MarkBehavior = MarkBehavior.NoMark,
+        markBehavior = MarkBehavior.NoMark,
         promoteToAssistant = false,
         preferredIcon = RaidIconIndex.NoIcon,
         sortOrderIndex = config.playerManagementIndex

@@ -77,6 +77,12 @@ function Addon:InitializePlayerConfig()
 
     local PlayerManagement = configurationSetup.args.BattlegroundTools.args.PlayerManagement
     for playerName, config in pairs(Namespace.BattlegroundTools:GetAllPlayerConfig()) do
+        if config.MarkBehavior then
+            -- fix config typo, to be removed at a later date
+            config.markBehavior = config.MarkBehavior
+            config.MarkBehavior = nil
+        end
+
         PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
     end
 
@@ -99,7 +105,7 @@ function Addon:MigrateConfig()
         for playerName, _ in pairs(config.LeaderTools.automaticAssist) do
             BattlegroundTools:SetPlayerConfigValue(playerName, 'promoteToAssistant', true)
             if config.LeaderTools.alsoMarkListedAssists then
-                BattlegroundTools:SetPlayerConfigValue(playerName, 'MarkBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
+                BattlegroundTools:SetPlayerConfigValue(playerName, 'markBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
             end
         end
 
@@ -109,7 +115,7 @@ function Addon:MigrateConfig()
 
     if config.LeaderTools.automaticIcon then
         for playerName, _ in pairs(config.LeaderTools.automaticIcon) do
-            BattlegroundTools:SetPlayerConfigValue(playerName, 'MarkBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
+            BattlegroundTools:SetPlayerConfigValue(playerName, 'markBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
         end
 
         config.LeaderTools.automaticIcon = nil

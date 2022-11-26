@@ -19,6 +19,7 @@ local GetClassColor = C_ClassColor.GetClassColor
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local pairs = pairs
 local unpack = unpack
+local sort = table.sort
 
 local PlayerDataTargets = {
     solo = {'player'},
@@ -226,6 +227,8 @@ function Namespace.PlayerData.RebuildPlayerData()
             unitIndexedPlayerData[unit] = data
         end
     end
+
+    sort(unitPlayerData)
 
     Memory.UnitIndexPlayerData = unitIndexedPlayerData
     Memory.UnitPlayerData = unitPlayerData
