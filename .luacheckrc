@@ -18,6 +18,7 @@ globals = {
 
     'C_ChatInfo',
     'C_ClassColor',
+    'C_PvP',
     'C_UnitAuras',
     'CombatLogGetCurrentEventInfo',
     'CreateFrame',
@@ -54,6 +55,7 @@ globals = {
     'UnitIsConnected',
     'UnitIsGroupAssistant',
     'UnitIsGroupLeader',
+    'UnitIsMercenary',
     'UnitIsPlayer',
     'UnitNameUnmodified',
 

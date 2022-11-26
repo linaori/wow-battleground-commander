@@ -238,6 +238,12 @@ function Private.CreateTableRow(data)
                 return L['no']
             end
 
+            -- it's a guesstimate
+            if timeDiff.fullMinutes > 60 then
+                columnData.color = ColorList.UnknownClass
+                return L['yes']
+            end
+
             if timeDiff.fullMinutes < 4 then
                 columnData.color = ColorList.Bad
             elseif timeDiff.fullMinutes < 9 then

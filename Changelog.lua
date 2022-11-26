@@ -2,6 +2,15 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-15',
+        improvements = {
+            'Added basic mercenary detection for players without Battleground Commander. It will not show the remaining time as it is only known whether or not mercenary mode is active',
+        },
+        bugs = {
+            'Features relying on "active battleground" detection should no longer trigger after the match finished while not exiting yet (during score screen)',
+        },
+    },
+    {
         version = '10.0.2-14',
         features = {
             'Added a preferred icon for player configuration. When configured and you get lead, the player will be marked with the selected icon, or get another available icon if available. Players with a preferred icon will take precedence over players with "any available icon"',

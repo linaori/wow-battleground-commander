@@ -8,12 +8,14 @@ local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local GetRealUnitName = Namespace.Utils.GetRealUnitName
+local GetTime = GetTime
 local UnitIsPlayer = UnitIsPlayer
 local UnitGUID = UnitGUID
 local UnitExists = UnitExists
 local UnitIsConnected = UnitIsConnected
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
+local UnitIsMercenary = UnitIsMercenary
 local UnitClass = UnitClass
 local GetClassColor = C_ClassColor.GetClassColor
 local UNKNOWNOBJECT = UNKNOWNOBJECT
@@ -190,6 +192,7 @@ function Namespace.PlayerData.RebuildPlayerData()
 
     local unitIndexedPlayerData = {}
     local unitPlayerData = {}
+    local currentTime = GetTime()
     for _, unit in pairs(Private.GetUnitListForCurrentGroupType()) do
         if UnitExists(unit) and UnitIsPlayer(unit) then
             local dataIndex = UnitGUID(unit)
@@ -201,6 +204,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                     name = GetRealUnitName(unit),
                     readyState = ReadyCheckState.Nothing,
                     deserterExpiry = -1,
+                    mercenaryExpiry = UnitIsMercenary(unit) and currentTime + 99999 or -1,
                     units = { primary = unit, [unit] = true },
                     battlegroundStatus = BattlegroundStatus.Nothing,
                     roleCheckStatus = RoleCheckStatus.Nothing,
@@ -216,6 +220,9 @@ function Namespace.PlayerData.RebuildPlayerData()
                 data.units[unit] = true
 
                 if not data.units.primary then
+                    if UnitIsMercenary(unit) and (data.mercenaryExpiry == -1 or data.mercenaryExpiry < currentTime)  then
+                        data.mercenaryExpiry = currentTime + 99999
+                    end
                     data.role = UnitIsGroupLeader(unit) and Role.Leader or UnitIsGroupAssistant(unit) and Role.Assist or Role.Member
                     data.units.primary = unit
                     data.name = GetRealUnitName(unit)

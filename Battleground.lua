@@ -7,6 +7,7 @@ local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local GetBattlefieldStatus = GetBattlefieldStatus
 local GetInstanceInfo = GetInstanceInfo
 local GetMaxBattlefieldID = GetMaxBattlefieldID
+local GetActiveMatchState = C_PvP.GetActiveMatchState
 local pairs = pairs
 
 Namespace.Battleground = Public
@@ -17,6 +18,12 @@ local QueueStatus = {
     Active = 'active',
     None = 'none',
     Error = 'error',
+}
+
+local ActiveMatchState = {
+    Nothing = 0,
+    Active = 1,
+    Score = 2,
 }
 
 local Zones = {
@@ -44,7 +51,6 @@ local Zones = {
 
 Namespace.Battleground.QueueStatus = QueueStatus
 Namespace.Battleground.Zones = Zones
-
 local Memory = {
     currentZoneId = nil,
     queueState = {
@@ -63,13 +69,7 @@ function Public.RegisterQueueStateListener(listenerName, callback)
 end
 
 function Public.InActiveBattleground()
-    for _, queueState in pairs(Memory.queueState) do
-        if queueState.status == QueueStatus.Active then
-            return true
-        end
-    end
-
-    return false
+    return GetActiveMatchState() == ActiveMatchState.Active
 end
 
 function Private.InitCurrentZoneId()
