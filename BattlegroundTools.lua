@@ -523,7 +523,7 @@ function Module:OnEnable()
     Namespace.PlayerData.RegisterOnUpdate('update_player_config_labels', Private.UpdatePlayerConfigLabels)
 
     Namespace.Battleground.RegisterQueueStateListener('reset_logs', Private.DetectBattlegroundExit)
-    Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm)
+    Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_raid_lead_info', Private.DetectBattlegroundEntryAfterConfirm)
 
     self:RefreshConfig()
 

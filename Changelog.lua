@@ -8,6 +8,7 @@ Namespace.Changelog = {
         },
         bugs = {
             'Features relying on "active battleground" detection should no longer trigger after the match finished while not exiting yet (during score screen)',
+            'Fixed a bug where the "status" column was not set to "OK" after entering for group members',
         },
     },
     {
