@@ -54,7 +54,8 @@ local locale = GetLocale()
 
 local SpellIds = {
     DeserterDebuff = 26013,
-    MercenaryContractBuff = 193475,
+    MercenaryContractAlliance = 193472,
+    MercenaryContractHorde = 193475,
 }
 
 local tableStructure = {
@@ -129,9 +130,14 @@ end
 function Private.ScheduleSendSyncData()
     local shouldSchedule = Memory.syncDataPayloadBuffer == nil
 
+    local remainingMercenary = Private.GetRemainingAuraTime(SpellIds.MercenaryContractHorde)
+    if remainingMercenary == -1 then
+        remainingMercenary = Private.GetRemainingAuraTime(SpellIds.MercenaryContractAlliance)
+    end
+
     Memory.syncDataPayloadBuffer = {
         addonVersion = Namespace.Meta.version,
-        remainingMercenary = Private.GetRemainingAuraTime(SpellIds.MercenaryContractBuff),
+        remainingMercenary = remainingMercenary,
         remainingDeserter = Private.GetRemainingAuraTime(SpellIds.DeserterDebuff),
         autoAcceptRole = Namespace.Database.profile.QueueTools.Automation.acceptRoleSelection,
     }
@@ -815,7 +821,7 @@ end
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
     local _, _, _, _, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
 
-    if spellId ~= SpellIds.MercenaryContractBuff then return end
+    if spellId ~= SpellIds.MercenaryContractHorde and spellId ~= SpellIds.MercenaryContractAlliance then return end
     Private.ScheduleSendSyncData()
 end
 

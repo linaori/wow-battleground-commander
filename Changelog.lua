@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.2-16',
+        improvements = {
+            'Added mercenary buff support for alliance',
+        },
+    },
+    {
         version = '10.0.2-15',
         improvements = {
             'Added basic mercenary detection for players without Battleground Commander. It will not show the remaining time as it is only known whether or not mercenary mode is active',
