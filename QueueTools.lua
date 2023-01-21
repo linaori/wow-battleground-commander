@@ -6,6 +6,7 @@ local ScrollingTable = Namespace.Libs.ScrollingTable
 
 Namespace.QueueTools = Module
 
+local Faction = Namespace.PlayerData.Faction
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
@@ -26,6 +27,7 @@ local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
 local AllowQueuePause = Namespace.Battleground.AllowQueuePause
 local QueueStatus = Namespace.Battleground.QueueStatus
+local CreateAtlasMarkup = CreateAtlasMarkup
 local DoReadyCheck = DoReadyCheck
 local GetInstanceInfo = GetInstanceInfo
 local CreateFrame = CreateFrame
@@ -83,6 +85,11 @@ local tableStructure = {
         name = ' ' .. L['Status'],
         width = 75,
         align = 'CENTER',
+    },
+    {
+        name = '',
+        width = 22,
+        align = 'LEFT',
     }
 }
 
@@ -188,9 +195,9 @@ function Private.CreateTableRow(data)
     local indexColumn = {
         value = function ()
             if data.role == Role.Leader then
-                return [[|TInterface\GroupFrame\UI-Group-LeaderIcon:16|t]]
+                return [[|TInterface\GroupFrame\UI-Group-LeaderIcon:17|t]]
             elseif data.role == Role.Assist then
-                return [[|TInterface\GroupFrame\UI-Group-AssistantIcon:16|t]]
+                return [[|TInterface\GroupFrame\UI-Group-AssistantIcon:17|t]]
             end
 
             return ''
@@ -237,12 +244,13 @@ function Private.CreateTableRow(data)
             local currentTime = GetTime()
             local leader = GetGroupLeaderData()
             local timeDiff = TimeDiff(data.mercenaryExpiry, currentTime)
+            local shouldCheckStatus = data ~= leader and data.faction == (leader or data).faction
             local leaderHasMercenary = (leader or data).mercenaryExpiry > currentTime
 
             columnData.color = nil
 
             if timeDiff.fullSeconds < 1 then
-                if data ~= leader and leaderHasMercenary then
+                if shouldCheckStatus and leaderHasMercenary then
                     columnData.color = ColorList.Bad
                 end
 
@@ -251,7 +259,7 @@ function Private.CreateTableRow(data)
 
             -- it's a guesstimate
             if timeDiff.fullMinutes > 60 then
-                if data ~= leader and not leaderHasMercenary then
+                if shouldCheckStatus and not leaderHasMercenary then
                     columnData.color = ColorList.Bad
                 else
                     columnData.color = ColorList.UnknownClass
@@ -260,7 +268,7 @@ function Private.CreateTableRow(data)
                 return L['yes']
             end
 
-            if data ~= leader and not leaderHasMercenary then
+            if shouldCheckStatus and not leaderHasMercenary then
                 columnData.color = ColorList.Bad
 
                 return L['yes']
@@ -339,12 +347,28 @@ function Private.CreateTableRow(data)
         end,
     }
 
+    local factionColumn = {
+        value = function ()
+            local faction = data.faction
+            if faction == Faction.Horde then
+                return CreateAtlasMarkup('Warfronts-FieldMapIcons-Horde-Banner-Minimap', 20, 20)
+            end
+
+            if faction == Faction.Alliance then
+                return CreateAtlasMarkup('Warfronts-FieldMapIcons-Alliance-Banner-Minimap', 20, 20)
+            end
+
+            return CreateAtlasMarkup('Warfronts-FieldMapIcons-Empty-Banner-Minimap', 20, 20)
+        end,
+    }
+
     return { cols = {
         indexColumn,
         nameColumn,
         autoAcceptRoleColumn,
         mercenaryColumn,
         readyCheckColumn,
+        factionColumn,
     }, originalData = data }
 end
 
@@ -933,7 +957,7 @@ function Private.InitializeGroupQueueFrame()
     local playerTable = ScrollingTable:CreateST(tableStructure, 14, 24, nil, queueFrame)
     playerTable.frame:SetBackdropColor(0, 0, 0, 0)
     playerTable.frame:SetBackdropBorderColor(0, 0, 0, 0)
-    playerTable.frame:SetPoint('TOPRIGHT', -4, -58)
+    playerTable.frame:SetPoint('TOPLEFT', 2, -58)
     playerTable:RegisterEvents({
         onEnter = function (rowFrame, _, data, _, _, realRow, _)
             if not data[realRow] then return end

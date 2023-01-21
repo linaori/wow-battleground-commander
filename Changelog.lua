@@ -5,6 +5,7 @@ Namespace.Changelog = {
         version = '10.0.2-17',
         improvements = {
             'Mercenary color in Group Information will now show a red color for players who do not have the same mercenary status as the leader',
+            'The faction of a player is now show in the Group Information table',
         },
     },
     {

@@ -10,8 +10,9 @@ local GetGroupType = Namespace.Utils.GetGroupType
 local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local GetTime = GetTime
 local UnitIsPlayer = UnitIsPlayer
-local UnitGUID = UnitGUID
 local UnitExists = UnitExists
+local UnitFactionGroup = UnitFactionGroup
+local UnitGUID = UnitGUID
 local UnitIsConnected = UnitIsConnected
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
@@ -34,13 +35,22 @@ local PlayerDataTargets = {
         'player', 'party1', 'party2', 'party3', 'party4',
     },
 }
+
 local Role = {
     Member = 'Member',
     Assist = 'Assist',
     Leader = 'Leader',
 }
 
+local Faction = {
+    Horde = 'Horde',
+    Alliance = 'Alliance',
+    Neutral = 'Neutral',
+    None = nil,
+}
+
 Namespace.PlayerData.Role = Role
+Namespace.PlayerData.Faction = Faction
 
 local Memory = {
     lastKnownGroupType = GetGroupType(),
@@ -211,7 +221,8 @@ function Namespace.PlayerData.RebuildPlayerData()
                     isConnected = UnitIsConnected(unit),
                     role = UnitIsGroupLeader(unit) and Role.Leader or UnitIsGroupAssistant(unit) and Role.Assist or Role.Member,
                     class = class,
-                    classColor =  class and GetClassColor(class) or nil
+                    classColor = class and GetClassColor(class) or nil,
+                    faction = UnitFactionGroup(unit)
                 }
 
                 Memory.AllPlayerData[dataIndex] = data
@@ -220,7 +231,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                 data.units[unit] = true
 
                 if not data.units.primary then
-                    if UnitIsMercenary(unit) and (data.mercenaryExpiry == -1 or data.mercenaryExpiry < currentTime)  then
+                    if (data.mercenaryExpiry == -1 or data.mercenaryExpiry < currentTime) and UnitIsMercenary(unit) then
                         data.mercenaryExpiry = currentTime + 99999
                     end
                     data.role = UnitIsGroupLeader(unit) and Role.Leader or UnitIsGroupAssistant(unit) and Role.Assist or Role.Member
