@@ -8,6 +8,7 @@ Namespace.QueueTools = Module
 
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
+local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
 local RebuildPlayerData = Namespace.PlayerData.RebuildPlayerData
 local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
 local RefreshMissingData = Namespace.PlayerData.RefreshMissingData
@@ -233,20 +234,35 @@ function Private.CreateTableRow(data)
     local mercenaryColumn = {
         value = function(tableData, _, realRow, column)
             local columnData = tableData[realRow].cols[column]
-            if not data.mercenaryExpiry then
-                columnData.color = ColorList.Warning
-                return '?'
-            end
+            local currentTime = GetTime()
+            local leader = GetGroupLeaderData()
+            local timeDiff = TimeDiff(data.mercenaryExpiry, currentTime)
+            local leaderHasMercenary = (leader or data).mercenaryExpiry > currentTime
 
             columnData.color = nil
-            local timeDiff = TimeDiff(data.mercenaryExpiry, GetTime())
+
             if timeDiff.fullSeconds < 1 then
+                if data ~= leader and leaderHasMercenary then
+                    columnData.color = ColorList.Bad
+                end
+
                 return L['no']
             end
 
             -- it's a guesstimate
             if timeDiff.fullMinutes > 60 then
-                columnData.color = ColorList.UnknownClass
+                if data ~= leader and not leaderHasMercenary then
+                    columnData.color = ColorList.Bad
+                else
+                    columnData.color = ColorList.UnknownClass
+                end
+
+                return L['yes']
+            end
+
+            if data ~= leader and not leaderHasMercenary then
+                columnData.color = ColorList.Bad
+
                 return L['yes']
             end
 
