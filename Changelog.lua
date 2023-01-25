@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-18',
+        improvements = {
+            'Updated TOC for 10.0.5',
+        },
+    },
+    {
         version = '10.0.2-17',
         improvements = {
             'Mercenary color in Group Information will now show a red color for players who do not have the same mercenary status as the leader',

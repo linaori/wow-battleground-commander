@@ -222,7 +222,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                     role = UnitIsGroupLeader(unit) and Role.Leader or UnitIsGroupAssistant(unit) and Role.Assist or Role.Member,
                     class = class,
                     classColor = class and GetClassColor(class) or nil,
-                    faction = UnitFactionGroup(unit)
+                    faction = UnitFactionGroup(unit),
                 }
 
                 Memory.AllPlayerData[dataIndex] = data
