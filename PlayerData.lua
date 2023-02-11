@@ -238,6 +238,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                     data.units.primary = unit
                     data.name = GetRealUnitName(unit)
                     data.isConnected = UnitIsConnected(unit)
+                    data.faction = UnitFactionGroup(unit)
                 end
             end
 

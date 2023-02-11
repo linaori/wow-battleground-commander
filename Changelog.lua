@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-19',
+        bugs = {
+            'Fixed an issue with the faction color sometimes not being set properly',
+        },
+    },
+    {
         version = '10.0.5-18',
         improvements = {
             'Updated TOC for 10.0.5',
