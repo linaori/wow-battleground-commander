@@ -5,6 +5,7 @@ Namespace.Changelog = {
         version = '10.0.5-19',
         bugs = {
             'Fixed an issue with the faction color sometimes not being set properly',
+            'Fixed an issue with the group information frame scrollbar ending up outside the window',
         },
     },
     {

@@ -939,9 +939,13 @@ end
 
 function Private.InitializeGroupQueueFrame()
     local PVPUIFrame = _G.PVPUIFrame
-
     local queueFrame = CreateFrame('Frame', 'BgcQueueFrame', PVPUIFrame, 'ButtonFrameTemplate')
-    queueFrame:SetSize(350, PVPUIFrame:GetHeight() - 2)
+    local width = 36
+    for _, header in pairs(tableStructure) do
+        width = width + header.width
+    end
+
+    queueFrame:SetSize(width, PVPUIFrame:GetHeight() - 2)
     queueFrame:SetPoint('TOPLEFT', PVPUIFrame, 'TOPRIGHT', 11, 0)
     queueFrame:SetPoint('BOTTOMLEFT', PVPUIFrame, 'BOTTOMRIGHT', 11, 0)
     queueFrame:SetTitle(L['Group Information'])
