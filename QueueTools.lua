@@ -68,7 +68,7 @@ local tableStructure = {
     },
     {
         name = '',
-        width = 125,
+        width = 110,
         align = 'LEFT',
     },
     {
@@ -78,7 +78,7 @@ local tableStructure = {
     },
     {
         name = ' ' .. L['Merc'],
-        width = 40,
+        width = 50,
         align = 'CENTER',
     },
     {
@@ -988,7 +988,7 @@ function Private.InitializeGroupQueueFrame()
     local readyCheckButton = CreateFrame('Button', 'BgcReadyCheckButton', queueFrame, 'UIPanelButtonTemplate')
     readyCheckButton:SetText(L['Ready Check'])
     readyCheckButton:SetPoint('BOTTOM', 0, 3)
-    readyCheckButton:SetSize(120, 22)
+    readyCheckButton:SetSize(144, 22)
     readyCheckButton:SetScript('OnClick', function () DoReadyCheck() end)
     readyCheckButton:SetEnabled(false)
 

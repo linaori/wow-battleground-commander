@@ -2,6 +2,13 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-20',
+        improvements = {
+            'Added some German translations (OmarJAH)',
+            'Tweaked some button and table widths to accommodate other languages',
+        },
+    },
+    {
         version = '10.0.5-19',
         bugs = {
             'Fixed an issue with the faction color sometimes not being set properly',
