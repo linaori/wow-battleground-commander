@@ -13,6 +13,8 @@ local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local Role = Namespace.PlayerData.Role
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
+local PackData = Namespace.Communication.PackData
+local UnpackData = Namespace.Communication.UnpackData
 local GroupType = Namespace.Utils.GroupType
 local GetGroupType = Namespace.Utils.GetGroupType
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
@@ -625,7 +627,10 @@ function Module:GetZoneId(zoneId)
     return Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[zoneId]
 end
 
-function Private.OnAcknowledgeWantBattlegroundLead(_, _, _, sender)
+function Private.OnAcknowledgeWantBattlegroundLead(_, text, _, sender)
+    local payload = UnpackData(text)
+    sender = payload and payload.sender or sender
+
     if sender == GetRealUnitName('player') then return end
 
     local mem = Memory.WantBattlegroundLead
@@ -643,14 +648,17 @@ function Private.CanRequestLead()
     return InActiveBattleground()
 end
 
-function Private.OnWantBattlegroundLead(_, _, _, sender)
+function Private.OnWantBattlegroundLead(_, text, _, sender)
+    local payload = UnpackData(text)
+    sender = payload and payload.sender or sender
+
     if sender == GetRealUnitName('player') then return end
     if not UnitIsGroupLeader('player') then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end
 
-    Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, '1', channel)
+    Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, PackData({}), channel)
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     if config.wantLead then return end
@@ -717,7 +725,7 @@ function Private.SendWantBattlegroundLead()
         end
     end
 
-    Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, '1', channel)
+    Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, PackData({}), channel)
 end
 
 function Private.RequestRaidLead()

@@ -490,13 +490,17 @@ function Private.OnSyncData(_, text, _, sender)
     local payload = UnpackData(text)
     if not payload then return end
 
-    local data = GetPlayerDataByName(sender)
+    local data = GetPlayerDataByName(payload.sender or sender)
     if not data then return end
 
     Private.ProcessSyncData(payload, data)
 end
 
 function Private.OnReadyCheckHeartbeat(_, text, _, sender)
+    local payload = UnpackData(text)
+    text = payload and payload.text or text
+    sender = payload and payload.sender or sender
+
     if sender == GetRealUnitName('player') then return end
 
     local acceptReadyCheck = function (skipVisibility)
@@ -521,7 +525,7 @@ end
 
 function Private.OnClickEnterBattleground()
     local channel, player = GetMessageDestination()
-    Module:SendCommMessage(CommunicationEvent.EnterBattleground, '1', channel, player)
+    Module:SendCommMessage(CommunicationEvent.EnterBattleground, PackData({}), channel, player)
 
     if not IsLeaderOrAssistant('player') then return end
 
@@ -532,7 +536,10 @@ function Private.OnClickEnterBattleground()
     end
 end
 
-function Private.OnEnterBattleground(_, _, _, sender)
+function Private.OnEnterBattleground(_, text, _, sender)
+    local payload = UnpackData(text)
+    sender = payload and payload.sender or sender
+
     local data = GetPlayerDataByName(sender)
     if not data then return Namespace.Debug.Log('Missing player data on enter', sender) end
 
@@ -574,7 +581,10 @@ function Private.DisableEntryButton(text)
     end, 0.3)
 end
 
-function Private.OnDeclineBattleground(_, _, _, sender)
+function Private.OnDeclineBattleground(_, text, _, sender)
+    local payload = UnpackData(text)
+    sender = payload and payload.sender or sender
+
     local data = GetPlayerDataByName(sender)
     if not data then return end
 
@@ -698,7 +708,7 @@ function Private.SendReadyCheckHeartbeat(message)
 
     DoReadyCheck()
     Addon:Print(format(L['Sending automated ready check with message: "%s"'], message))
-    Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, message, GetMessageDestination())
+    Module:SendCommMessage(CommunicationEvent.ReadyCheckHeartbeat, PackData({ message = message }), GetMessageDestination())
 end
 
 function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCallback)
@@ -801,7 +811,7 @@ function Private.DetectQueueCancelAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.None then return end
 
-    Module:SendCommMessage(CommunicationEvent.DeclineBattleground, '1', GetMessageDestination())
+    Module:SendCommMessage(CommunicationEvent.DeclineBattleground, PackData({}), GetMessageDestination())
     Private.RestoreEntryButton()
 
     if not IsLeaderOrAssistant('player') then return end

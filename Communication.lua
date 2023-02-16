@@ -19,6 +19,8 @@ local Channel = {
 Namespace.Communication.Channel = Channel
 
 function Namespace.Communication.PackData(data)
+    if not data.sender then data.sender = GetRealUnitName('player') end
+
     return Encoder:Encode(LibCompress:CompressHuffman(AceSerializer:Serialize(data)))
 end
 

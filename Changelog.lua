@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-21',
+        bugs = {
+            'Fixed an issue with the addon not sending and receiving data cross-realm due to "sender" losing its realm information. For now all names in group information will include the realm.',
+        },
+    },
+    {
         version = '10.0.5-20',
         improvements = {
             'Added some German translations (OmarJAH)',
@@ -44,77 +50,77 @@ Namespace.Changelog = {
             'Fixed a bug where the "status" column was not set to "OK" for group members after entering a battleground',
         },
     },
-    {
-        version = '10.0.2-14',
-        features = {
-            'Added a preferred icon for player configuration. When configured and you get lead, the player will be marked with the selected icon, or get another available icon if available. Players with a preferred icon will take precedence over players with "any available icon"',
-        },
-        improvements = {
-            'Removed "add player by name" for now, as it was limited to the combination of the other two ways of adding users'
-        },
-    },
-    {
-        version = '10.0.2-13',
-        bugs = {
-            'Fixed an issue where the new "BGC: Configure" option would show up in places it does not belong',
-        },
-    },
-    {
-        version = '10.0.2-12',
-        features = {
-            'Added shortcuts in the config to configure players options: "Add player from group", "Add recently played with", "Add player by name"',
-        },
-        improvements = {
-            'Reworked the config for player management. Each player now has a dedicated config section under "Battleground Tools -> Player Management"',
-            'Replaced /bgca and /bgcm by a right click context menu item: "BGC: Configure"'
-        },
-        bugs = {
-            'Fixed a bug where the instruction frame did not properly update after reloading in a battleground',
-        },
-    },
-    {
-        version = '10.0.2-11',
-        bugs = {
-            'Fixed an issue where the instruction window sometimes would not go away',
-        },
-    },
-    {
-        version = '10.0.2-10',
-        improvements = {
-            'Players who are marked should no longer be randomly swapping marks',
-            'Ensured internal logic works the same everywhere when it comes to detecting battleground status',
-            'When "Requesting Lead -> Send Raid is enabled, it will now also use the instance chat',
-            'Removed "Open World" as option from the instructions window',
-            'Changing "Leader Setup" settings now also re-marks accordingly',
-        },
-        bugs = {
-            'Fixed an error when opening the group info while not in a group',
-        },
-    },
-    {
-        version = '10.0.2-9',
-        features = {
-            'Added an option to automatically mark raid members. Target a player and run /bgcm in chat to add them to the list. You can also manually add players in the "Battleground Tools -> Leader Setup -> Decision Automation" section',
-        },
-    },
-    {
-        version = '10.0.2-8',
-        improvements = {
-            'Updated TOC for 10.0.2, pre-patch phase 2',
-        },
-    },
-    {
-        version = '10.0.0-7',
-        bugs = {
-            'Fixed the issue of demoting assists automatically back to member if not listed when manually promoted',
-        },
-    },
-    {
-        version = '10.0.0-6',
-        improvements = {
-            'Added a toggle to control automatic promotion and demotion behavior',
-        },
-    },
+    --{
+    --    version = '10.0.2-14',
+    --    features = {
+    --        'Added a preferred icon for player configuration. When configured and you get lead, the player will be marked with the selected icon, or get another available icon if available. Players with a preferred icon will take precedence over players with "any available icon"',
+    --    },
+    --    improvements = {
+    --        'Removed "add player by name" for now, as it was limited to the combination of the other two ways of adding users'
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-13',
+    --    bugs = {
+    --        'Fixed an issue where the new "BGC: Configure" option would show up in places it does not belong',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-12',
+    --    features = {
+    --        'Added shortcuts in the config to configure players options: "Add player from group", "Add recently played with", "Add player by name"',
+    --    },
+    --    improvements = {
+    --        'Reworked the config for player management. Each player now has a dedicated config section under "Battleground Tools -> Player Management"',
+    --        'Replaced /bgca and /bgcm by a right click context menu item: "BGC: Configure"'
+    --    },
+    --    bugs = {
+    --        'Fixed a bug where the instruction frame did not properly update after reloading in a battleground',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-11',
+    --    bugs = {
+    --        'Fixed an issue where the instruction window sometimes would not go away',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-10',
+    --    improvements = {
+    --        'Players who are marked should no longer be randomly swapping marks',
+    --        'Ensured internal logic works the same everywhere when it comes to detecting battleground status',
+    --        'When "Requesting Lead -> Send Raid is enabled, it will now also use the instance chat',
+    --        'Removed "Open World" as option from the instructions window',
+    --        'Changing "Leader Setup" settings now also re-marks accordingly',
+    --    },
+    --    bugs = {
+    --        'Fixed an error when opening the group info while not in a group',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-9',
+    --    features = {
+    --        'Added an option to automatically mark raid members. Target a player and run /bgcm in chat to add them to the list. You can also manually add players in the "Battleground Tools -> Leader Setup -> Decision Automation" section',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-8',
+    --    improvements = {
+    --        'Updated TOC for 10.0.2, pre-patch phase 2',
+    --    },
+    --},
+    --{
+    --    version = '10.0.0-7',
+    --    bugs = {
+    --        'Fixed the issue of demoting assists automatically back to member if not listed when manually promoted',
+    --    },
+    --},
+    --{
+    --    version = '10.0.0-6',
+    --    improvements = {
+    --        'Added a toggle to control automatic promotion and demotion behavior',
+    --    },
+    --},
     --{
     --    version = '10.0.0-5',
     --    features = {

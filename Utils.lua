@@ -8,8 +8,10 @@ local GetPlayerAuraBySpellID = C_UnitAuras.GetPlayerAuraBySpellID
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
 local UnitNameUnmodified = UnitNameUnmodified
+local GetNormalizedRealmName = GetNormalizedRealmName
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
+local UNKNOWNOBJECT = UNKNOWNOBJECT
 local floor = math.floor
 local ceil = math.ceil
 local format = string.format
@@ -137,7 +139,11 @@ end
 
 function Namespace.Utils.GetRealUnitName(unit)
     local name, realm = UnitNameUnmodified(unit)
-    if realm == nil then return name end
+    if realm == nil then
+        realm = GetNormalizedRealmName()
+        -- can return nil during loading screen, UNKNOWNOBJECT resolves it later
+        if realm == nil then return UNKNOWNOBJECT end
+    end
 
     return name .. '-' .. realm
 end
