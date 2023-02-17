@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-22',
+        bugs = {
+            'Fixed a lua error triggering randomly when class color was not known yet',
+        },
+    },
+    {
         version = '10.0.5-21',
         bugs = {
             'Fixed an issue with the addon not sending and receiving data cross-realm due to "sender" losing its realm information. For now all names in group information will include the realm.',

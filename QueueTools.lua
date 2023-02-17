@@ -210,16 +210,11 @@ function Private.CreateTableRow(data)
 
             RefreshMissingData(data)
 
-            local name, color
-            if data.name == UNKNOWNOBJECT then
-                name = '...'
-                color = ColorList.UnknownClass
-            else
-                name = data.name
-                color = data.classColor
-            end
+            local name = data.name ~= UNKNOWNOBJECT and data.name or '...'
+            local color = data.classColor or ColorList.UnknownClass
 
             columnData.color = { r = color.r, g = color.g, b = color.b, a = color.a }
+
             return name
         end,
     }
