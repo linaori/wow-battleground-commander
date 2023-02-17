@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-23',
+        bugs = {
+            'Fixed the "accepted automated ready check with message" print showing the incorrect data',
+        },
+    },
+    {
         version = '10.0.5-22',
         bugs = {
             'Fixed a lua error triggering randomly when class color was not known yet',

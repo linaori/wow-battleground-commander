@@ -493,7 +493,7 @@ end
 
 function Private.OnReadyCheckHeartbeat(_, text, _, sender)
     local payload = UnpackData(text)
-    text = payload and payload.text or text
+    text = payload and payload.message or text
     sender = payload and payload.sender or sender
 
     if sender == GetRealUnitName('player') then return end
