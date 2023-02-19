@@ -37,6 +37,7 @@ local Memory = {
                 PlayerManagement = {
                     -- ['player-realm'] = {
                     --     playerName = 'name-realm',
+                    --     playerNickname = 'Custom nickname',
                     --     groupLabel = 'class color name',
                     --     giveLeadBehavior = GiveLeadBehavior,
                     --     markBehavior = MarkBehavior,
@@ -785,13 +786,23 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                 type = 'header',
                 order = 2,
             },
+            playerNickname = {
+                name = L['Player nickname'],
+                desc = L['Show this nickname in the group info. Leave empty to show name-realm instead.'],
+                type = 'input',
+                multiline = false,
+                width = 'full',
+                set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'playerNickname', value) end,
+                get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'playerNickname') end,
+                order = 3,
+            },
             promoteToAssistant = {
                 name = L['Promote to assistant'],
                 desc = L['Automatically promote this player to assistant'],
                 type = 'toggle',
                 set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'promoteToAssistant', value) end,
                 get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'promoteToAssistant') end,
-                order = 3,
+                order = 4,
             },
             giveLeadBehavior = {
                 name = L['When this user requests lead'],
@@ -805,7 +816,7 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                 },
                 set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'giveLeadBehavior', value) end,
                 get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'giveLeadBehavior') end,
-                order = 4,
+                order = 5,
             },
             markBehavior = {
                 name = L['Mark this player'],
@@ -821,7 +832,7 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                     Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'markBehavior', value)
                 end,
                 get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'markBehavior') end,
-                order = 5,
+                order = 6,
             },
             preferredIcon = {
                 name = L['Preferred icon'],

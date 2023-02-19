@@ -1003,6 +1003,7 @@ function Module:CreatePlayerConfig(playerName)
 
     local playerConfig = {
         playerName = playerName,
+        playerNickname = '',
         groupLabel = playerName,
         giveLeadBehavior = GiveLeadBehavior.NoAutomation,
         markBehavior = MarkBehavior.NoMark,

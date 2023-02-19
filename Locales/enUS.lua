@@ -175,3 +175,5 @@ L['Add recently played with'] = true
 L['Add player by name'] = true
 L['Hold shift to omit the confirm message'] = true
 L['BGC: Configure'] = true
+L['Player nickname'] = true
+L['Show this nickname in the group info. Leave empty to show name-realm instead.'] = true

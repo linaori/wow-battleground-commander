@@ -210,7 +210,7 @@ function Private.CreateTableRow(data)
 
             RefreshMissingData(data)
 
-            local name = data.name ~= UNKNOWNOBJECT and data.name or '...'
+            local name = Module:GetPlayerNameForDisplay(data.name)
             local color = data.classColor or ColorList.UnknownClass
 
             columnData.color = { r = color.r, g = color.g, b = color.b, a = color.a }
@@ -1082,4 +1082,13 @@ function Private.TwoLanguages(translationKey, ...)
     if english == translated then return translated end
 
     return concat({english, '/' , translated}, ' ')
+end
+
+function Module:GetPlayerNameForDisplay(playerName)
+    if playerName == UNKNOWNOBJECT then return '...' end
+
+    local nickname = Namespace.BattlegroundTools:GetPlayerConfigValue(playerName, 'playerNickname')
+    if nickname == nil or nickname == '' then return playerName end
+
+    return nickname
 end

@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-24',
+        features = {
+            'Added the ability to give a custom nickname to players',
+        },
+    },
+    {
         version = '10.0.5-23',
         bugs = {
             'Fixed the "accepted automated ready check with message" print showing the incorrect data',
