@@ -1118,7 +1118,7 @@ function Module:GetPlayerNameForDisplay(data)
         if data.units.player then return data.firstName end
 
         local player = GetPlayerDataByUnit('player')
-        return player and player.realmName == data.realmName and data.realmName or playerName
+        return player and player.realmName == data.realmName and data.firstName or playerName
     end
 
     return playerName
