@@ -2,6 +2,7 @@ local _G, ModuleName, Private, AddonName, Namespace = _G, 'QueueTools', {}, ...
 local Addon = Namespace.Addon
 local Module = Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
+local ACD = Namespace.Libs.AceConfigDialog
 local ScrollingTable = Namespace.Libs.ScrollingTable
 
 Namespace.QueueTools = Module
@@ -110,6 +111,14 @@ local Memory = {
     syncDataPayloadBuffer = nil,
 }
 
+local NameFormat = {
+    RealmWhenPlayer = 1,
+    RealmAlways = 2,
+    RealmNever = 3,
+}
+
+Namespace.QueueTools.NameFormat = NameFormat
+
 local CommunicationEvent = {
     SyncData = 'Bgc:syncData',
     ReadyCheckHeartbeat = 'Bgc:rchb',
@@ -209,7 +218,7 @@ function Private.CreateTableRow(data)
 
             RefreshMissingData(data)
 
-            local name = Module:GetPlayerNameForDisplay(data.name)
+            local name = Module:GetPlayerNameForDisplay(data)
             local color = data.classColor or ColorList.UnknownClass
 
             columnData.color = { r = color.r, g = color.g, b = color.b, a = color.a }
@@ -1012,7 +1021,7 @@ function Private.InitializeGroupQueueFrame()
         _G.GameTooltip:SetText(L['Open Battleground Commander Settings'], nil, nil, nil, nil, true)
     end)
     settingsButton:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
-    settingsButton:SetScript('OnClick', function () Namespace.Addon:OpenSettingsPanel() end)
+    settingsButton:SetScript('OnClick', function () ACD:Open(AddonName) end)
 
     local settingsButtonHighlightTexture = settingsButton:GetHighlightTexture()
     settingsButtonHighlightTexture:SetPoint('TOPLEFT', 4, -4)
@@ -1072,6 +1081,16 @@ function Module:GetAutomationSetting(setting)
     return Namespace.Database.profile.QueueTools.Automation[setting]
 end
 
+function Module:SetGroupInfoSetting(setting, value)
+    Namespace.Database.profile.QueueTools.GroupInfo[setting] = value
+
+    Private.RefreshGroupInfoFrame()
+end
+
+function Module:GetGroupInfoSetting(setting)
+    return Namespace.Database.profile.QueueTools.GroupInfo[setting]
+end
+
 --- Creates a formatted message based on the translation key for both the
 --- user locale, and English
 function Private.TwoLanguages(translationKey, ...)
@@ -1084,11 +1103,23 @@ function Private.TwoLanguages(translationKey, ...)
     return concat({english, '/' , translated}, ' ')
 end
 
-function Module:GetPlayerNameForDisplay(playerName)
+function Module:GetPlayerNameForDisplay(data)
+    local playerName = data.name
     if playerName == UNKNOWNOBJECT then return '...' end
 
     local nickname = Namespace.BattlegroundTools:GetPlayerConfigValue(playerName, 'playerNickname')
-    if nickname == nil or nickname == '' then return playerName end
+    if nickname ~= nil and nickname ~= '' then return nickname end
 
-    return nickname
+    local nameFormat = self:GetGroupInfoSetting('nameFormat')
+
+    if nameFormat == NameFormat.RealmAlways then return playerName end
+    if nameFormat == NameFormat.RealmNever then return data.firstName or playerName end
+    if nameFormat == NameFormat.RealmWhenPlayer then
+        if data.units.player then return data.firstName end
+
+        local player = GetPlayerDataByUnit('player')
+        return player and player.realmName == data.realmName and data.realmName or playerName
+    end
+
+    return playerName
 end

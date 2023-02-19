@@ -4,7 +4,9 @@ Namespace.Changelog = {
     {
         version = '10.0.5-24',
         features = {
-            'Added the ability to give a custom nickname to players',
+            'Added the ability to give a custom nick name to players',
+            'Added a setting to configure how names are shown in the group info: Hide realm when same as yours, Always show the realm, and Never show the realm',
+            'The "settings" button in the group information window now opens just the Battleground Commander config instead of all settings',
         },
     },
     {

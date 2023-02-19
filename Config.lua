@@ -16,6 +16,9 @@ local Memory = {
         profile = {
             QueueTools = {
                 showGroupQueueFrame = false,
+                GroupInfo = {
+                    nameFormat = 1,
+                },
                 Automation = {
                     acceptRoleSelection = true,
                     disableEntryButtonOnQueuePop = true,
@@ -149,6 +152,8 @@ function Namespace.Config.GetConfigurationSetup()
     local LibSharedMediaBackgrounds = Namespace.Libs.LibSharedMedia:HashTable('background')
     local LibSharedMediaBorders = Namespace.Libs.LibSharedMedia:HashTable('border')
 
+    local NameFormat = Namespace.QueueTools.NameFormat
+
     local function addPlayerConfig(_, playerName)
         Namespace.Config.AddPlayerConfig(playerName)
     end
@@ -177,6 +182,27 @@ function Namespace.Config.GetConfigurationSetup()
                 childGroups = 'tab',
                 order = 2,
                 args = {
+                    GroupInfo = {
+                        name = L['Group Information'],
+                        type = 'group',
+                        order = 1,
+                        args = {
+                            nameFormat = {
+                                name = L['Name format'],
+                                desc = L['This changes what the name is shown like in the list'],
+                                width = 2,
+                                type = 'select',
+                                values = {
+                                    [NameFormat.RealmWhenPlayer] = L['Hide realm when same as yours'],
+                                    [NameFormat.RealmAlways] = L['Always show the realm'],
+                                    [NameFormat.RealmNever] = L['Never show the realm'],
+                                },
+                                set = function (_, value) Namespace.QueueTools:SetGroupInfoSetting('nameFormat', value) end,
+                                get = function () return Namespace.QueueTools:GetGroupInfoSetting('nameFormat') end,
+                                order = 1,
+                            },
+                        },
+                    },
                     Automation = {
                         name = L['Automation'],
                         type = 'group',
@@ -214,7 +240,7 @@ function Namespace.Config.GetConfigurationSetup()
                     InspectQueue = {
                         name = L['Queue Inspection'],
                         type = 'group',
-                        order = 2,
+                        order = 3,
                         args = {
                             queuePauseDetection = {
                                 name = L['Queue Pause Detection'],

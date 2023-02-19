@@ -23,6 +23,7 @@ local UNKNOWNOBJECT = UNKNOWNOBJECT
 local pairs = pairs
 local unpack = unpack
 local sort = table.sort
+local strsplit = strsplit
 
 local PlayerDataTargets = {
     solo = {'player'},
@@ -58,7 +59,9 @@ local Memory = {
         --[GUID] = {
         --    guid = GUID,
         --    name = playerName,
-        --    units = {[1] => first unit, first unit = true, second unit = true},
+        --    firstName = playerName without realm,
+        --    realmName = normalized realm name,
+        --    units = {primary => first unit, first unit = true, second unit = true},
         --    class = 'CLASS',
         --    readyState = ReadyCheckState,
         --    roleCheckStatus = RoleCheckStatus,
@@ -118,6 +121,10 @@ function Private.RefreshMissingData(data)
         local _, class = UnitClass(data.units.primary)
         data.class = class
         data.classColor = class and GetClassColor(class) or nil
+    end
+
+    if data.name ~= UNKNOWNOBJECT and (not data.firstName or not data.realmName) then
+        data.firstName, data.realmName = strsplit('-', data.name, 2)
     end
 end
 

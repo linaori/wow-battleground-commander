@@ -47,6 +47,7 @@ globals = {
     'SendChatMessage',
     'SetRaidTarget',
     'Settings',
+    'strsplit',
     'UnitAffectingCombat',
     'UnitClass',
     'UnitDebuff',
