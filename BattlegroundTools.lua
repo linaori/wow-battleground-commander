@@ -11,6 +11,7 @@ local TimeDiff = Namespace.Utils.TimeDiff
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
+local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
 local Role = Namespace.PlayerData.Role
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local PackData = Namespace.Communication.PackData
@@ -26,7 +27,6 @@ local CreateFrame = CreateFrame
 local FlashClientIcon = FlashClientIcon
 local GetTime = GetTime
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
-local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local PromoteToLeader = PromoteToLeader
 local PromoteToAssistant = PromoteToAssistant
 local DemoteAssistant = DemoteAssistant
@@ -631,7 +631,8 @@ function Private.OnAcknowledgeWantBattlegroundLead(_, text, _, sender)
     local payload = UnpackData(text)
     sender = payload and payload.sender or sender
 
-    if sender == GetRealUnitName('player') then return end
+    local playerData = GetPlayerDataByName(sender)
+    if not playerData or playerData.units.player then return end
 
     local mem = Memory.WantBattlegroundLead
     if not mem.ackTimer then return end
@@ -652,8 +653,8 @@ function Private.OnWantBattlegroundLead(_, text, _, sender)
     local payload = UnpackData(text)
     sender = payload and payload.sender or sender
 
-    if sender == GetRealUnitName('player') then return end
-    if not UnitIsGroupLeader('player') then return end
+    local playerData = GetPlayerDataByName(sender)
+    if not playerData or playerData.units.player or playerData.role ~= Role.Leader then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end

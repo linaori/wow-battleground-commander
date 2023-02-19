@@ -36,7 +36,6 @@ local CharacterPanelOpenSound = SOUNDKIT.IG_CHARACTER_INFO_OPEN
 local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetNumGroupMembers = GetNumGroupMembers
 local GetLFGRoleUpdate = GetLFGRoleUpdate
-local GetRealUnitName = Namespace.Utils.GetRealUnitName
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitDebuff = UnitDebuff
 local UnitAffectingCombat = UnitAffectingCombat
@@ -496,7 +495,8 @@ function Private.OnReadyCheckHeartbeat(_, text, _, sender)
     text = payload and payload.message or text
     sender = payload and payload.sender or sender
 
-    if sender == GetRealUnitName('player') then return end
+    local playerData = GetPlayerDataByName(sender)
+    if not playerData or playerData.units.player then return end
 
     local acceptReadyCheck = function (skipVisibility)
         if not skipVisibility and not _G.ReadyCheckFrameYesButton:IsVisible() then return end
