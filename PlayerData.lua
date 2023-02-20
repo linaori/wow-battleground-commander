@@ -281,10 +281,13 @@ function Namespace.PlayerData.GetPlayerDataByUnit(unit)
 end
 
 function Namespace.PlayerData.GetPlayerDataByName(name)
+    if name == nil or name == UNKNOWNOBJECT then return nil end
+
+    local useFirstName = name:find('-')
     for _, data in pairs(Memory.AllPlayerData) do
         Private.RefreshMissingData(data)
 
-        if data.name == name then
+        if useFirstName and data.firstName == data.name or data.name == name then
             return data
         end
     end

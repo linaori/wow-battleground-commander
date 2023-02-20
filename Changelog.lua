@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-25',
+        bugs = {
+            'Fixed some functions not working properly for people from the same realm as you',
+        },
+    },
+    {
         version = '10.0.5-24',
         features = {
             'Added the ability to give a custom nick name to players',
