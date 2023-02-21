@@ -5,6 +5,10 @@ Namespace.Changelog = {
         version = '10.0.5-25',
         bugs = {
             'Fixed some functions not working properly for people from the same realm as you',
+            'Reduced the chance of "Unknown" being shown as player name in the group information window',
+        },
+        improvements = {
+            'Improved the group information tooltip, which will now also try to show if the addon is out of date or not by coloring the version',
         },
     },
     {

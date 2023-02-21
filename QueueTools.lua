@@ -51,7 +51,7 @@ local ceil = math.ceil
 local format = string.format
 local pairs = pairs
 local concat = table.concat
-local log = Namespace.Debug.Log
+
 
 local locale = GetLocale()
 
@@ -545,7 +545,7 @@ function Private.OnEnterBattleground(_, text, _, sender)
     sender = payload and payload.sender or sender
 
     local data = GetPlayerDataByName(sender)
-    if not data then return Namespace.Debug.Log('Missing player data on enter', sender) end
+    if not data then return end
 
     if data.battlegroundStatus == BattlegroundStatus.Waiting then
         data.battlegroundStatus = BattlegroundStatus.Entered
@@ -891,8 +891,6 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     local initiatedByData = GetPlayerDataByName(initiatedByName)
     if initiatedByData then
         initiatedByData.readyState = ReadyCheckState.Ready
-    else
-        log('READY_CHECK', 'Missing player for initiatedByName', initiatedByName)
     end
 
     Memory.readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
@@ -916,7 +914,7 @@ end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
     local data = GetPlayerDataByUnit(unit)
-    if not data then return log('READY_CHECK_CONFIRM', 'Missing unit', unit) end
+    if not data then return end
 
     data.readyState = ready and ReadyCheckState.Ready or ReadyCheckState.Declined
 
@@ -981,11 +979,27 @@ function Private.InitializeGroupQueueFrame()
             if not data[realRow] then return end
 
             local originalData = data[realRow].originalData
-            if not originalData.addonVersion then return end
+            local tooltip = _G.GameTooltip
+            local classColor = originalData.classColor or {}
 
-            _G.GameTooltip:SetOwner(rowFrame, 'ANCHOR_NONE')
-            _G.GameTooltip:SetPoint('LEFT', rowFrame, 'RIGHT')
-            _G.GameTooltip:SetText(format(L['Addon version: %s'], originalData.addonVersion), nil, nil, nil, nil, true)
+            local addonColor = ColorList.Bad
+            if originalData.addonVersion then
+                local increment = Namespace.Addon:ExtractVersionIncrement(originalData.addonVersion)
+                local myVersion = Namespace.Meta.versionIncrement
+                if myVersion == 99999 or increment == myVersion then
+                    addonColor = {}
+                else
+                    addonColor = ColorList.Warning
+                end
+            end
+
+            tooltip:SetOwner(rowFrame, 'ANCHOR_NONE')
+            tooltip:SetPoint('LEFT', rowFrame, 'RIGHT')
+            tooltip:ClearLines()
+            tooltip:AddLine(originalData.name, classColor.r, classColor.g, classColor.b)
+            tooltip:AddDoubleLine(originalData.units.primary, originalData.addonVersion or L['No Addon'], nil, nil, nil, addonColor.r, addonColor.g, addonColor.b)
+            tooltip:Show()
+
         end,
         onLeave = function () _G.GameTooltip:Hide() end,
     }, true)
@@ -1104,22 +1118,25 @@ function Private.TwoLanguages(translationKey, ...)
 end
 
 function Module:GetPlayerNameForDisplay(data)
-    local playerName = data.name
-    if playerName == UNKNOWNOBJECT then return '...' end
+    local name = data.name
+    if name == UNKNOWNOBJECT then return '...' end
 
-    local nickname = Namespace.BattlegroundTools:GetPlayerConfigValue(playerName, 'playerNickname')
+    local nickname = Namespace.BattlegroundTools:GetPlayerConfigValue(name, 'playerNickname')
     if nickname ~= nil and nickname ~= '' then return nickname end
 
     local nameFormat = self:GetGroupInfoSetting('nameFormat')
 
-    if nameFormat == NameFormat.RealmAlways then return playerName end
-    if nameFormat == NameFormat.RealmNever then return data.firstName or playerName end
+    if nameFormat == NameFormat.RealmAlways then return name end
+    if nameFormat == NameFormat.RealmNever then return data.firstName or name end
     if nameFormat == NameFormat.RealmWhenPlayer then
         if data.units.player then return data.firstName end
-
-        local player = GetPlayerDataByUnit('player')
-        return player and player.realmName == data.realmName and data.firstName or playerName
+        if data.firstName and data.realmName and data.firstName ~= UNKNOWNOBJECT then
+            local player = GetPlayerDataByUnit('player')
+            if player and player.realmName == data.realmName then
+                return data.firstName
+            end
+        end
     end
 
-    return playerName
+    return name
 end

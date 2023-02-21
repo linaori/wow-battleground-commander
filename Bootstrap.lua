@@ -3,6 +3,8 @@ local LibStub, AddonName, Namespace = LibStub, ...
 local Settings = Settings
 local format = string.format
 local pairs = pairs
+local tonumber = tonumber
+local strsplit = strsplit
 
 local Memory = {
     OptionsFrames = {},
@@ -12,6 +14,7 @@ Namespace.Meta = {
     nameShort = 'BG Commander',
     name = 'Battleground Commander',
     version = [[@project-version@]],
+    versionIncrement = 0,
     date = [[@project-date-iso@]],
     chatTemplate = '[Battleground Commander] %s',
 }
@@ -41,7 +44,15 @@ function Addon:PrependChatTemplate(message)
     return format(Namespace.Meta.chatTemplate, message)
 end
 
+function Addon:ExtractVersionIncrement(version)
+    local _, increment = strsplit('-', version, 2)
+
+    return increment == 'dev' and 99999 or tonumber(increment)
+end
+
 function Addon:OnInitialize()
+    Namespace.Meta.versionIncrement = self:ExtractVersionIncrement(Namespace.Meta.version)
+
     local configurationSetup = Namespace.Config.GetConfigurationSetup()
 
     Namespace.Database = Namespace.Libs.AceDB:New('BattlegroundCommanderDatabase', Namespace.Config.GetDefaultConfiguration(), true)

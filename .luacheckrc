@@ -75,6 +75,7 @@ globals = {
     'select',
     'string',
     'table',
+    'tonumber',
     'tostring',
     'type',
 }

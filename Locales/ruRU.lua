@@ -182,3 +182,4 @@ L['This changes what the name is shown like in the list'] = true
 L['Hide realm when same as yours'] = true
 L['Always show the realm'] = true
 L['Never show the realm'] = true
+L['No Addon'] = true

@@ -113,7 +113,7 @@ function Private.RefreshMissingData(data)
     local unit = data.units.primary
     if not unit then return end
 
-    if data.name == UNKNOWNOBJECT or not data.name then
+    if data.name == UNKNOWNOBJECT then
         data.name = GetRealUnitName(unit)
     end
 
@@ -123,7 +123,7 @@ function Private.RefreshMissingData(data)
         data.classColor = class and GetClassColor(class) or nil
     end
 
-    if data.name ~= UNKNOWNOBJECT and (not data.firstName or not data.realmName) then
+    if data.name ~= UNKNOWNOBJECT and (data.firstName == UNKNOWNOBJECT or not data.firstName or not data.realmName) then
         data.firstName, data.realmName = strsplit('-', data.name, 2)
     end
 end
@@ -238,11 +238,11 @@ function Namespace.PlayerData.RebuildPlayerData()
                 data.units[unit] = true
 
                 if not data.units.primary then
+                    data.units.primary = unit
                     if (data.mercenaryExpiry == -1 or data.mercenaryExpiry < currentTime) and UnitIsMercenary(unit) then
                         data.mercenaryExpiry = currentTime + 99999
                     end
                     data.role = UnitIsGroupLeader(unit) and Role.Leader or UnitIsGroupAssistant(unit) and Role.Assist or Role.Member
-                    data.units.primary = unit
                     data.name = GetRealUnitName(unit)
                     data.isConnected = UnitIsConnected(unit)
                     data.faction = UnitFactionGroup(unit)
@@ -281,13 +281,11 @@ function Namespace.PlayerData.GetPlayerDataByUnit(unit)
 end
 
 function Namespace.PlayerData.GetPlayerDataByName(name)
-    if name == nil or name == UNKNOWNOBJECT then return nil end
-
-    local useFirstName = name:find('-')
+    local hasHyphen = name:find('-')
     for _, data in pairs(Memory.AllPlayerData) do
         Private.RefreshMissingData(data)
 
-        if useFirstName and data.firstName == data.name or data.name == name then
+        if not hasHyphen and data.firstName == name or data.name == name then
             return data
         end
     end
