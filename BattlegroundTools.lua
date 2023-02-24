@@ -650,11 +650,16 @@ function Private.CanRequestLead()
 end
 
 function Private.OnWantBattlegroundLead(_, text, _, sender)
+    local playerData = GetPlayerDataByUnit('player')
+    if not playerData or playerData.role ~= Role.Leader then return end
+
     local payload = UnpackData(text)
     sender = payload and payload.sender or sender
 
-    local playerData = GetPlayerDataByName(sender)
-    if not playerData or playerData.units.player or playerData.role ~= Role.Leader then return end
+    local senderData = GetPlayerDataByName(sender)
+    if not senderData or playerData == senderData then return end
+
+    sender = senderData.name
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end

@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-26',
+        bugs = {
+            'Fixed trying to give lead to someone when they ask, while not having lead yourself',
+        },
+    },
+    {
         version = '10.0.5-25',
         bugs = {
             'Fixed some functions not working properly for people from the same realm as you',
