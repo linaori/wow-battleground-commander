@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.5-27',
+        improvements = {
+            'Changed text color to be less "bad" when you have a different mercenary status than your leader if the leader does not have the addon',
+        },
+    },
+    {
         version = '10.0.5-26',
         bugs = {
             'Fixed trying to give lead to someone when they ask, while not having lead yourself',

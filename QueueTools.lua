@@ -262,7 +262,7 @@ function Private.CreateTableRow(data)
 
             -- it's a guesstimate
             if timeDiff.fullMinutes > 60 then
-                if shouldCheckStatus and not leaderHasMercenary then
+                if shouldCheckStatus and not leaderHasMercenary and leader.addonVersion then
                     columnData.color = ColorList.Bad
                 else
                     columnData.color = ColorList.UnknownClass
@@ -272,7 +272,7 @@ function Private.CreateTableRow(data)
             end
 
             if shouldCheckStatus and not leaderHasMercenary then
-                columnData.color = ColorList.Bad
+                columnData.color = leader.addonVersion and ColorList.Bad or ColorList.Warning
 
                 return L['yes']
             end
