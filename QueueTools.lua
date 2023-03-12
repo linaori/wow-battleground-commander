@@ -51,6 +51,7 @@ local ceil = math.ceil
 local format = string.format
 local pairs = pairs
 local concat = table.concat
+local sort = sort
 
 
 local locale = GetLocale()
@@ -127,10 +128,12 @@ local CommunicationEvent = {
 }
 
 local ColorList = {
-    Bad = { r = 1.0, g = 0, b = 0, a = 1.0 },
-    Good = { r = 0, g = 1.0, b = 0, a = 1.0 },
-    Warning = { r = 1.0, g = 1.0, b = 0, a = 1.0 },
-    UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1.0 },
+    None = { r = nil, g = nil, b = nil, a = 1},
+    White = { r = 1, g = 1, b = 1, a = 1 },
+    Bad = { r = 1, g = 0, b = 0, a = 1 },
+    Good = { r = 0, g = 1, b = 0, a = 1 },
+    Warning = { r = 1, g = 1, b = 0, a = 1 },
+    UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
 }
 
 function Private.SendSyncData()
@@ -379,6 +382,7 @@ function Private.RefreshGroupInfoFrame()
     if not _G.BgcQueueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
 
     Private.UpdateReadyCheckButtonState()
+    Private.UpdateAddonUsersLabel()
 
     _G.BgcQueueFrame.PlayerTable:Refresh()
 end
@@ -393,6 +397,22 @@ function Private.UpdateReadyCheckButtonState()
     if _G.BgcReadyCheckButton then _G.BgcReadyCheckButton:SetEnabled(Private.CanDoReadyCheck()) end
 end
 
+function Private.UpdateAddonUsersLabel()
+    if not _G.BgcAddonUsersLabel then return end
+
+    local withAddon, total = 0, 0
+    ForEachUnitData(function (data)
+        total = total + 1
+        withAddon = withAddon + (data.addonVersion and 1 or 0)
+    end)
+
+    local text = _G.BgcAddonUsersLabel.Text
+    text:SetText(format(L['BGC: %d/%d'], withAddon, total))
+
+    local color = withAddon == total and ColorList.White or ColorList.Warning
+    text:SetTextColor(color.r, color.g, color.b, color.a)
+end
+
 function Private.RebuildGroupInformationTable(unitPlayerData)
     local tableCache, count = {}, 0
     for _, playerData in pairs(unitPlayerData) do
@@ -405,6 +425,7 @@ function Private.RebuildGroupInformationTable(unitPlayerData)
     if _G.BgcQueueFrame and Namespace.Database.profile.QueueTools.showGroupQueueFrame then
         _G.BgcQueueFrame.PlayerTable:SetData(tableCache)
         Private.UpdateReadyCheckButtonState()
+        Private.UpdateAddonUsersLabel()
     end
 
     Private.ScheduleSendSyncData()
@@ -949,6 +970,22 @@ function Module:READY_CHECK_FINISHED()
     Private.RefreshGroupInfoFrame()
 end
 
+function Private.CalculateVersion(addonVersion)
+    local increment, addonColor = 0, ColorList.Bad
+
+    if addonVersion then
+        increment = Namespace.Addon:ExtractVersionIncrement(addonVersion)
+        local myVersion = Namespace.Meta.versionIncrement
+        if myVersion == 99999 or increment == myVersion then
+            addonColor = ColorList.White
+        else
+            addonColor = ColorList.Warning
+        end
+    end
+
+    return increment, addonColor
+end
+
 function Private.InitializeGroupQueueFrame()
     local PVPUIFrame = _G.PVPUIFrame
     local queueFrame = CreateFrame('Frame', 'BgcQueueFrame', PVPUIFrame, 'ButtonFrameTemplate')
@@ -982,16 +1019,7 @@ function Private.InitializeGroupQueueFrame()
             local tooltip = _G.GameTooltip
             local classColor = originalData.classColor or {}
 
-            local addonColor = ColorList.Bad
-            if originalData.addonVersion then
-                local increment = Namespace.Addon:ExtractVersionIncrement(originalData.addonVersion)
-                local myVersion = Namespace.Meta.versionIncrement
-                if myVersion == 99999 or increment == myVersion then
-                    addonColor = {}
-                else
-                    addonColor = ColorList.Warning
-                end
-            end
+            local _, addonColor = Private.CalculateVersion(originalData.addonVersion)
 
             tooltip:SetOwner(rowFrame, 'ANCHOR_NONE')
             tooltip:SetPoint('LEFT', rowFrame, 'RIGHT')
@@ -1055,6 +1083,60 @@ function Private.InitializeGroupQueueFrame()
     settingsButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
 
     queueFrame.SettingsButton = settingsButton
+
+    local addonUsersLabel = CreateFrame('Frame', 'BgcAddonUsersLabel', queueFrame)
+    addonUsersLabel:SetPoint('BOTTOMLEFT', queueFrame, 'BOTTOMLEFT', 8, 8)
+    addonUsersLabel:SetSize(60, 24)
+
+    addonUsersLabel:SetScript('OnEnter', function (self)
+        local tooltip = _G.GameTooltip
+        tooltip:SetOwner(self, 'ANCHOR_NONE')
+        tooltip:SetPoint('BOTTOM', self, 'TOP')
+        tooltip:ClearLines()
+
+        local index = 0
+        local mapped = {}
+        local addonVersions = {}
+        ForEachUnitData(function (data)
+            local version = data.addonVersion or L['No Addon']
+            if not mapped[version] then
+                index = index + 1
+                mapped[version] = index
+
+                local increment, addonColor = Private.CalculateVersion(data.addonVersion)
+                addonVersions[index] = {
+                    increment = increment,
+                    version = version,
+                    color = addonColor,
+                    names = { Module:GetPlayerNameForDisplay(data) },
+                }
+            else
+                local names = addonVersions[mapped[version]].names
+                names[#names + 1] = Module:GetPlayerNameForDisplay(data)
+            end
+        end)
+
+        sort(addonVersions, function (left, right) return left.increment > right.increment end)
+
+        tooltip:AddLine(L['Addon Information'])
+        for _, addonVersionData in pairs(addonVersions) do
+            local color = addonVersionData.color
+            tooltip:AddLine(' ')
+            tooltip:AddLine(format('%s:', addonVersionData.version), color.r, color.g, color.b, true)
+            tooltip:AddLine(concat(addonVersionData.names, ', '), 1, 1, 1, true)
+        end
+
+        tooltip:Show()
+    end)
+
+    addonUsersLabel:SetScript('OnLeave',  function () _G.GameTooltip:Hide() end)
+
+    local addonUsersLabelText = addonUsersLabel:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
+    addonUsersLabelText:SetPoint('BOTTOMLEFT')
+    addonUsersLabelText:SetWordWrap(false)
+
+    addonUsersLabel.Text = addonUsersLabelText
+    queueFrame.AddonUsersLabel = addonUsersLabel
 end
 
 function Module:ADDON_LOADED(_, addonName)
