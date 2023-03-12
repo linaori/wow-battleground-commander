@@ -51,9 +51,7 @@ local ceil = math.ceil
 local format = string.format
 local pairs = pairs
 local concat = table.concat
-local sort = sort
-
-
+local sort = table.sort
 local locale = GetLocale()
 
 local SpellIds = {
