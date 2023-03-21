@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-29',
+        improvements = {
+            'Updated TOC for 10.0.7',
+        },
+    },
+    {
         version = '10.0.5-28',
         improvements = {
             'Added text to show total BGC addon users in group information',
