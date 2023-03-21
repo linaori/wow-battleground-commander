@@ -2,6 +2,16 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-30',
+        improvements = {
+            'Improved handling of giving lead automation',
+            'Give Lead window now respects the name display configuration and colors by class',
+        },
+        bugs = {
+            'No longer show the Give Lead window when the people in the list are not in the match at that moment',
+        },
+    },
+    {
         version = '10.0.7-29',
         improvements = {
             'Updated TOC for 10.0.7',

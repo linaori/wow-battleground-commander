@@ -26,6 +26,7 @@ local RaidIconIndex = Namespace.Utils.RaidIconIndex
 local CreateFrame = CreateFrame
 local FlashClientIcon = FlashClientIcon
 local GetTime = GetTime
+local CreateColor = CreateColor
 local ReplaceIconAndGroupExpressions = C_ChatInfo.ReplaceIconAndGroupExpressions
 local PromoteToLeader = PromoteToLeader
 local PromoteToAssistant = PromoteToAssistant
@@ -290,23 +291,35 @@ function Private.TriggerUpdateWantBattlegroundLeadDialogFrame(forceHide)
     local count = 0
     LibDD:UIDropDownMenu_Initialize(dropdown, function ()
         for name, _ in pairs(mem.requestedBy) do
-            if not mem.dropdownSelection[name] then
-                mem.dropdownSelection[name] = false
+            local data = GetPlayerDataByName(name)
+            if data then
+                if not mem.dropdownSelection[name] then
+                    mem.dropdownSelection[name] = false
+                end
+
+                local classColor = data.classColor
+                local visibleName = Namespace.QueueTools:GetPlayerNameForDisplay(data)
+
+                lastName = CreateColor(classColor.r, classColor.g, classColor.b, classColor.a):WrapTextInColorCode(visibleName)
+                count = count + 1
+
+                local info = LibDD:UIDropDownMenu_CreateInfo()
+                info.text = lastName
+                info.checked = mem.dropdownSelection[name]
+                info.isNotRadio = true
+                info.keepShownOnClick = true
+                info.arg1 = name
+                info.func = dialog.Dropdown.OnSelect
+                LibDD:UIDropDownMenu_AddButton(info)
             end
-
-            lastName = name
-            count = count + 1
-
-            local info = LibDD:UIDropDownMenu_CreateInfo()
-            info.text = name
-            info.checked = mem.dropdownSelection[name]
-            info.isNotRadio = true
-            info.keepShownOnClick = true
-            info.arg1 = name
-            info.func = dialog.Dropdown.OnSelect
-            LibDD:UIDropDownMenu_AddButton(info)
         end
     end)
+
+    if count == 0 then
+        -- scenario where someone requested lead but left the bg, this also happens when someone
+        -- disconnected, thus we cannot flat out remove people from the list
+        return dialog:SetShown(false)
+    end
 
     local message
     if count == 1 then
@@ -657,9 +670,7 @@ function Private.OnWantBattlegroundLead(_, text, _, sender)
     sender = payload and payload.sender or sender
 
     local senderData = GetPlayerDataByName(sender)
-    if not senderData or playerData == senderData then return end
-
-    sender = senderData.name
+    if senderData and playerData == senderData then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end

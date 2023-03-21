@@ -22,6 +22,7 @@ globals = {
     'C_UnitAuras',
     'CombatLogGetCurrentEventInfo',
     'CreateAtlasMarkup',
+    'CreateColor',
     'CreateFrame',
     'DemoteAssistant',
     'DoReadyCheck',
