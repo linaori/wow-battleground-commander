@@ -5,6 +5,8 @@ Namespace.Changelog = {
         version = '10.0.7-31',
         improvements = {
             'Tooltip hover in group information now shows if the player wants lead',
+            'Addon version information is now integrated into the frame title',
+            'The settings button moved up, next to the close button',
         },
     },
     {
