@@ -74,6 +74,8 @@ local Memory = {
         --    role = Role,
         --    class = "CLASS",
         --    classColor = ColorMixin,
+        --    faction = Faction,
+        --    wantLead = boolean,
         --},
     },
     LeaderData = nil, -- the AllPlayerData table for just the leader
@@ -230,6 +232,7 @@ function Namespace.PlayerData.RebuildPlayerData()
                     class = class,
                     classColor = class and GetClassColor(class) or nil,
                     faction = UnitFactionGroup(unit),
+                    wantLead = false,
                 }
 
                 Memory.AllPlayerData[dataIndex] = data
@@ -242,10 +245,12 @@ function Namespace.PlayerData.RebuildPlayerData()
                     if (data.mercenaryExpiry == -1 or data.mercenaryExpiry < currentTime) and UnitIsMercenary(unit) then
                         data.mercenaryExpiry = currentTime + 99999
                     end
+
                     data.role = UnitIsGroupLeader(unit) and Role.Leader or UnitIsGroupAssistant(unit) and Role.Assist or Role.Member
-                    data.name = GetRealUnitName(unit)
                     data.isConnected = UnitIsConnected(unit)
-                    data.faction = UnitFactionGroup(unit)
+
+                    if data.name == UNKNOWNOBJECT then data.name = GetRealUnitName(unit) end
+                    if data.faction == Faction.None then data.faction = UnitFactionGroup(unit) end
                 end
             end
 

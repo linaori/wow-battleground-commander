@@ -184,3 +184,4 @@ L['Always show the realm'] = true
 L['Never show the realm'] = true
 L['No Addon'] = true
 L['BGC: %d/%d'] = true
+L['Want Lead'] = true

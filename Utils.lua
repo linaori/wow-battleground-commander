@@ -139,6 +139,8 @@ end
 
 function Namespace.Utils.GetRealUnitName(unit)
     local name, realm = UnitNameUnmodified(unit)
+    if name == UNKNOWNOBJECT then return name end
+
     if realm == nil then
         realm = GetNormalizedRealmName()
         -- can return nil during loading screen, UNKNOWNOBJECT resolves it later

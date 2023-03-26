@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-31',
+        improvements = {
+            'Tooltip hover in group information now shows if the player wants lead',
+        },
+    },
+    {
         version = '10.0.7-30',
         improvements = {
             'Improved handling of giving lead automation',

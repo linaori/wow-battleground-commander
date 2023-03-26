@@ -662,15 +662,9 @@ function Private.CanRequestLead()
     return InActiveBattleground()
 end
 
-function Private.OnWantBattlegroundLead(_, text, _, sender)
+function Module:WantBattlegroundLead(senderData)
     local playerData = GetPlayerDataByUnit('player')
-    if not playerData or playerData.role ~= Role.Leader then return end
-
-    local payload = UnpackData(text)
-    sender = payload and payload.sender or sender
-
-    local senderData = GetPlayerDataByName(sender)
-    if senderData and playerData == senderData then return end
+    if playerData == senderData or playerData.role ~= Role.Leader then return end
 
     local channel = GetMessageDestination()
     if channel == Channel.Whisper then return end
@@ -679,6 +673,8 @@ function Private.OnWantBattlegroundLead(_, text, _, sender)
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     if config.wantLead then return end
+
+    local sender = senderData.name
     local giveLeadBehavior = Module:GetPlayerConfigValue(sender, 'giveLeadBehavior')
     if giveLeadBehavior == GiveLeadBehavior.GiveLead then
         PromoteToLeader(sender)
@@ -696,6 +692,18 @@ function Private.OnWantBattlegroundLead(_, text, _, sender)
     end
 
     Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+end
+
+function Private.OnWantBattlegroundLead(_, text, _, sender)
+    local payload = UnpackData(text)
+    sender = payload and payload.sender or sender
+
+    local senderData = GetPlayerDataByName(sender)
+    if not senderData then return end
+
+    senderData.wantLead = true
+
+    Module:WantBattlegroundLead(senderData)
 end
 
 function Private.SendManualChatMessages()
@@ -746,6 +754,8 @@ function Private.SendWantBattlegroundLead()
 end
 
 function Private.RequestRaidLead()
+    Namespace.QueueTools:ScheduleSendSyncData()
+
     local mem = Memory.WantBattlegroundLead
 
     if mem.wantLeadTimer then return end
@@ -926,12 +936,9 @@ function Private.InitializeBattlegroundLeaderCheckbox()
         local wantLead = self:GetChecked()
 
         Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead = wantLead
-        if wantLead then
-            PlaySound(ActivateWarmodeSound)
-            Private.RequestRaidLead()
-        else
-            PlaySound(DeactivateWarmodeSound)
-        end
+        PlaySound(wantLead and ActivateWarmodeSound or DeactivateWarmodeSound)
+
+        Private.RequestRaidLead()
     end)
     checkbox:Show()
 

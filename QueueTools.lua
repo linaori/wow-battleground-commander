@@ -144,7 +144,7 @@ function Private.SendSyncData()
     Memory.syncDataPayloadBuffer = nil
 end
 
-function Private.ScheduleSendSyncData()
+function Module:ScheduleSendSyncData()
     local shouldSchedule = Memory.syncDataPayloadBuffer == nil
 
     local remainingMercenary = Private.GetRemainingAuraTime(SpellIds.MercenaryContractHorde)
@@ -157,11 +157,12 @@ function Private.ScheduleSendSyncData()
         remainingMercenary = remainingMercenary,
         remainingDeserter = Private.GetRemainingAuraTime(SpellIds.DeserterDebuff),
         autoAcceptRole = Namespace.Database.profile.QueueTools.Automation.acceptRoleSelection,
+        wantLead = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead,
     }
 
     if not shouldSchedule then return end
 
-    Module:ScheduleTimer(Private.SendSyncData, ceil(GetNumGroupMembers() * 0.1) + 1)
+    self:ScheduleTimer(Private.SendSyncData, ceil(GetNumGroupMembers() * 0.1) + 1)
 end
 
 function Private.CanDoReadyCheck()
@@ -426,7 +427,7 @@ function Private.RebuildGroupInformationTable(unitPlayerData)
         Private.UpdateAddonUsersLabel()
     end
 
-    Private.ScheduleSendSyncData()
+    Module:ScheduleSendSyncData()
 end
 
 function Private.UpdateGroupInfoVisibility(newVisibility)
@@ -504,6 +505,13 @@ function Private.ProcessSyncData(payload, data)
     data.deserterExpiry = payload.remainingDeserter + time
     data.addonVersion = payload.addonVersion
     data.autoAcceptRole = payload.autoAcceptRole
+
+    if payload.wantLead ~= nil then
+        data.wantLead = payload.wantLead
+        if data.wantLead then
+            Namespace.BattlegroundTools:WantBattlegroundLead(data)
+        end
+    end
 
     Private.RefreshGroupInfoFrame()
 end
@@ -684,7 +692,7 @@ function Module:LFG_ROLE_CHECK_ROLE_CHOSEN(_, sender)
     if data.role == Role.Leader then
         -- The leader does not get a LFG_ROLE_CHECK_SHOW event so sync the info
         -- here for just the leader
-        Private.ScheduleSendSyncData()
+        self:ScheduleSendSyncData()
     end
 
     Private.RefreshGroupInfoFrame()
@@ -716,7 +724,7 @@ function Module:LFG_ROLE_CHECK_SHOW()
 
     -- always schedule sending your data when the queue popup happens
     -- this means the leader has more accurate information
-    Private.ScheduleSendSyncData()
+    self:ScheduleSendSyncData()
 
     if not Namespace.Database.profile.QueueTools.Automation.acceptRoleSelection then return end
 
@@ -871,7 +879,7 @@ end
 
 function Module:RefreshConfig()
     Private.UpdateGroupInfoVisibility(Namespace.Database.profile.QueueTools.showGroupQueueFrame)
-    Private.ScheduleSendSyncData()
+    self:ScheduleSendSyncData()
 end
 
 function Private.UpdateAuraTracking()
@@ -895,7 +903,7 @@ function Module:COMBAT_LOG_EVENT_UNFILTERED()
     local _, _, _, _, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
 
     if spellId ~= SpellIds.MercenaryContractHorde and spellId ~= SpellIds.MercenaryContractAlliance then return end
-    Private.ScheduleSendSyncData()
+    self:ScheduleSendSyncData()
 end
 
 function Module:READY_CHECK(_, initiatedByName, duration)
@@ -928,7 +936,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     end, 0.1)
 
     Private.RefreshGroupInfoFrame()
-    Private.ScheduleSendSyncData()
+    self:ScheduleSendSyncData()
 end
 
 function Module:READY_CHECK_CONFIRM(_, unit, ready)
@@ -1024,6 +1032,8 @@ function Private.InitializeGroupQueueFrame()
             tooltip:ClearLines()
             tooltip:AddLine(originalData.name, classColor.r, classColor.g, classColor.b)
             tooltip:AddDoubleLine(originalData.units.primary, originalData.addonVersion or L['No Addon'], nil, nil, nil, addonColor.r, addonColor.g, addonColor.b)
+            tooltip:AddLine(' ')
+            tooltip:AddDoubleLine(format('%s:', L['Want Lead']), originalData.wantLead and L['yes'] or L['no'])
             tooltip:Show()
 
         end,
@@ -1165,7 +1175,8 @@ function Module:SetAutomationSetting(setting, value)
         if _G.BgcAutoQueueCheckbox then
             _G.BgcAutoQueueCheckbox:SetChecked(value)
         end
-        return Private.ScheduleSendSyncData()
+
+        return self:ScheduleSendSyncData()
     end
 
     Automation[setting] = value
