@@ -57,6 +57,15 @@ Namespace.Utils.RaidIconChatStyle = {
     WhiteSkull = '{rt8}',
 }
 
+Namespace.Utils.ColorList = {
+    None = { r = nil, g = nil, b = nil, a = 1},
+    White = { r = 1, g = 1, b = 1, a = 1 },
+    Bad = { r = 1, g = 0, b = 0, a = 1 },
+    Good = { r = 0, g = 1, b = 0, a = 1 },
+    Warning = { r = 1, g = 1, b = 0, a = 1 },
+    UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
+}
+
 Namespace.Utils.RaidIconChatTexture = {
     YellowStar = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_1:16:16|t]],
     OrangeCircle = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_2:16:16|t]],

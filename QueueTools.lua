@@ -28,6 +28,7 @@ local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
 local AllowQueuePause = Namespace.Battleground.AllowQueuePause
 local QueueStatus = Namespace.Battleground.QueueStatus
+local ColorList = Namespace.Utils.ColorList
 local CreateAtlasMarkup = CreateAtlasMarkup
 local DoReadyCheck = DoReadyCheck
 local GetInstanceInfo = GetInstanceInfo
@@ -123,15 +124,6 @@ local CommunicationEvent = {
     ReadyCheckHeartbeat = 'Bgc:rchb',
     EnterBattleground = 'Bgc:enterBg',
     DeclineBattleground = 'Bgc:declineBg',
-}
-
-local ColorList = {
-    None = { r = nil, g = nil, b = nil, a = 1},
-    White = { r = 1, g = 1, b = 1, a = 1 },
-    Bad = { r = 1, g = 0, b = 0, a = 1 },
-    Good = { r = 0, g = 1, b = 0, a = 1 },
-    Warning = { r = 1, g = 1, b = 0, a = 1 },
-    UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
 }
 
 function Private.SendSyncData()
@@ -1086,26 +1078,52 @@ function Private.InitializeGroupQueueFrame()
 
     local readyCheckButton = CreateFrame('Button', 'BgcReadyCheckButton', queueFrame, 'UIPanelButtonTemplate')
     readyCheckButton:SetText(L['Ready Check'])
-    readyCheckButton:SetPoint('BOTTOM', 0, 3)
+    readyCheckButton:SetPoint('BOTTOMLEFT', queueFrame, 'BOTTOMLEFT', 2, 3)
     readyCheckButton:SetSize(144, 22)
     readyCheckButton:SetScript('OnClick', function () DoReadyCheck() end)
     readyCheckButton:SetEnabled(false)
 
     queueFrame.ReadyCheckButton = readyCheckButton
 
+    local leaderButton = CreateFrame('Button', nil, queueFrame, 'UIPanelButtonTemplate')
+    leaderButton:SetHeight(22)
+    leaderButton:SetTextToFit('  ' .. L['Leaders'])
+    leaderButton:SetPoint('BOTTOMRIGHT', queueFrame, 'BOTTOMRIGHT', -2, 3)
+    leaderButton:SetNormalTexture([[Interface\GroupFrame\UI-Group-LeaderIcon]])
+    leaderButton:SetHighlightTexture([[Interface\GroupFrame\UI-Group-LeaderIcon]])
+    leaderButton:SetPushedTexture([[Interface\GroupFrame\UI-Group-LeaderIcon]])
+
+    leaderButton:SetScript('OnClick', function () Namespace.BattlegroundTools:TriggerUpdateWantBattlegroundLeadDialogFrame(true) end)
+
+    local leaderIconWidth = -leaderButton:GetWidth() + 22;
+
+    local leaderButtonHighlightTexture = leaderButton:GetHighlightTexture()
+    leaderButtonHighlightTexture:SetPoint('TOPLEFT', 7, -4)
+    leaderButtonHighlightTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth, 4)
+    leaderButtonHighlightTexture:SetTexCoord(0, 1, 0, 1)
+
+    local leaderButtonPushedTexture = leaderButton:GetPushedTexture()
+    leaderButtonPushedTexture:ClearAllPoints()
+    leaderButtonPushedTexture:SetPoint('TOPLEFT', 8, -6)
+    leaderButtonPushedTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth - 2, 6)
+    leaderButtonPushedTexture:SetTexCoord(0, 1, 0, 1)
+
+    local leaderButtonTexture = leaderButton:GetNormalTexture()
+    leaderButtonTexture:SetPoint('TOPLEFT', 7, -4)
+    leaderButtonTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth, 4)
+    leaderButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
+
+    queueFrame.LeaderButton = leaderButton
+
     local settingsButton = CreateFrame('Button', nil, queueFrame.CloseButton, 'UIPanelButtonTemplate')
     settingsButton:SetWidth(24)
     settingsButton:SetHeight(23)
-    settingsButton:SetPoint('TOPRIGHT', queueFrame.CloseButton, 'TOPLEFT', 0, 0)
+    settingsButton:SetPoint('TOPRIGHT', queueFrame.CloseButton, 'TOPLEFT')
     settingsButton:SetNormalTexture([[Interface\WorldMap\Gear_64.png]])
     settingsButton:SetHighlightTexture([[Interface\WorldMap\Gear_64.png]])
     settingsButton:SetPushedTexture([[Interface\WorldMap\Gear_64.png]])
 
-    settingsButton:SetScript('OnEnter', function (self)
-        _G.GameTooltip:SetOwner(self, 'ANCHOR_TOP')
-        _G.GameTooltip:SetText(L['Open Battleground Commander Settings'], nil, nil, nil, nil, true)
-    end)
-    settingsButton:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
+    settingsButton.tooltipText = L['Open Battleground Commander Settings']
     settingsButton:SetScript('OnClick', function () ACD:Open(AddonName) end)
 
     local settingsButtonHighlightTexture = settingsButton:GetHighlightTexture()

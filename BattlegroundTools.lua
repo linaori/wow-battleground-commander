@@ -17,6 +17,7 @@ local GetMessageDestination = Namespace.Communication.GetMessageDestination
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GroupType = Namespace.Utils.GroupType
+local ColorList = Namespace.Utils.ColorList
 local GetGroupType = Namespace.Utils.GetGroupType
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
@@ -35,6 +36,7 @@ local PlaySound = PlaySound
 local UnitIsGroupLeader = UnitIsGroupLeader
 local SendChatMessage = SendChatMessage
 local SetRaidTarget = SetRaidTarget
+local UISpecialFrames = UISpecialFrames
 local ReadyCheckSound = SOUNDKIT.READY_CHECK
 local ActivateWarmodeSound = SOUNDKIT.UI_WARMODE_ACTIVATE
 local DeactivateWarmodeSound = SOUNDKIT.UI_WARMODE_DECTIVATE
@@ -45,6 +47,7 @@ local format = string.format
 local floor = math.floor
 local min = math.min
 local pairs = pairs
+local tinsert = tinsert
 
 local CommunicationEvent = {
     WantBattlegroundLead = 'bgc:wantLead',
@@ -62,9 +65,7 @@ local Memory = {
         wantLeadTimer = nil,
         DialogFrame = nil,
         dropdownSelection = {},
-        requestedBy = {},
         recentlyRejected = {},
-        requestedByCount = 0,
         ackTimer = nil,
         ackLeader = nil,
     },
@@ -274,52 +275,42 @@ function Module:OnInitialize()
     Private.InitializeInstructionFrame()
 end
 
-function Private.TriggerUpdateWantBattlegroundLeadDialogFrame(forceHide)
+function Module:TriggerUpdateWantBattlegroundLeadDialogFrame(newVisibility)
     local mem = Memory.WantBattlegroundLead
     local dialog = mem.DialogFrame
     if not dialog then return end
-
-    -- when PromoteToLeader is called in the same update as UnitIsGroupLeader, it still returns true :(
-    if forceHide or mem.requestedByCount == 0 or not UnitIsGroupLeader('player') then
-        return dialog:SetShown(false)
-    end
-
-    dialog:SetShown(true)
 
     local dropdown = dialog.Dropdown
     local lastName
     local count = 0
     LibDD:UIDropDownMenu_Initialize(dropdown, function ()
-        for name, _ in pairs(mem.requestedBy) do
-            local data = GetPlayerDataByName(name)
-            if data then
-                if not mem.dropdownSelection[name] then
-                    mem.dropdownSelection[name] = false
-                end
+        ForEachUnitData(function(data)
+            if not data.wantLead or data.units.player then return end
 
-                local classColor = data.classColor
-                local visibleName = Namespace.QueueTools:GetPlayerNameForDisplay(data)
+            local name = data.name
+            local recentlyRejected = mem.recentlyRejected[name]
 
-                lastName = CreateColor(classColor.r, classColor.g, classColor.b, classColor.a):WrapTextInColorCode(visibleName)
-                count = count + 1
-
-                local info = LibDD:UIDropDownMenu_CreateInfo()
-                info.text = lastName
-                info.checked = mem.dropdownSelection[name]
-                info.isNotRadio = true
-                info.keepShownOnClick = true
-                info.arg1 = name
-                info.func = dialog.Dropdown.OnSelect
-                LibDD:UIDropDownMenu_AddButton(info)
+            if not mem.dropdownSelection[name] or recentlyRejected then
+                mem.dropdownSelection[name] = false
             end
-        end
-    end)
 
-    if count == 0 then
-        -- scenario where someone requested lead but left the bg, this also happens when someone
-        -- disconnected, thus we cannot flat out remove people from the list
-        return dialog:SetShown(false)
-    end
+            local classColor = recentlyRejected and ColorList.UnknownClass or data.classColor
+            local visibleName = Namespace.QueueTools:GetPlayerNameForDisplay(data)
+
+            lastName = CreateColor(classColor.r, classColor.g, classColor.b, classColor.a):WrapTextInColorCode(visibleName)
+            count = count + 1
+
+            local info = LibDD:UIDropDownMenu_CreateInfo()
+            info.text = lastName
+            info.checked = mem.dropdownSelection[name]
+            info.isNotRadio = true
+            info.keepShownOnClick = true
+            info.arg1 = name
+            info.arg2 = data.units.primary
+            info.func = dialog.Dropdown.OnSelect
+            LibDD:UIDropDownMenu_AddButton(info)
+        end)
+    end)
 
     local message
     if count == 1 then
@@ -333,6 +324,10 @@ function Private.TriggerUpdateWantBattlegroundLeadDialogFrame(forceHide)
     LibDD:UIDropDownMenu_SetText(dropdown, message)
 
     Private.UpdateAcceptRejectButtonState()
+
+    if newVisibility ~= nil then
+        dialog:SetShown(newVisibility)
+    end
 end
 
 function Private.TriggerUpdateInstructionFrame()
@@ -384,6 +379,13 @@ function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _,
             DemoteAssistant(data.units.primary)
         end
     end)
+end
+
+--- this listener in specific deals with automatic promotion and demotion of players when PLAYER gets lead
+function Private.TriggerUpdateWantBattlegroundLeadDialogFrameAfterRoleChange(playerData)
+    if not playerData.units.player then return end
+
+    Module:TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
 
 --- this listener in specific deals with new members becoming assistant
@@ -491,12 +493,15 @@ function Private.DetectBattlegroundExit(previousState, newState)
     if previousState.status ~= QueueStatus.Active then return end
     if newState.status ~= QueueStatus.None then return end
 
+    Memory.WantBattlegroundLead.recentlyRejected = {}
+    Memory.WantBattlegroundLead.ackLeader = nil
+
     if Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings.clearFrameOnExitBattleground then
         Private.ResetLogs()
     end
 
     Module:HideInstructionsFrame()
-    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+    Module:TriggerUpdateWantBattlegroundLeadDialogFrame(false)
 end
 
 function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, mapName)
@@ -505,11 +510,8 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, ma
 
     Private.AddLog(format(L['Entered %s'], mapName))
 
-    local wantLead = Memory.WantBattlegroundLead
-    wantLead.requestedBy = {}
-    wantLead.recentlyRejected = {}
-    wantLead.requestedByCount = 0
-    wantLead.ackLeader = nil
+    Memory.WantBattlegroundLead.recentlyRejected = {}
+    Memory.WantBattlegroundLead.ackLeader = nil
 
     Private.TriggerUpdateInstructionFrame()
     Private.RequestRaidLead()
@@ -532,6 +534,7 @@ function Module:OnEnable()
     Namespace.PlayerData.RegisterOnRoleChange('play_leader_sound', Private.PlayLeaderSoundListener)
     Namespace.PlayerData.RegisterOnRoleChange('update_raid_leader_icon', Private.UpdateRaidLeaderIconListener)
     Namespace.PlayerData.RegisterOnRoleChange('promote_assistant_when_player_becomes_leader', Private.PromoteAssistantsWhenPlayerBecomesLeaderListener)
+    Namespace.PlayerData.RegisterOnRoleChange('update_want_lead_dialog', Private.TriggerUpdateWantBattlegroundLeadDialogFrameAfterRoleChange)
     Namespace.PlayerData.RegisterOnRoleChange('promote_new_member_to_assistant', Private.PromoteNewMemberToAssistantListener)
 
     Namespace.PlayerData.RegisterOnUpdate('mark_players', Private.MarkRaidMembersIfLeadingBattleground)
@@ -586,8 +589,9 @@ function Module:RefreshConfig()
     Memory.InstructionFrame:SetPoint(frameConfig.position.anchor, _G.UIParent, frameConfig.position.anchor, frameConfig.position.x, frameConfig.position.y)
     Memory.InstructionFrame.ResizeButton:SetShown(frameConfig.move)
 
-    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
     Private.TriggerUpdateInstructionFrame()
+
+    self:TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
 
 function Module:ShowInstructionsFrame()
@@ -663,35 +667,46 @@ function Private.CanRequestLead()
 end
 
 function Module:WantBattlegroundLead(senderData)
+    if not InActiveBattleground() then
+        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
+    end
+
     local playerData = GetPlayerDataByUnit('player')
-    if playerData == senderData or playerData.role ~= Role.Leader then return end
+    if playerData == senderData or playerData.role ~= Role.Leader then
+        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
+    end
 
     local channel = GetMessageDestination()
-    if channel == Channel.Whisper then return end
+    if channel == Channel.Whisper then
+        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
+    end
 
-    Module:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, PackData({}), channel)
+    self:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, PackData({}), channel)
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
-    if config.wantLead then return end
-
-    local sender = senderData.name
-    local giveLeadBehavior = Module:GetPlayerConfigValue(sender, 'giveLeadBehavior')
-    if giveLeadBehavior == GiveLeadBehavior.GiveLead then
-        PromoteToLeader(sender)
-        Addon:Print(format(L['Automatically giving lead to %s'], sender))
-
-        return Private.TriggerUpdateWantBattlegroundLeadDialogFrame(true)
+    if config.wantLead then
+        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
     end
 
     local mem = Memory.WantBattlegroundLead
-    if giveLeadBehavior == GiveLeadBehavior.RejectLead or mem.recentlyRejected[sender] then return end
+    local sender = senderData.name
+    local giveLeadBehavior = self:GetPlayerConfigValue(sender, 'giveLeadBehavior')
+    if giveLeadBehavior == GiveLeadBehavior.GiveLead then
+        PromoteToLeader(senderData.units.primary)
+        mem.recentlyRejected[sender] = nil
+        Addon:Print(format(L['Automatically giving lead to %s'], sender))
 
-    if not mem.requestedBy[sender] then
-        mem.requestedBy[sender] = true
-        mem.requestedByCount = mem.requestedByCount + 1
+        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
     end
 
-    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+    if giveLeadBehavior == GiveLeadBehavior.RejectLead or mem.recentlyRejected[sender] then return end
+
+    if mem.DialogFrame and not mem.DialogFrame:IsVisible() then
+        PlaySound(ReadyCheckSound)
+        FlashClientIcon()
+    end
+
+    self:TriggerUpdateWantBattlegroundLeadDialogFrame(true)
 end
 
 function Private.OnWantBattlegroundLead(_, text, _, sender)
@@ -764,30 +779,31 @@ function Private.RequestRaidLead()
     mem.wantLeadTimer = Module:ScheduleTimer(Private.SendWantBattlegroundLead, 4)
 end
 
-function Private.ProcessDropDownOptions(onNameSelected)
+function Private.ProcessDropDownOptions(onPlayerSelected)
     local mem = Memory.WantBattlegroundLead
     local found = 0
     local total = 0
-    local lastName
-    local names = {}
+    local lastData
+    local players = {}
     for name, isChecked in pairs(mem.dropdownSelection) do
-        if mem.requestedBy[name] then
+        local data = GetPlayerDataByName(name)
+        if data and data.wantLead then
             found = found + 1
-            lastName = name
+            lastData = data
             if isChecked then
                 total = total + 1
-                names[total] = name
+                players[total] = data
             end
         end
     end
 
     if found == 1 and total == 0 then
-        -- automatically pick the only option
-        names[1] = lastName
+        -- automatically select the only option without having to select it
+        players[1] = lastData
     end
 
-    for _, name in pairs(names) do
-        if onNameSelected(name) then break end
+    for _, data in pairs(players) do
+        if onPlayerSelected(data) then break end
     end
 end
 
@@ -795,39 +811,41 @@ function Private.AcceptManualBattlegroundLeaderRequest()
     local mem = Memory.WantBattlegroundLead
     local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
 
-    local forceHide = false
-    Private.ProcessDropDownOptions(function (name)
-        mem.requestedBy[name] = nil
-        mem.requestedByCount = mem.requestedByCount - 1
-        if remember then Module:SetPlayerConfigValue(name, 'giveLeadBehavior', GiveLeadBehavior.GiveLead) end
+    Private.ProcessDropDownOptions(function (data)
+        if remember then Module:SetPlayerConfigValue(data.name, 'giveLeadBehavior', GiveLeadBehavior.GiveLead) end
 
-        PromoteToLeader(name)
-        forceHide = true
+        PromoteToLeader(data.units.primary)
+        mem.recentlyRejected[data.name] = nil
 
-        return true -- only ever attempt once
+        return false -- only ever attempt once
     end)
 
-    Private.TriggerUpdateWantBattlegroundLeadDialogFrame(forceHide)
+    Module:TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
 
 function Private.RejectManualBattlegroundLeaderRequest()
     local mem = Memory.WantBattlegroundLead
     local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
-    Private.ProcessDropDownOptions(function (name)
-        mem.requestedBy[name] = nil
-        mem.recentlyRejected[name] = true
-        mem.requestedByCount = mem.requestedByCount - 1
-        if remember then Module:SetPlayerConfigValue(name, 'giveLeadBehavior', GiveLeadBehavior.RejectLead) end
+    Private.ProcessDropDownOptions(function (data)
+        mem.recentlyRejected[data.name] = true
+        if remember then Module:SetPlayerConfigValue(data.name, 'giveLeadBehavior', GiveLeadBehavior.RejectLead) end
 
         return false
     end)
 
-    Private.TriggerUpdateWantBattlegroundLeadDialogFrame()
+    Module:TriggerUpdateWantBattlegroundLeadDialogFrame()
 end
 
 function Private.UpdateAcceptRejectButtonState()
     local frame = Memory.WantBattlegroundLead.DialogFrame
     if not frame then return end
+
+    if GetPlayerDataByUnit('player').role ~= Role.Leader then
+        frame.AcceptButton:SetEnabled(false)
+        frame.RejectButton:SetEnabled(false)
+
+        return
+    end
 
     local possibilities = 0
     Private.ProcessDropDownOptions(function ()
@@ -864,11 +882,8 @@ function Private.InitializeBattlegroundLeaderDialog()
     dialog:SetBackdropBorderColor(0.7, 0.7, 0.7, 1)
     dialog:SetScript('OnMouseDown', function(self) self:StartMoving() end)
     dialog:SetScript('OnMouseUp', function(self) self:StopMovingOrSizing() end)
-    dialog:SetScript('OnShow', function(self)
-        if not self:IsVisible() then return end
-        PlaySound(ReadyCheckSound)
-        FlashClientIcon()
-    end)
+
+    tinsert(UISpecialFrames, dialog:GetName());
 
     local dialogText = dialog:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
     dialogText:SetText(L['Lead Requested'])

@@ -7,6 +7,12 @@ Namespace.Changelog = {
             'Tooltip hover in group information now shows if the player wants lead',
             'Addon version information is now integrated into the frame title',
             'The settings button moved up, next to the close button',
+            'The window where you can give lead to others will no longer close by itself as you can now manually open it',
+            'The window to give lead is now closed when you press ESC',
+            'Reworked the internal behavior of tracking who wants lead, please report any bugs you encounter',
+        },
+        features = {
+            'Added a button to the Group Information window to open the window that shows who wants lead',
         },
     },
     {

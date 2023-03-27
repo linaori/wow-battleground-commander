@@ -49,6 +49,8 @@ globals = {
     'SetRaidTarget',
     'Settings',
     'strsplit',
+    'tinsert',
+    'UISpecialFrames',
     'UnitAffectingCombat',
     'UnitClass',
     'UnitDebuff',
