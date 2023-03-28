@@ -270,8 +270,6 @@ function Private.InitializeInstructionFrame()
 end
 
 function Module:OnInitialize()
-    self:RegisterEvent('ADDON_LOADED')
-
     Private.InitializeInstructionFrame()
 end
 
@@ -343,7 +341,7 @@ end
 function Private.RequestRaidLeadListener(_, _, newRole)
     if newRole ~= Role.Leader then return end
 
-    Private.RequestRaidLead()
+    Module:RequestRaidLead()
 end
 
 function Private.PlayLeaderSoundListener(playerData, oldRole, newRole)
@@ -514,7 +512,7 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, ma
     Memory.WantBattlegroundLead.ackLeader = nil
 
     Private.TriggerUpdateInstructionFrame()
-    Private.RequestRaidLead()
+    Module:RequestRaidLead()
 end
 
 function Module:OnEnable()
@@ -574,7 +572,7 @@ function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
 
     if not isLogin and not isReload then return end
 
-    Private.RequestRaidLead()
+    self:RequestRaidLead()
 end
 
 function Module:CHAT_MSG_RAID_WARNING(_, message)
@@ -768,7 +766,7 @@ function Private.SendWantBattlegroundLead()
     Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, PackData({}), channel)
 end
 
-function Private.RequestRaidLead()
+function Module:RequestRaidLead()
     Namespace.QueueTools:ScheduleSendSyncData()
 
     local mem = Memory.WantBattlegroundLead
@@ -776,7 +774,7 @@ function Private.RequestRaidLead()
     if mem.wantLeadTimer then return end
     if not Private.CanRequestLead() then return end
 
-    mem.wantLeadTimer = Module:ScheduleTimer(Private.SendWantBattlegroundLead, 4)
+    mem.wantLeadTimer = self:ScheduleTimer(Private.SendWantBattlegroundLead, 4)
 end
 
 function Private.ProcessDropDownOptions(onPlayerSelected)
@@ -932,47 +930,6 @@ function Private.InitializeBattlegroundLeaderDialog()
     dialog:Hide()
 
     Memory.WantBattlegroundLead.DialogFrame = dialog
-end
-
-function Private.InitializeBattlegroundLeaderCheckbox()
-    local honorFrame = _G.HonorFrame
-    local checkbox = CreateFrame('CheckButton', 'BgcBattlegroundLeaderCheckbox', honorFrame, 'UICheckButtonTemplate')
-    checkbox:SetPoint('LEFT', _G.HonorFrameQueueButton, 'RIGHT', 2, 0)
-    checkbox:SetSize(24, 24)
-    checkbox:SetChecked(Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead)
-    checkbox:SetScript('OnEnter', function (self)
-        local tooltip = _G.GameTooltip
-        tooltip:SetOwner(self, 'ANCHOR_RIGHT')
-        tooltip:SetText(L['Requests lead upon entering or enabling this option'], nil, nil, nil, nil, true)
-        tooltip:Show()
-    end)
-    checkbox:SetScript('OnLeave', function () _G.GameTooltip:Hide() end)
-    checkbox:SetScript('OnClick', function (self)
-        local wantLead = self:GetChecked()
-
-        Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead = wantLead
-        PlaySound(wantLead and ActivateWarmodeSound or DeactivateWarmodeSound)
-
-        Private.RequestRaidLead()
-    end)
-    checkbox:Show()
-
-    honorFrame.BattlegroundModeCheckbox = checkbox
-
-    local text = checkbox:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
-    text:SetText(L['As BG Leader'])
-    text:SetPoint('LEFT', checkbox, 'RIGHT')
-    text:SetWordWrap(false)
-
-    checkbox.Text = text
-end
-
-function Module:ADDON_LOADED(_, addonName)
-    if addonName == 'Blizzard_PVPUI' then
-        Private.InitializeBattlegroundLeaderCheckbox()
-
-        self:UnregisterEvent('ADDON_LOADED')
-    end
 end
 
 function Module:SetWantLeadSetting(key, table)

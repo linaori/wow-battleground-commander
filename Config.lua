@@ -209,7 +209,7 @@ function Namespace.Config.GetConfigurationSetup()
                         order = 2,
                         args = {
                             acceptRoleSelection = {
-                                name = L['Automatically Accept Role Selection'],
+                                name = L['Automatically accept role when queuing'],
                                 desc = L['Accepts the pre-selected role when your group applies for a battleground'],
                                 type = 'toggle',
                                 width = 'full',

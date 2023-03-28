@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-32',
+        improvements = {
+            'Combined the "request lead" and "auto accept role" checkboxes in a new "Battleground Options" dropdown',
+        },
+    },
+    {
         version = '10.0.7-31',
         improvements = {
             'Tooltip hover in group information now shows if the player wants lead',
