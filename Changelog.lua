@@ -3,6 +3,9 @@ local _, Namespace = ...
 Namespace.Changelog = {
     {
         version = '10.0.7-32',
+        bugs = {
+            'Hopefully fixed a bug where sometimes mercenary mode was not refreshed properly',
+        },
         improvements = {
             'Combined the "request lead" and "auto accept role" checkboxes in a new "Battleground Options" dropdown',
         },

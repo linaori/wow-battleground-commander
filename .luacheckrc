@@ -51,7 +51,6 @@ globals = {
     'strsplit',
     'tinsert',
     'UISpecialFrames',
-    'UnitAffectingCombat',
     'UnitClass',
     'UnitDebuff',
     'UnitExists',

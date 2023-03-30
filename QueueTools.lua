@@ -41,7 +41,6 @@ local GetNumGroupMembers = GetNumGroupMembers
 local GetLFGRoleUpdate = GetLFGRoleUpdate
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitDebuff = UnitDebuff
-local UnitAffectingCombat = UnitAffectingCombat
 local GetTime = GetTime
 local IsShiftKeyDown = IsShiftKeyDown
 local SendChatMessage = SendChatMessage
@@ -89,7 +88,7 @@ local tableStructure = {
     },
     {
         name = '',
-        width = 22,
+        width = 25,
         align = 'LEFT',
     }
 }
@@ -110,6 +109,9 @@ local Memory = {
 
     -- the data that should be send next data sync event
     syncDataPayloadBuffer = nil,
+
+    InCombat = false,
+    InGossip = false,
 }
 
 local NameFormat = {
@@ -619,6 +621,8 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK_FINISHED')
     self:RegisterEvent('PLAYER_REGEN_ENABLED')
     self:RegisterEvent('PLAYER_REGEN_DISABLED')
+    self:RegisterEvent('GOSSIP_CLOSED')
+    self:RegisterEvent('GOSSIP_SHOW')
     self:RegisterEvent('LFG_ROLE_CHECK_SHOW')
     self:RegisterEvent('LFG_ROLE_CHECK_ROLE_CHOSEN')
     self:RegisterEvent('LFG_ROLE_CHECK_DECLINED')
@@ -861,7 +865,7 @@ function Module:RefreshConfig()
 end
 
 function Private.UpdateAuraTracking()
-    if UnitAffectingCombat('player') or InActiveBattleground() then
+    if not Memory.InGossip and (Memory.InCombat or InActiveBattleground()) then
         return Module:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
     end
 
@@ -869,16 +873,28 @@ function Private.UpdateAuraTracking()
     Module:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
 end
 
-function Module:PLAYER_REGEN_ENABLED()
+function Module:PLAYER_REGEN_DISABLED()
+    Memory.InCombat = true
     Private.UpdateAuraTracking()
 end
 
-function Module:PLAYER_REGEN_DISABLED()
+function Module:PLAYER_REGEN_ENABLED()
+    Memory.InCombat = false
+    Private.UpdateAuraTracking()
+end
+
+function Module:GOSSIP_SHOW()
+    Memory.InGossip = true
+    Private.UpdateAuraTracking()
+end
+
+function Module:GOSSIP_CLOSED()
+    Memory.InGossip = false
     Private.UpdateAuraTracking()
 end
 
 function Module:COMBAT_LOG_EVENT_UNFILTERED()
-    local _, _, _, _, _, _, _, _, _, _, _, spellId  = CombatLogGetCurrentEventInfo()
+    local _, _, _, _, _, _, _, _, _, _, _, spellId = CombatLogGetCurrentEventInfo()
 
     if spellId ~= SpellIds.MercenaryContractHorde and spellId ~= SpellIds.MercenaryContractAlliance then return end
     self:ScheduleSendSyncData()
