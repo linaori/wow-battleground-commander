@@ -997,7 +997,7 @@ function Private.InitializeGroupQueueFrame()
 
     queueFrame.UpdateLeaderCounter = function (self)
         local count = 0
-        ForEachPlayerData(function (data)
+        ForEachUnitData(function (data)
             if data.wantLead then count = count + 1 end
         end)
 
