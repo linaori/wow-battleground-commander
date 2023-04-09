@@ -161,7 +161,8 @@ L['Try to mark with this icon. If this icon is not available, a random icon will
 L['Mark this player'] = true
 L['When this user requests lead'] = true
 L['No automation'] = true
-L['Give lead'] = true
+L['Give lead, unless I want it'] = true
+L['Always give lead'] = true
 L['Reject lead'] = true
 L['Promote to assistant'] = true
 L['Automatically promote this player to assistant'] = true

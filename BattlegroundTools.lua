@@ -54,6 +54,12 @@ local CommunicationEvent = {
     AcknowledgeWantBattlegroundLead = 'bgc:wantLeadAck',
 }
 
+local GiveLeadStatus = {
+    None = 0,
+    RecentlyAccepted = 1,
+    RecentlyRejected = 2,
+}
+
 local Memory = {
     currentZoneId = nil,
 
@@ -65,7 +71,7 @@ local Memory = {
         wantLeadTimer = nil,
         DialogFrame = nil,
         dropdownSelection = {},
-        recentlyRejected = {},
+        giveLeadStatus = {},
         ackTimer = nil,
         ackLeader = nil,
     },
@@ -85,6 +91,7 @@ local GiveLeadBehavior = {
     NoAutomation = 0,
     GiveLead = 1,
     RejectLead = 2,
+    OverrideLead = 3,
 }
 
 local MarkBehavior = {
@@ -286,13 +293,13 @@ function Module:TriggerUpdateWantBattlegroundLeadDialogFrame(newVisibility)
             if not data.wantLead or data.units.player then return end
 
             local name = data.name
-            local recentlyRejected = mem.recentlyRejected[name]
+            local recentStatus = mem.giveLeadStatus[name]
 
-            if not mem.dropdownSelection[name] or recentlyRejected then
+            if recentStatus == GiveLeadStatus.RecentlyRejected or not mem.dropdownSelection[name] then
                 mem.dropdownSelection[name] = false
             end
 
-            local classColor = recentlyRejected and ColorList.UnknownClass or data.classColor
+            local classColor = recentStatus == GiveLeadStatus.RecentlyRejected and ColorList.UnknownClass or data.classColor
             local visibleName = Namespace.QueueTools:GetPlayerNameForDisplay(data)
 
             lastName = CreateColor(classColor.r, classColor.g, classColor.b, classColor.a):WrapTextInColorCode(visibleName)
@@ -491,7 +498,7 @@ function Private.DetectBattlegroundExit(previousState, newState)
     if previousState.status ~= QueueStatus.Active then return end
     if newState.status ~= QueueStatus.None then return end
 
-    Memory.WantBattlegroundLead.recentlyRejected = {}
+    Memory.WantBattlegroundLead.giveLeadStatus = {}
     Memory.WantBattlegroundLead.ackLeader = nil
 
     if Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings.clearFrameOnExitBattleground then
@@ -508,7 +515,7 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, ma
 
     Private.AddLog(format(L['Entered %s'], mapName))
 
-    Memory.WantBattlegroundLead.recentlyRejected = {}
+    Memory.WantBattlegroundLead.giveLeadStatus = {}
     Memory.WantBattlegroundLead.ackLeader = nil
 
     Private.TriggerUpdateInstructionFrame()
@@ -664,6 +671,12 @@ function Private.CanRequestLead()
     return InActiveBattleground()
 end
 
+function Private.PromoteToLeader(playerData)
+    PromoteToLeader(playerData.units.primary)
+
+    Memory.WantBattlegroundLead.giveLeadStatus[playerData.name] = GiveLeadStatus.RecentlyAccepted
+end
+
 function Module:WantBattlegroundLead(senderData)
     if not InActiveBattleground() then
         return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
@@ -682,22 +695,24 @@ function Module:WantBattlegroundLead(senderData)
     self:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, PackData({}), channel)
 
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
-    if config.wantLead then
-        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
-    end
-
     local mem = Memory.WantBattlegroundLead
     local sender = senderData.name
     local giveLeadBehavior = self:GetPlayerConfigValue(sender, 'giveLeadBehavior')
-    if giveLeadBehavior == GiveLeadBehavior.GiveLead then
-        PromoteToLeader(senderData.units.primary)
-        mem.recentlyRejected[sender] = nil
+
+    if giveLeadBehavior == GiveLeadBehavior.RejectLead or mem.giveLeadStatus[sender] == GiveLeadStatus.RecentlyRejected then
+        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
+    end
+
+    if config.wantLead and (giveLeadBehavior ~= GiveLeadBehavior.OverrideLead or mem.giveLeadStatus[sender] == GiveLeadStatus.RecentlyAccepted) then
+        return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
+    end
+
+    if giveLeadBehavior == GiveLeadBehavior.GiveLead or giveLeadBehavior == GiveLeadBehavior.OverrideLead then
+        Private.PromoteToLeader(senderData)
         Addon:Print(format(L['Automatically giving lead to %s'], sender))
 
         return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
     end
-
-    if giveLeadBehavior == GiveLeadBehavior.RejectLead or mem.recentlyRejected[sender] then return end
 
     if mem.DialogFrame and not mem.DialogFrame:IsVisible() then
         PlaySound(ReadyCheckSound)
@@ -812,8 +827,7 @@ function Private.AcceptManualBattlegroundLeaderRequest()
     Private.ProcessDropDownOptions(function (data)
         if remember then Module:SetPlayerConfigValue(data.name, 'giveLeadBehavior', GiveLeadBehavior.GiveLead) end
 
-        PromoteToLeader(data.units.primary)
-        mem.recentlyRejected[data.name] = nil
+        Private.PromoteToLeader(data)
 
         return false -- only ever attempt once
     end)
@@ -825,7 +839,8 @@ function Private.RejectManualBattlegroundLeaderRequest()
     local mem = Memory.WantBattlegroundLead
     local remember = mem.DialogFrame.RememberNameCheckbox:GetChecked()
     Private.ProcessDropDownOptions(function (data)
-        mem.recentlyRejected[data.name] = true
+        mem.giveLeadStatus[data.name] = GiveLeadStatus.RecentlyRejected
+
         if remember then Module:SetPlayerConfigValue(data.name, 'giveLeadBehavior', GiveLeadBehavior.RejectLead) end
 
         return false

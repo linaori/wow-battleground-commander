@@ -837,7 +837,8 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                 style = 'radio',
                 values = {
                     [GiveLeadBehavior.NoAutomation] = L['No automation'],
-                    [GiveLeadBehavior.GiveLead] = L['Give lead'],
+                    [GiveLeadBehavior.GiveLead] = L['Give lead, unless I want it'],
+                    [GiveLeadBehavior.OverrideLead] = L['Always give lead'],
                     [GiveLeadBehavior.RejectLead] = L['Reject lead'],
                 },
                 set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'giveLeadBehavior', value) end,

@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-33',
+        features = {
+            'Added a new option to give someone lead even if you are currently requesting lead. You can configure this option in the Player Management under "when this user requests lead".',
+        },
+    },
+    {
         version = '10.0.7-32',
         bugs = {
             'Hopefully fixed a bug where sometimes mercenary mode was not refreshed properly',
