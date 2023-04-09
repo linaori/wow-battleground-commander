@@ -674,7 +674,11 @@ end
 function Private.PromoteToLeader(playerData)
     PromoteToLeader(playerData.units.primary)
 
-    Memory.WantBattlegroundLead.giveLeadStatus[playerData.name] = GiveLeadStatus.RecentlyAccepted
+    local mem = Memory.WantBattlegroundLead
+    mem.giveLeadStatus[playerData.name] = GiveLeadStatus.RecentlyAccepted
+
+    if not mem.DialogFrame then return end
+    mem.DialogFrame:Hide()
 end
 
 function Module:WantBattlegroundLead(senderData)
@@ -942,9 +946,9 @@ function Private.InitializeBattlegroundLeaderDialog()
     dialog.RememberNameCheckbox = checkbox
     dialog.closeButton = closeButton
 
-    dialog:Hide()
-
     Memory.WantBattlegroundLead.DialogFrame = dialog
+
+    dialog:Hide()
 end
 
 function Module:SetWantLeadSetting(key, table)

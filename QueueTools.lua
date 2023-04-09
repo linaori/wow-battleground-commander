@@ -1184,7 +1184,7 @@ function Private.InitializeGroupQueueFrame()
     settingsButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
 
     queueFrame.SettingsButton = settingsButton
-    
+
     queueFrame:UpdateReadyCheckButtonState()
     queueFrame:UpdateReadyCheckButtonText(0)
     queueFrame:UpdateLeaderCounter()

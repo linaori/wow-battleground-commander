@@ -8,6 +8,7 @@ Namespace.Changelog = {
         },
         improvements = {
             'Added a counter to the "leaders" button in the group info window, to show how many people are requesting lead',
+            'Automatically close the Give Lead window in certain scenarios',
         },
     },
     {
@@ -97,55 +98,55 @@ Namespace.Changelog = {
             'Fixed a lua error triggering randomly when class color was not known yet',
         },
     },
-    {
-        version = '10.0.5-21',
-        bugs = {
-            'Fixed an issue with the addon not sending and receiving data cross-realm due to "sender" losing its realm information. For now all names in group information will include the realm.',
-        },
-    },
-    {
-        version = '10.0.5-20',
-        improvements = {
-            'Added some German translations (OmarJAH)',
-            'Tweaked some button and table widths to accommodate other languages',
-        },
-    },
-    {
-        version = '10.0.5-19',
-        bugs = {
-            'Fixed an issue with the faction color sometimes not being set properly',
-            'Fixed an issue with the group information frame scrollbar ending up outside the window',
-        },
-    },
-    {
-        version = '10.0.5-18',
-        improvements = {
-            'Updated TOC for 10.0.5',
-        },
-    },
-    {
-        version = '10.0.2-17',
-        improvements = {
-            'Mercenary color in Group Information will now show a red color for players who do not have the same mercenary status as the leader',
-            'The faction of a player is now show in the Group Information table',
-        },
-    },
-    {
-        version = '10.0.2-16',
-        improvements = {
-            'Added mercenary buff support for alliance',
-        },
-    },
-    {
-        version = '10.0.2-15',
-        improvements = {
-            'Added basic mercenary detection for players without Battleground Commander. It will not show the remaining time as it is only known whether or not mercenary mode is active',
-        },
-        bugs = {
-            'Features relying on "active battleground" detection should no longer trigger after the match finished while not exiting yet (during score screen)',
-            'Fixed a bug where the "status" column was not set to "OK" for group members after entering a battleground',
-        },
-    },
+    --{
+    --    version = '10.0.5-21',
+    --    bugs = {
+    --        'Fixed an issue with the addon not sending and receiving data cross-realm due to "sender" losing its realm information. For now all names in group information will include the realm.',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-20',
+    --    improvements = {
+    --        'Added some German translations (OmarJAH)',
+    --        'Tweaked some button and table widths to accommodate other languages',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-19',
+    --    bugs = {
+    --        'Fixed an issue with the faction color sometimes not being set properly',
+    --        'Fixed an issue with the group information frame scrollbar ending up outside the window',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-18',
+    --    improvements = {
+    --        'Updated TOC for 10.0.5',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-17',
+    --    improvements = {
+    --        'Mercenary color in Group Information will now show a red color for players who do not have the same mercenary status as the leader',
+    --        'The faction of a player is now show in the Group Information table',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-16',
+    --    improvements = {
+    --        'Added mercenary buff support for alliance',
+    --    },
+    --},
+    --{
+    --    version = '10.0.2-15',
+    --    improvements = {
+    --        'Added basic mercenary detection for players without Battleground Commander. It will not show the remaining time as it is only known whether or not mercenary mode is active',
+    --    },
+    --    bugs = {
+    --        'Features relying on "active battleground" detection should no longer trigger after the match finished while not exiting yet (during score screen)',
+    --        'Fixed a bug where the "status" column was not set to "OK" for group members after entering a battleground',
+    --    },
+    --},
     --{
     --    version = '10.0.2-14',
     --    features = {
