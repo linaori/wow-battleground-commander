@@ -374,9 +374,10 @@ end
 
 function Private.RefreshGroupInfoFrame()
     local queueFrame = _G.BgcQueueFrame
-    if not queueFrame or not Namespace.Database.profile.QueueTools.showGroupQueueFrame then return end
+    if not queueFrame then return end
 
     queueFrame:UpdateReadyCheckButtonState()
+    queueFrame:UpdateLeaderCounter()
     queueFrame:UpdateAddonUsersLabel()
 
     queueFrame.PlayerTable:Refresh()
@@ -915,16 +916,16 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     end
 
     Memory.readyCheckButtonTicker = self:ScheduleRepeatingTimer(function ()
-        local readyCheckButton = _G.BgcReadyCheckButton
-        if not readyCheckButton then return end
+        local queueFrame = _G.BgcQueueFrame
+        if not queueFrame then return end
 
-        readyCheckButton:SetEnabled(Private.CanDoReadyCheck())
         local timeLeft = max(0, ceil(Memory.lastReadyCheckTime + Memory.lastReadyCheckDuration - GetTime()))
-        if timeLeft > 0 then
-            return readyCheckButton:SetText(L['Ready Check'] .. ' ' .. timeLeft)
-        end
 
-        readyCheckButton:SetText(L['Ready Check'])
+        queueFrame:UpdateReadyCheckButtonText(timeLeft)
+        queueFrame:UpdateReadyCheckButtonState()
+
+        if timeLeft > 0 then return end
+
         Module:CancelTimer(Memory.readyCheckButtonTicker)
         Memory.readyCheckButtonTicker = nil
     end, 0.1)
@@ -994,9 +995,45 @@ function Private.InitializeGroupQueueFrame()
         width = width + header.width
     end
 
+    queueFrame.UpdateLeaderCounter = function (self)
+        local count = 0
+        ForEachPlayerData(function (data)
+            if data.wantLead then count = count + 1 end
+        end)
+
+        self.LeaderButton:SetTextToFit(format('  %s (%d)', L['Leaders'], count))
+
+        local leaderIconWidth = -self.LeaderButton:GetWidth() + 22;
+
+        local leaderButtonHighlightTexture = self.LeaderButton:GetHighlightTexture()
+        leaderButtonHighlightTexture:SetPoint('TOPLEFT', 7, -4)
+        leaderButtonHighlightTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth, 4)
+        leaderButtonHighlightTexture:SetTexCoord(0, 1, 0, 1)
+
+        local leaderButtonPushedTexture = self.LeaderButton:GetPushedTexture()
+        leaderButtonPushedTexture:ClearAllPoints()
+        leaderButtonPushedTexture:SetPoint('TOPLEFT', 8, -6)
+        leaderButtonPushedTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth - 2, 6)
+        leaderButtonPushedTexture:SetTexCoord(0, 1, 0, 1)
+
+        local leaderButtonTexture = self.LeaderButton:GetNormalTexture()
+        leaderButtonTexture:SetPoint('TOPLEFT', 7, -4)
+        leaderButtonTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth, 4)
+        leaderButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
+    end
+
     queueFrame.UpdateReadyCheckButtonState = function (self)
         self.ReadyCheckButton:SetEnabled(Private.CanDoReadyCheck())
     end
+
+    queueFrame.UpdateReadyCheckButtonText = function (self, timeLeft)
+        if timeLeft > 0 then
+            return self.ReadyCheckButton:SetText(format('%s (%d)', L['Ready Check'], timeLeft))
+        end
+
+        self.ReadyCheckButton:SetText(L['Ready Check'])
+    end
+
     queueFrame.UpdateAddonUsersLabel = function (self)
         local withAddon, total = 0, 0
         ForEachUnitData(function (data)
@@ -1100,8 +1137,7 @@ function Private.InitializeGroupQueueFrame()
 
     queueFrame.PlayerTable = playerTable
 
-    local readyCheckButton = CreateFrame('Button', 'BgcReadyCheckButton', queueFrame, 'UIPanelButtonTemplate')
-    readyCheckButton:SetText(L['Ready Check'])
+    local readyCheckButton = CreateFrame('Button', nil, queueFrame, 'UIPanelButtonTemplate')
     readyCheckButton:SetPoint('BOTTOMLEFT', queueFrame, 'BOTTOMLEFT', 2, 3)
     readyCheckButton:SetSize(144, 22)
     readyCheckButton:SetScript('OnClick', function () DoReadyCheck() end)
@@ -1111,31 +1147,11 @@ function Private.InitializeGroupQueueFrame()
 
     local leaderButton = CreateFrame('Button', nil, queueFrame, 'UIPanelButtonTemplate')
     leaderButton:SetHeight(22)
-    leaderButton:SetTextToFit('  ' .. L['Leaders'])
     leaderButton:SetPoint('BOTTOMRIGHT', queueFrame, 'BOTTOMRIGHT', -2, 3)
     leaderButton:SetNormalTexture([[Interface\GroupFrame\UI-Group-LeaderIcon]])
     leaderButton:SetHighlightTexture([[Interface\GroupFrame\UI-Group-LeaderIcon]])
     leaderButton:SetPushedTexture([[Interface\GroupFrame\UI-Group-LeaderIcon]])
-
     leaderButton:SetScript('OnClick', function () Namespace.BattlegroundTools:TriggerUpdateWantBattlegroundLeadDialogFrame(true) end)
-
-    local leaderIconWidth = -leaderButton:GetWidth() + 22;
-
-    local leaderButtonHighlightTexture = leaderButton:GetHighlightTexture()
-    leaderButtonHighlightTexture:SetPoint('TOPLEFT', 7, -4)
-    leaderButtonHighlightTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth, 4)
-    leaderButtonHighlightTexture:SetTexCoord(0, 1, 0, 1)
-
-    local leaderButtonPushedTexture = leaderButton:GetPushedTexture()
-    leaderButtonPushedTexture:ClearAllPoints()
-    leaderButtonPushedTexture:SetPoint('TOPLEFT', 8, -6)
-    leaderButtonPushedTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth - 2, 6)
-    leaderButtonPushedTexture:SetTexCoord(0, 1, 0, 1)
-
-    local leaderButtonTexture = leaderButton:GetNormalTexture()
-    leaderButtonTexture:SetPoint('TOPLEFT', 7, -4)
-    leaderButtonTexture:SetPoint('BOTTOMRIGHT', leaderIconWidth, 4)
-    leaderButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
 
     queueFrame.LeaderButton = leaderButton
 
@@ -1168,6 +1184,10 @@ function Private.InitializeGroupQueueFrame()
     settingsButtonTexture:SetVertexColor(1.0, 0.82, 0, 1.0)
 
     queueFrame.SettingsButton = settingsButton
+    
+    queueFrame:UpdateReadyCheckButtonState()
+    queueFrame:UpdateReadyCheckButtonText(0)
+    queueFrame:UpdateLeaderCounter()
 end
 
 function Module:ADDON_LOADED(_, addonName)
