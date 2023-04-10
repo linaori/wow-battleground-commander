@@ -1,18 +1,17 @@
 ## Battleground Commander
-Provides quality of life features for Battlegrounds. 
+Provides quality of life features for Battlegrounds.
 
 ### Queue Tools
 This adds a bunch of tools that will help group leaders get the info they need to queue or cancel whenever needed.
 
 #### Automatic Role Selection
-You can enable automatic role selection for battlegrounds to reduce a manual step that delays entry. You can find this
-option above the role selection in the PvP window, or in the addon settings.
+You can enable automatic role selection for battlegrounds to reduce a manual step that delays entry.
 
 #### Queue Entry and Decline Tools
 When a queue entry window shows, for non-group leaders the "Enter" button is disabled by default, and additionally
 this button will be disabled if the group leader cancels. This behavior can be changed in the settings, and holding the
-shift button will re-enable the button. When the group leader enters the battleground and has BGC, it will also enable
-the enter button for non-group leaders.
+shift button will re-enable the button. When the group leader enters the battleground and has Battleground Commander, it
+will also enable the enter button for non-group leaders.
 
 The group leader has the ability to automatically do a ready check when a queue entry is cancelled and if not
 all group members declined within a certain time limit.
@@ -30,6 +29,14 @@ You'll be able to see the following information in the columns:
    - if the queue entry window showed up
    - if that player entered (BGC required by that player)
    - if that player declined entry (BGC required by that player)
+ - Player faction
+
+Additionally you can also see who uses which addon by hovering over the window title, or the players themselves, and you
+can access the list of people who request lead. In the settings (QueueTools -> Group Information) you can configure
+player names in Battleground Commander to be shown in several formats:
+ - Never show the realm
+ - Always Show the realm
+ - Hide the realm when it's the same realm as you are from (default Blizzard behavior)
 
 #### Queue Pause Detection
 Free choice of automatically notifying the group when the queue is paused, resumed, and doing a ready check to verify
@@ -45,11 +52,24 @@ configure this frame to load only in specific zones, and it will filter out dupl
 
 #### Requesting Lead
 Users with this addon can request lead from other users with this addon. The leader will receive the option to give lead
-or reject the request, and remember the choice in the future.
+or reject the request, and remember the choice in the future. When the player with lead also wants lead, they will not
+get the popup, though they can add an exclusion per player to automatically give lead away.
 
 #### Leader Setup
 Allows the leader to automatically place a raid marker on themselves when they get lead, and lets the leader
 automatically assign assist to raid members based on their name.
+
+#### Player Management
+You can automate certain levels of player management:
+ - Give them a nickname that appears in the Battleground Commander UI
+ - Whether or not you want to automatically promote the player to assistant
+ - Automatically try to mark the player with either a random icon, or a preferred icon
+ - What to do when the user asks for lead through Battleground Commander:
+   - Not automate it at all
+   - Give them lead unless you want lead
+   - Always give them lead, even if you want lead, which is useful if you off-lead and still want to automatically give 
+     it to a community leader
+   - Automatically reject their request
 
 ## Official Download Locations
 You can find this addon on: [CurseForge.com](https://www.curseforge.com/wow/addons/battleground-commander), 
