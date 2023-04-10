@@ -2,9 +2,15 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-34',
+        bugs = {
+            'When you request lead it no longer shows you as an additional +1 in the "Leaders" button',
+        },
+    },
+    {
         version = '10.0.7-33',
         features = {
-            'Added a new option to give someone lead even if you are currently requesting lead. You can configure this option in the Player Management under "when this user requests lead".',
+            'Added a new option to give someone lead even if you are currently requesting lead. You can configure this option in the Player Management under "when this user requests lead"',
         },
         improvements = {
             'Added a counter to the "leaders" button in the group info window, to show how many people are requesting lead',

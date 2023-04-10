@@ -998,7 +998,7 @@ function Private.InitializeGroupQueueFrame()
     queueFrame.UpdateLeaderCounter = function (self)
         local count = 0
         ForEachUnitData(function (data)
-            if data.wantLead then count = count + 1 end
+            if data.wantLead and not data.units.player then count = count + 1 end
         end)
 
         self.LeaderButton:SetTextToFit(format('  %s (%d)', L['Leaders'], count))
