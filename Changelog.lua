@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.1.0-35',
+        improvements = {
+            'Updated TOC for 10.1',
+        },
+    },
+    {
         version = '10.0.7-34',
         bugs = {
             'When you request lead it no longer shows you as an additional +1 in the "Leaders" button',
