@@ -1,6 +1,8 @@
 ## Battleground Commander
 Provides quality of life features for Battlegrounds.
 
+Discord: https://discord.gg/7tKEKMCkGq
+
 ### Queue Tools
 This adds a bunch of tools that will help group leaders get the info they need to queue or cancel whenever needed.
 
