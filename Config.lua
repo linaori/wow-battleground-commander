@@ -173,7 +173,7 @@ function Namespace.Config.GetConfigurationSetup()
                 order = 1,
                 args = {
                     version = {
-                        name = format(L['Version'] .. ': %s (%s)\n ', Namespace.Meta.version, Namespace.Meta.date),
+                        name = format(L['Version'] .. ': %s\n ', Namespace.Meta.version),
                         type = 'description',
                         width = 'full',
                         fontSize = 'medium',

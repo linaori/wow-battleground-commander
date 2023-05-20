@@ -147,6 +147,8 @@ function Addon:OpenSettingsPanel()
     Settings.OpenToCategory(Memory.OptionsFrames.Information.name)
 end
 
+BattlegroundCommander_OnAddonCompartmentClick = Addon.OpenSettingsPanel
+
 function Addon:OpenPlayerConfig(playerName)
     Namespace.Config.AddPlayerConfig(playerName)
 

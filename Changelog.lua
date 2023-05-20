@@ -3,8 +3,12 @@ local _, Namespace = ...
 Namespace.Changelog = {
     {
         version = '10.1.0-36',
-        Features = {
+        features = {
             'Added a time display on the entry button in "Battleground Commander -> Queue Tools -> Queue Settings". You can configure 12h vs 24h format, and when you want to show it: Never, Solo, or Group Lead. This will help coordination by determining when a group leader gets an entry window.',
+            'Added Battleground Commander to the addon compartment (next to the minimap) to quickly access the settings',
+        },
+        improvements = {
+            'Added new icon for the addon list',
         },
     },
     {

@@ -4,6 +4,8 @@
 ## Author: Linaori
 ## Version: @project-version@
 ## SavedVariables: BattlegroundCommanderDatabase
+## AddonCompartmentFunc: BattlegroundCommander_OnAddonCompartmentClick
+## IconTexture: Interface\AddOns\BattlegroundCommander\Media\Textures\bgc-icon.png
 ## X-Repository: https://github.com/linaori/wow-battleground-commander
 ## X-Curse-Project-ID: 630409
 ## X-Wago-ID: rkGrx76y
