@@ -17,6 +17,7 @@ local ForEachPlayerData = Namespace.PlayerData.ForEachPlayerData
 local RefreshMissingData = Namespace.PlayerData.RefreshMissingData
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local Role = Namespace.PlayerData.Role
+local EntryButtonShowPopTime = Namespace.Utils.EntryButtonShowPopTime
 local ReadyCheckState = Namespace.Utils.ReadyCheckState
 local BattlegroundStatus = Namespace.Utils.BattlegroundStatus
 local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
@@ -47,12 +48,14 @@ local SendChatMessage = SendChatMessage
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
 local TimeDiff = Namespace.Utils.TimeDiff
+local GetServerTime = GetServerTime
 local max = math.max
 local ceil = math.ceil
 local format = string.format
 local pairs = pairs
 local concat = table.concat
 local sort = table.sort
+local date = date
 local locale = GetLocale()
 
 local SpellIds = {
@@ -593,6 +596,15 @@ function Private.DisableEntryButton(text)
     end, 0.3)
 end
 
+function Private.SetEntryButtonTime(timeFormat)
+    local text = Memory.disableEntryButtonOriginalText
+    if timeFormat then
+        text = format('%s (%s)', text, date(timeFormat, GetServerTime()))
+    end
+
+    _G.PVPReadyDialogEnterBattleButton:SetText(text)
+end
+
 function Private.OnDeclineBattleground(_, text, _, sender)
     local payload = UnpackData(text)
     sender = payload and payload.sender or sender
@@ -654,9 +666,9 @@ function Module:OnEnable()
 
     self:RefreshConfig()
 
-    local enterButton = _G.PVPReadyDialogEnterBattleButton
-    enterButton:HookScript('OnClick', Private.OnClickEnterBattleground)
-    Memory.disableEntryButtonOriginalText = enterButton:GetText()
+    local entryButton = _G.PVPReadyDialogEnterBattleButton
+    entryButton:HookScript('OnClick', Private.OnClickEnterBattleground)
+    Memory.disableEntryButtonOriginalText = entryButton:GetText()
 end
 
 function Module:UNIT_CONNECTION(_, unitTarget, isConnected)
@@ -743,14 +755,21 @@ function Private.DetectQueuePop(previousState, newState)
 
     ForEachUnitData(function(data) data.battlegroundStatus = BattlegroundStatus.Waiting end)
 
-    if Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnQueuePop
-        and GetNumGroupMembers() > 1
-        and not IsLeaderOrAssistant('player')
-    then
+    Private.RefreshGroupInfoFrame()
+
+    local config = Namespace.Database.profile.QueueTools.Automation
+    if config.disableEntryButtonOnQueuePop and GetNumGroupMembers() > 1 and not IsLeaderOrAssistant('player') then
         Private.DisableEntryButton([[|TInterface\RaidFrame\ReadyCheck-Waiting:15|t ]] .. L['Waiting (Shift)'])
+        return;
     end
 
-    Private.RefreshGroupInfoFrame()
+    if (config.showTimeOnEntryButton == EntryButtonShowPopTime.OnlyGroupLead and IsLeaderOrAssistant('player'))
+        or (config.showTimeOnEntryButton == EntryButtonShowPopTime.Always and (IsLeaderOrAssistant('player') or GetNumGroupMembers() == 1))
+    then
+        Private.SetEntryButtonTime(config.entryButtonTimeFormat)
+    else
+        Private.SetEntryButtonTime(nil)
+    end
 end
 
 function Private.DetectQueueEntry(previousState, newState)

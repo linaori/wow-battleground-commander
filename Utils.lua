@@ -16,6 +16,17 @@ local floor = math.floor
 local ceil = math.ceil
 local format = string.format
 
+Namespace.Utils.EntryButtonTimeFormat = {
+    Full = '%X',
+    Half = '%I:%M:%S %p',
+}
+
+Namespace.Utils.EntryButtonShowPopTime = {
+    Never = 0,
+    Always = 1,
+    OnlyGroupLead = 2,
+}
+
 Namespace.Utils.GroupType = {
     Solo = 1,
     Party = 2,

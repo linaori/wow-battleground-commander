@@ -1,10 +1,13 @@
 local AddonName, Namespace = ...
 
+local GetCurrentRegion = GetCurrentRegion
 local IsShiftKeyDown = IsShiftKeyDown
 local pairs = pairs
 local concat = table.concat
 local format = string.format
 
+local EntryButtonShowPopTime = Namespace.Utils.EntryButtonShowPopTime
+local EntryButtonTimeFormat = Namespace.Utils.EntryButtonTimeFormat
 local RaidIconIndex = Namespace.Utils.RaidIconIndex
 local RaidIconChatTexture = Namespace.Utils.RaidIconChatTexture
 
@@ -23,6 +26,8 @@ local Memory = {
                     acceptRoleSelection = true,
                     disableEntryButtonOnQueuePop = true,
                     disableEntryButtonOnCancel = true,
+                    showTimeOnEntryButton = EntryButtonShowPopTime.Always,
+                    entryButtonTimeFormat = GetCurrentRegion() == 1 and EntryButtonTimeFormat.Half or EntryButtonTimeFormat.Full,
                 },
                 InspectQueue = {
                     onlyAsLeader = true,
@@ -204,7 +209,7 @@ function Namespace.Config.GetConfigurationSetup()
                         },
                     },
                     Automation = {
-                        name = L['Automation'],
+                        name = L['Queue Settings'],
                         type = 'group',
                         order = 2,
                         args = {
@@ -217,6 +222,11 @@ function Namespace.Config.GetConfigurationSetup()
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('acceptRoleSelection') end,
                                 order = 1,
                             },
+                            entryManagementHeader = {
+                                name = L['Entry Window'],
+                                type = 'header',
+                                order = 2,
+                            },
                             disableEntryButtonOnQueuePop = {
                                 name = L['Disable Entry Button by Default'],
                                 desc = L['The entry button requires shift to be held first, or the group leader to enter.'],
@@ -224,7 +234,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 width = 'full',
                                 set = function (_, value) Namespace.QueueTools:SetAutomationSetting('disableEntryButtonOnQueuePop', value) end,
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('disableEntryButtonOnQueuePop') end,
-                                order = 2,
+                                order = 3,
                             },
                             disableEntryButtonOnCancel = {
                                 name = L['Disable Entry Button on Cancel'],
@@ -233,7 +243,36 @@ function Namespace.Config.GetConfigurationSetup()
                                 width = 'full',
                                 set = function (_, value) Namespace.QueueTools:SetAutomationSetting('disableEntryButtonOnCancel', value) end,
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('disableEntryButtonOnCancel') end,
-                                order = 3,
+                                order = 4,
+                            },
+                            showTimeOnEntryButton = {
+                                name = L['Show server time on Entry Button'],
+                                desc = L['When the Entry Window appears, show the server time on the entry button.'],
+                                type = 'select',
+                                style = 'radio',
+                                width = 2,
+                                values = {
+                                    [EntryButtonShowPopTime.Never] = L['Never'],
+                                    [EntryButtonShowPopTime.OnlyGroupLead] = L['Group Lead'],
+                                    [EntryButtonShowPopTime.Always] = L['Solo, Group Lead'],
+                                },
+                                set = function (_, value) Namespace.QueueTools:SetAutomationSetting('showTimeOnEntryButton', value) end,
+                                get = function () return Namespace.QueueTools:GetAutomationSetting('showTimeOnEntryButton') end,
+                                order = 5,
+                            },
+                            entryButtonTimeFormat = {
+                                name = L['Entry Button time format'],
+                                desc = L['Customize the time format on the Entry Button.'],
+                                type = 'select',
+                                style = 'radio',
+                                width = 2,
+                                values = {
+                                    [EntryButtonTimeFormat.Full] = L['HH:MM:SS (24-hour)'],
+                                    [EntryButtonTimeFormat.Half] = L['HH:MM:SS AM (12-hour)'],
+                                },
+                                set = function (_, value) Namespace.QueueTools:SetAutomationSetting('entryButtonTimeFormat', value) end,
+                                get = function () return Namespace.QueueTools:GetAutomationSetting('entryButtonTimeFormat') end,
+                                order = 6,
                             },
                         },
                     },

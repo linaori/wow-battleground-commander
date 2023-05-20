@@ -11,10 +11,14 @@ You can enable automatic role selection for battlegrounds to reduce a manual ste
 When a queue entry window shows, for non-group leaders the "Enter" button is disabled by default, and additionally
 this button will be disabled if the group leader cancels. This behavior can be changed in the settings, and holding the
 shift button will re-enable the button. When the group leader enters the battleground and has Battleground Commander, it
-will also enable the enter button for non-group leaders.
+will also enable the Entry Button for non-group leaders.
 
 The group leader has the ability to automatically do a ready check when a queue entry is cancelled and if not
 all group members declined within a certain time limit.
+
+To help coordinate which group leaders gets an entry, and when this occurred, you can configure to see the server time
+inside the queue button. This format can be configured as either 12 or 24 hours, and can be configured to never show,
+show solo, and as group leader.
 
 #### Group Information
 This window can be accessed through the PvP window by checking the "Group Info" box. This list shows all players in your
