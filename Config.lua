@@ -179,6 +179,14 @@ function Namespace.Config.GetConfigurationSetup()
                         fontSize = 'medium',
                         order = 1,
                     },
+                    discord = {
+                        name = ' |TInterface\\AddOns\\BattlegroundCommander\\Media\\Textures\\discord.tga:26:26|t Discord',
+                        desc = L['Got feedback, suggestions or questions, or you just want to chat? Join us on Discord!'],
+                        type = 'input',
+                        width = 1.5,
+                        order = 2,
+                        get = function () return Namespace.Meta.discord end
+                    },
                 }
             },
             QueueTools = {

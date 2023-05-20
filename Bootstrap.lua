@@ -17,6 +17,7 @@ Namespace.Meta = {
     versionIncrement = 0,
     date = [[@project-date-iso@]],
     chatTemplate = '[Battleground Commander] %s',
+    discord = 'https://discord.gg/7tKEKMCkGq',
 }
 
 Namespace.Libs = {
@@ -147,7 +148,7 @@ function Addon:OpenSettingsPanel()
     Settings.OpenToCategory(Memory.OptionsFrames.Information.name)
 end
 
-BattlegroundCommander_OnAddonCompartmentClick = Addon.OpenSettingsPanel
+_G.BattlegroundCommander_OnAddonCompartmentClick = Addon.OpenSettingsPanel
 
 function Addon:OpenPlayerConfig(playerName)
     Namespace.Config.AddPlayerConfig(playerName)

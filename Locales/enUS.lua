@@ -197,3 +197,4 @@ L['Group Lead'] = true
 L['Entry Button time format'] = true
 L['Customize the time format on the Entry Button.'] = true
 L['Entry Window'] = true
+L['Got feedback, suggestions or questions, or you just want to chat? Join us on Discord!'] = true
