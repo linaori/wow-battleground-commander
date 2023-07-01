@@ -1,6 +1,6 @@
 local _G, ModuleName, Private, AddonName, Namespace = _G, 'BattlegroundTools', {}, ...
 local Addon = Namespace.Addon
-local Module = Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
+local Module = Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 local LSM = Namespace.Libs.LibSharedMedia
 local LibDD = Namespace.Libs.LibDropDown
@@ -14,10 +14,7 @@ local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
 local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
 local Role = Namespace.PlayerData.Role
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
-local PackData = Namespace.Communication.PackData
-local UnpackData = Namespace.Communication.UnpackData
 local GroupType = Namespace.Utils.GroupType
-local ColorList = Namespace.Utils.ColorList
 local GetGroupType = Namespace.Utils.GetGroupType
 local ForEachUnitData = Namespace.PlayerData.ForEachUnitData
 local InActiveBattleground = Namespace.Battleground.InActiveBattleground
@@ -49,11 +46,6 @@ local min = math.min
 local pairs = pairs
 local tinsert = tinsert
 
-local CommunicationEvent = {
-    WantBattlegroundLead = 'bgc:wantLead',
-    AcknowledgeWantBattlegroundLead = 'bgc:wantLeadAck',
-}
-
 local GiveLeadStatus = {
     None = 0,
     RecentlyAccepted = 1,
@@ -68,7 +60,6 @@ local Memory = {
     },
 
     WantBattlegroundLead = {
-        wantLeadTimer = nil,
         DialogFrame = nil,
         dropdownSelection = {},
         giveLeadStatus = {},
@@ -290,19 +281,19 @@ function Module:TriggerUpdateWantBattlegroundLeadDialogFrame(newVisibility)
     local count = 0
     LibDD:UIDropDownMenu_Initialize(dropdown, function ()
         ForEachUnitData(function(data)
-            if not data.wantLead or data.units.player then return end
-
             local name = data.name
-            local recentStatus = mem.giveLeadStatus[name]
+            if not data.wantLead or data.units.player then
+                mem.dropdownSelection[name] = nil
+                return
+            end
 
-            if recentStatus == GiveLeadStatus.RecentlyRejected or not mem.dropdownSelection[name] then
+            local recentlyRejected = mem.giveLeadStatus[name] == GiveLeadStatus.RecentlyRejected
+            if recentlyRejected or mem.dropdownSelection[name] == nil then
                 mem.dropdownSelection[name] = false
             end
 
-            local classColor = recentStatus == GiveLeadStatus.RecentlyRejected and ColorList.UnknownClass or data.classColor
             local visibleName = Namespace.QueueTools:GetPlayerNameForDisplay(data)
-
-            lastName = CreateColor(classColor.r, classColor.g, classColor.b, classColor.a):WrapTextInColorCode(visibleName)
+            lastName = CreateColor(data.classColor.r, data.classColor.g, data.classColor.b, data.classColor.a):WrapTextInColorCode(visibleName)
             count = count + 1
 
             local info = LibDD:UIDropDownMenu_CreateInfo()
@@ -386,7 +377,6 @@ function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _,
     end)
 end
 
---- this listener in specific deals with automatic promotion and demotion of players when PLAYER gets lead
 function Private.TriggerUpdateWantBattlegroundLeadDialogFrameAfterRoleChange(playerData)
     if not playerData.units.player then return end
 
@@ -526,9 +516,6 @@ function Module:OnEnable()
     self:RegisterEvent('CHAT_MSG_RAID_WARNING')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
-    self:RegisterComm(CommunicationEvent.WantBattlegroundLead, Private.OnWantBattlegroundLead)
-    self:RegisterComm(CommunicationEvent.AcknowledgeWantBattlegroundLead, Private.OnAcknowledgeWantBattlegroundLead)
-
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileCopied', 'RefreshConfig')
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'RefreshConfig')
@@ -649,21 +636,6 @@ function Module:GetZoneId(zoneId)
     return Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[zoneId]
 end
 
-function Private.OnAcknowledgeWantBattlegroundLead(_, text, _, sender)
-    local payload = UnpackData(text)
-    sender = payload and payload.sender or sender
-
-    local playerData = GetPlayerDataByName(sender)
-    if not playerData or playerData.units.player then return end
-
-    local mem = Memory.WantBattlegroundLead
-    if not mem.ackTimer then return end
-
-    Module:CancelTimer(mem.ackTimer)
-    mem.ackTimer = nil
-    mem.ackLeader = nil
-end
-
 function Private.CanRequestLead()
     if not Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.wantLead then return false end
     if UnitIsGroupLeader('player') then return false end
@@ -696,8 +668,6 @@ function Module:WantBattlegroundLead(senderData)
         return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
     end
 
-    self:SendCommMessage(CommunicationEvent.AcknowledgeWantBattlegroundLead, PackData({}), channel)
-
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
     local mem = Memory.WantBattlegroundLead
     local sender = senderData.name
@@ -707,7 +677,7 @@ function Module:WantBattlegroundLead(senderData)
         return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
     end
 
-    if config.wantLead and (giveLeadBehavior ~= GiveLeadBehavior.OverrideLead or mem.giveLeadStatus[sender] == GiveLeadStatus.RecentlyAccepted) then
+    if config.wantLead and giveLeadBehavior ~= GiveLeadBehavior.OverrideLead then
         return self:TriggerUpdateWantBattlegroundLeadDialogFrame()
     end
 
@@ -726,18 +696,6 @@ function Module:WantBattlegroundLead(senderData)
     self:TriggerUpdateWantBattlegroundLeadDialogFrame(true)
 end
 
-function Private.OnWantBattlegroundLead(_, text, _, sender)
-    local payload = UnpackData(text)
-    sender = payload and payload.sender or sender
-
-    local senderData = GetPlayerDataByName(sender)
-    if not senderData then return end
-
-    senderData.wantLead = true
-
-    Module:WantBattlegroundLead(senderData)
-end
-
 function Private.SendManualChatMessages()
     local mem = Memory.WantBattlegroundLead
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
@@ -746,7 +704,7 @@ function Private.SendManualChatMessages()
     if not config.enableManualRequest or not Private.CanRequestLead() then return end
 
     local groupLeader = GetGroupLeaderData()
-    if not groupLeader then return end
+    if not groupLeader or groupLeader.addonVersion then return end
 
     local name = groupLeader.name
     if name == UNKNOWNOBJECT then return end
@@ -762,18 +720,16 @@ function Private.SendManualChatMessages()
     end
 end
 
-function Private.SendWantBattlegroundLead()
-    local mem = Memory.WantBattlegroundLead
-    mem.wantLeadTimer = nil
+function Module:RequestRaidLead()
+    Namespace.QueueTools:ScheduleSendSyncData()
 
     if not Private.CanRequestLead() then return end
+    if GetMessageDestination() == Channel.Whisper then return end
 
-    local channel = GetMessageDestination()
-    if channel == Channel.Whisper then return end
-
+    local mem = Memory.WantBattlegroundLead
     if Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead.enableManualRequest then
         local groupLeader = GetGroupLeaderData()
-        if groupLeader and (mem.ackLeader == nil or groupLeader.name ~= mem.ackLeader) then
+        if groupLeader and not groupLeader.addonVersion and (mem.ackLeader == nil or groupLeader.name ~= mem.ackLeader) then
             -- re-buffer the timer each time the leader changes to give them enough time to reply
             if mem.ackTimer then Module:CancelTimer(mem.ackTimer) end
 
@@ -781,19 +737,6 @@ function Private.SendWantBattlegroundLead()
             mem.ackTimer = Module:ScheduleTimer(Private.SendManualChatMessages, 5)
         end
     end
-
-    Module:SendCommMessage(CommunicationEvent.WantBattlegroundLead, PackData({}), channel)
-end
-
-function Module:RequestRaidLead()
-    Namespace.QueueTools:ScheduleSendSyncData()
-
-    local mem = Memory.WantBattlegroundLead
-
-    if mem.wantLeadTimer then return end
-    if not Private.CanRequestLead() then return end
-
-    mem.wantLeadTimer = self:ScheduleTimer(Private.SendWantBattlegroundLead, 4)
 end
 
 function Private.ProcessDropDownOptions(onPlayerSelected)

@@ -2,6 +2,16 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-37',
+        bugs = {
+            'Attempt to increase stability of giving lead to someone else through either the dialog or automatically',
+        },
+        improvements = {
+            'Requesting lead now uses the generic data sync instead of its own message',
+            'Manually sending a request lead message is now only active when the leader is not using Battleground Commander',
+        },
+    },
+    {
         version = '10.1.0-36',
         features = {
             'Added a time display on the entry button in "Battleground Commander -> Queue Tools -> Queue Settings". You can configure 12h vs 24h format, and when you want to show it: Never, Solo, or Group Lead. This will help coordination by determining when a group leader gets an entry window',
