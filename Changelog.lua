@@ -9,6 +9,7 @@ Namespace.Changelog = {
         improvements = {
             'Requesting lead now uses the generic data sync instead of its own message',
             'Manually sending a request lead message is now only active when the leader is not using Battleground Commander',
+            '"Unknown" player name should be seen less often in the player list when realm names are visible',
         },
     },
     {

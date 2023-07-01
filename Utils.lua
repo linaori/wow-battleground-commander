@@ -9,6 +9,7 @@ local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
 local UnitNameUnmodified = UnitNameUnmodified
 local GetNormalizedRealmName = GetNormalizedRealmName
+local GetRealmName = GetRealmName
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
 local UNKNOWNOBJECT = UNKNOWNOBJECT
@@ -162,9 +163,7 @@ function Namespace.Utils.GetRealUnitName(unit)
     if name == UNKNOWNOBJECT then return name end
 
     if realm == nil then
-        realm = GetNormalizedRealmName()
-        -- can return nil during loading screen, UNKNOWNOBJECT resolves it later
-        if realm == nil then return UNKNOWNOBJECT end
+        realm = GetNormalizedRealmName() or GetRealmName():gsub('[%s-]+', '')
     end
 
     return name .. '-' .. realm

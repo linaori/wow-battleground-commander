@@ -37,6 +37,7 @@ globals = {
     'GetNormalizedRealmName',
     'GetNumGroupMembers',
     'GetPlayerAuraBySpellID',
+    'GetRealmName',
     'GetServerTime',
     'GetTime',
     'GetUnitName',
