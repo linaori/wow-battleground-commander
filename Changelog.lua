@@ -2,6 +2,14 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-38',
+        improvements = {
+            'When a party member without addon enters an instance, it will now show "entered" as status message instead of "waiting"',
+            'If that user is the party leader, the "enter" button for the group will return to normal',
+            'When the queue timer expires it will now reset the states from "waiting" to "ok"',
+        },
+    },
+    {
         version = '10.0.7-37',
         bugs = {
             'Attempt to increase stability of giving lead to someone else through either the dialog or automatically',

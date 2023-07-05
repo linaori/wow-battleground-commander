@@ -57,6 +57,7 @@ local Memory = {
         --[0] = {
         --    status = QueueStatus,
         --    queueSuspended = boolean
+        --    queueId = number
         --},
     },
     queueStateChangeListeners = {},
@@ -97,9 +98,9 @@ function Public.AllowQueuePause()
 end
 
 function Module:UPDATE_BATTLEFIELD_STATUS(_, queueId)
-    local previousState = Memory.queueState[queueId] or { status = QueueStatus.None, suspendedQueue = false }
+    local previousState = Memory.queueState[queueId] or { status = QueueStatus.None, suspendedQueue = false, queueId = queueId }
     local status, mapName, _, _, suspendedQueue = GetBattlefieldStatus(queueId)
-    local newState = { status = status, suspendedQueue = suspendedQueue }
+    local newState = { status = status, suspendedQueue = suspendedQueue, queueId = queueId }
 
     if newState.status == previousState.status and newState.suspendedQueue == previousState.suspendedQueue then return end
 

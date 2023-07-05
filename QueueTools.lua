@@ -42,6 +42,8 @@ local GetNumGroupMembers = GetNumGroupMembers
 local GetLFGRoleUpdate = GetLFGRoleUpdate
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitDebuff = UnitDebuff
+local UnitInOtherParty = UnitInOtherParty
+local GetBattlefieldPortExpiration = GetBattlefieldPortExpiration
 local GetTime = GetTime
 local IsShiftKeyDown = IsShiftKeyDown
 local SendChatMessage = SendChatMessage
@@ -115,6 +117,9 @@ local Memory = {
 
     InCombat = false,
     InGossip = false,
+
+    queueExpiryTimer = nil,
+    queueTicker = nil,
 }
 
 local NameFormat = {
@@ -749,9 +754,43 @@ function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCa
     end, delay)
 end
 
+function Private.GuessPartyMemberWithoutAddonEntered()
+    ForEachUnitData(function(data)
+        if data.addonVersion then return end
+
+        if data.battlegroundStatus ~= BattlegroundStatus.Waiting then return end
+        if not UnitInOtherParty(data.units.primary) then return end
+
+        data.battlegroundStatus = BattlegroundStatus.Entered
+        if data.role == Role.Leader then
+            Private.RestoreEntryButton()
+        end
+    end)
+end
+
+function Private.CleanUpQueueTicker()
+    if Memory.queueTicker then
+        Module:CancelTimer(Memory.queueTicker)
+        Memory.queueTicker = nil
+    end
+end
+
+function Private.CleanUpQueueExpiry()
+    Memory.queueExpiryTimer = nil
+
+    if InActiveBattleground() then return end
+
+    ForEachUnitData(function(data)
+        data.battlegroundStatus = UnitInOtherParty(data.units.primary) and BattlegroundStatus.Entered or BattlegroundStatus.Nothing
+    end)
+end
+
 function Private.DetectQueuePop(previousState, newState)
     if previousState.status ~= QueueStatus.Queued then return end
     if newState.status ~= QueueStatus.Confirm then return end
+
+    Memory.queueExpiryTimer = Module:ScheduleTimer(Private.CleanUpQueueExpiry, GetBattlefieldPortExpiration(newState.queueId) + 1)
+    Memory.queueTicker = Module:ScheduleRepeatingTimer(Private.GuessPartyMemberWithoutAddonEntered, 2)
 
     ForEachUnitData(function(data) data.battlegroundStatus = BattlegroundStatus.Waiting end)
 
@@ -875,6 +914,8 @@ end
 function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
+
+    Private.CleanUpQueueTicker()
 
     ForEachPlayerData(function(data) data.battlegroundStatus = BattlegroundStatus.Nothing end)
 end
