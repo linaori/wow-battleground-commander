@@ -789,6 +789,9 @@ function Private.DetectQueuePop(previousState, newState)
     if previousState.status ~= QueueStatus.Queued then return end
     if newState.status ~= QueueStatus.Confirm then return end
 
+    if Memory.queueExpiryTimer then
+        Module:CancelTimer(Memory.queueExpiryTimer)
+    end
     Memory.queueExpiryTimer = Module:ScheduleTimer(Private.CleanUpQueueExpiry, GetBattlefieldPortExpiration(newState.queueId) + 1)
     Memory.queueTicker = Module:ScheduleRepeatingTimer(Private.GuessPartyMemberWithoutAddonEntered, 2)
 
