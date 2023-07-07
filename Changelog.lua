@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.0.7-39',
+        improvements = {
+            'Group information window is now refreshed when players without Battleground Commander enter',
+        },
+    },
+    {
         version = '10.0.7-38',
         improvements = {
             'When a party member without addon enters an instance, it will now show "entered" as status message instead of "waiting"',

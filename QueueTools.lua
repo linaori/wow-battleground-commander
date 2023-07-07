@@ -755,6 +755,7 @@ function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCa
 end
 
 function Private.GuessPartyMemberWithoutAddonEntered()
+    local refreshData = false
     ForEachUnitData(function(data)
         if data.addonVersion then return end
 
@@ -765,7 +766,11 @@ function Private.GuessPartyMemberWithoutAddonEntered()
         if data.role == Role.Leader then
             Private.RestoreEntryButton()
         end
+
+        refreshData = true
     end)
+
+    if refreshData then Private.RefreshGroupInfoFrame() end
 end
 
 function Private.CleanUpQueueTicker()
@@ -783,6 +788,8 @@ function Private.CleanUpQueueExpiry()
     ForEachUnitData(function(data)
         data.battlegroundStatus = UnitInOtherParty(data.units.primary) and BattlegroundStatus.Entered or BattlegroundStatus.Nothing
     end)
+
+    Private.RefreshGroupInfoFrame()
 end
 
 function Private.DetectQueuePop(previousState, newState)
