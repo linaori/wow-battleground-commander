@@ -24,6 +24,7 @@ local RoleCheckStatus = Namespace.Utils.RoleCheckStatus
 local IsLeaderOrAssistant = Namespace.Utils.IsLeaderOrAssistant
 local GetPlayerAuraExpiration = Namespace.Utils.GetPlayerAuraExpiration
 local RaidIconChatStyle = Namespace.Utils.RaidIconChatStyle
+local IsModifierButtonDown = Namespace.Utils.IsModifierButtonDown
 local PackData = Namespace.Communication.PackData
 local UnpackData = Namespace.Communication.UnpackData
 local GetMessageDestination = Namespace.Communication.GetMessageDestination
@@ -45,7 +46,6 @@ local UnitDebuff = UnitDebuff
 local UnitInOtherParty = UnitInOtherParty
 local GetBattlefieldPortExpiration = GetBattlefieldPortExpiration
 local GetTime = GetTime
-local IsShiftKeyDown = IsShiftKeyDown
 local SendChatMessage = SendChatMessage
 local DEBUFF_MAX_DISPLAY = DEBUFF_MAX_DISPLAY
 local UNKNOWNOBJECT = UNKNOWNOBJECT
@@ -597,8 +597,10 @@ function Private.DisableEntryButton(text)
 
     if Memory.disableEntryButtonTicker then return end
     Memory.disableEntryButtonTicker = Module:ScheduleRepeatingTimer(function ()
-        if IsShiftKeyDown() then Private.RestoreEntryButton() end
-    end, 0.3)
+        if IsModifierButtonDown(Module:GetAutomationSetting('enableEntryButtonModifier')) then
+            Private.RestoreEntryButton()
+        end
+    end, 0.5)
 end
 
 function Private.SetEntryButtonTime(timeFormat)
@@ -627,7 +629,7 @@ function Private.OnDeclineBattleground(_, text, _, sender)
         and Namespace.Database.profile.QueueTools.Automation.disableEntryButtonOnCancel
         and IsLeaderOrAssistant(units.primary)
     then
-        Private.DisableEntryButton([[|TInterface\RaidFrame\ReadyCheck-NotReady:15|t ]] .. L['Cancel (Shift)'])
+        Private.DisableEntryButton([[|TInterface\RaidFrame\ReadyCheck-NotReady:15|t ]] .. format(L['Cancel (%s)'], Module:GetAutomationSetting('enableEntryButtonModifier')))
     end
 
     Private.RefreshGroupInfoFrame()
@@ -808,7 +810,7 @@ function Private.DetectQueuePop(previousState, newState)
 
     local config = Namespace.Database.profile.QueueTools.Automation
     if config.disableEntryButtonOnQueuePop and GetNumGroupMembers() > 1 and not IsLeaderOrAssistant('player') then
-        Private.DisableEntryButton([[|TInterface\RaidFrame\ReadyCheck-Waiting:15|t ]] .. L['Waiting (Shift)'])
+        Private.DisableEntryButton([[|TInterface\RaidFrame\ReadyCheck-Waiting:15|t ]] .. format(L['Waiting (%s)'], Module:GetAutomationSetting('enableEntryButtonModifier')))
         return;
     end
 

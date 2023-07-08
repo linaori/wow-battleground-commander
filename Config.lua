@@ -10,6 +10,7 @@ local EntryButtonShowPopTime = Namespace.Utils.EntryButtonShowPopTime
 local EntryButtonTimeFormat = Namespace.Utils.EntryButtonTimeFormat
 local RaidIconIndex = Namespace.Utils.RaidIconIndex
 local RaidIconChatTexture = Namespace.Utils.RaidIconChatTexture
+local ModifierButton = Namespace.Utils.ModifierButton
 
 Namespace.Config = {}
 
@@ -26,6 +27,7 @@ local Memory = {
                     acceptRoleSelection = true,
                     disableEntryButtonOnQueuePop = true,
                     disableEntryButtonOnCancel = true,
+                    enableEntryButtonModifier = ModifierButton.Shift,
                     showTimeOnEntryButton = EntryButtonShowPopTime.Always,
                     entryButtonTimeFormat = GetCurrentRegion() == 1 and EntryButtonTimeFormat.Half or EntryButtonTimeFormat.Full,
                 },
@@ -236,7 +238,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 order = 2,
                             },
                             disableEntryButtonOnQueuePop = {
-                                name = L['Disable Entry Button by Default'],
+                                name = L['Disable entry button by default'],
                                 desc = L['The entry button requires shift to be held first, or the group leader to enter.'],
                                 type = 'toggle',
                                 width = 'full',
@@ -245,13 +247,28 @@ function Namespace.Config.GetConfigurationSetup()
                                 order = 3,
                             },
                             disableEntryButtonOnCancel = {
-                                name = L['Disable Entry Button on Cancel'],
+                                name = L['Disable entry button on cancel'],
                                 desc = L['Disables the entry button when the group leader cancels entry, hold shift to re-enable the button'],
                                 type = 'toggle',
                                 width = 'full',
                                 set = function (_, value) Namespace.QueueTools:SetAutomationSetting('disableEntryButtonOnCancel', value) end,
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('disableEntryButtonOnCancel') end,
                                 order = 4,
+                            },
+                            enableEntryButtonModifier = {
+                                name = L['Modifier button to re-enable the entry button'],
+                                desc = L['This button will make sure that you can enable the entry button on a queue pop whenever you want'],
+                                type = 'select',
+                                style = 'radio',
+                                width = 2,
+                                values = {
+                                    [ModifierButton.Control] = ModifierButton.Control,
+                                    [ModifierButton.Alt] = ModifierButton.Alt,
+                                    [ModifierButton.Shift] = ModifierButton.Shift,
+                                },
+                                set = function (_, value) Namespace.QueueTools:SetAutomationSetting('enableEntryButtonModifier', value) end,
+                                get = function () return Namespace.QueueTools:GetAutomationSetting('enableEntryButtonModifier') end,
+                                order = 5,
                             },
                             showTimeOnEntryButton = {
                                 name = L['Show server time on Entry Button'],
@@ -266,7 +283,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 },
                                 set = function (_, value) Namespace.QueueTools:SetAutomationSetting('showTimeOnEntryButton', value) end,
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('showTimeOnEntryButton') end,
-                                order = 5,
+                                order = 6,
                             },
                             entryButtonTimeFormat = {
                                 name = L['Entry Button time format'],
@@ -280,7 +297,7 @@ function Namespace.Config.GetConfigurationSetup()
                                 },
                                 set = function (_, value) Namespace.QueueTools:SetAutomationSetting('entryButtonTimeFormat', value) end,
                                 get = function () return Namespace.QueueTools:GetAutomationSetting('entryButtonTimeFormat') end,
-                                order = 6,
+                                order = 7,
                             },
                         },
                     },

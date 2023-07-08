@@ -45,6 +45,8 @@ globals = {
     'InCombatLockdown',
     'IsInGroup',
     'IsInRaid',
+    'IsAltKeyDown',
+    'IsControlKeyDown',
     'IsShiftKeyDown',
     'PlaySound',
     'PromoteToAssistant',

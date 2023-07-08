@@ -3,6 +3,9 @@ local _, Namespace = ...
 Namespace.Changelog = {
     {
         version = '10.0.7-39',
+        features = {
+            'You can now configure which modifier button (Shift, Ctrl, or Alt) re-enables the entry button',
+        },
         improvements = {
             'Group information window is now refreshed when players without Battleground Commander enter',
         },

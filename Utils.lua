@@ -4,6 +4,9 @@ Namespace.Utils = {}
 
 local IsInRaid = IsInRaid
 local IsInGroup = IsInGroup
+local IsShiftKeyDown = IsShiftKeyDown
+local IsAltKeyDown = IsAltKeyDown
+local IsControlKeyDown = IsControlKeyDown
 local GetPlayerAuraBySpellID = C_UnitAuras.GetPlayerAuraBySpellID
 local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
@@ -89,6 +92,14 @@ Namespace.Utils.RaidIconChatTexture = {
     WhiteSkull = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_8:16:16|t]],
 }
 
+local ModifierButton = {
+    Shift = 'Shift',
+    Control = 'Ctrl',
+    Alt = 'Alt',
+}
+
+Namespace.Utils.ModifierButton = ModifierButton
+
 Namespace.Utils.RaidIconIndex = {
     NoIcon = 0,
     YellowStar = 1,
@@ -100,6 +111,12 @@ Namespace.Utils.RaidIconIndex = {
     RedCross = 7,
     WhiteSkull = 8,
 }
+
+function Namespace.Utils.IsModifierButtonDown(button)
+    return (button == ModifierButton.Shift and IsShiftKeyDown())
+        or (button == ModifierButton.Alt and IsAltKeyDown())
+        or (button == ModifierButton.Control and IsControlKeyDown())
+end
 
 function Namespace.Utils.TimeDiff(a, b)
     local secondsDiff = a - b
