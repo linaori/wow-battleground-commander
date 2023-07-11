@@ -2,16 +2,17 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
-        version = '10.0.7-39',
+        version = '10.1.5-39',
         features = {
             'You can now configure which modifier button (Shift, Ctrl, or Alt) re-enables the entry button',
         },
         improvements = {
+            'Updated TOC for 10.1.5',
             'Group information window is now refreshed when players without Battleground Commander enter',
         },
     },
     {
-        version = '10.0.7-38',
+        version = '10.1.0-38',
         improvements = {
             'When a party member without addon enters an instance, it will now show "entered" as status message instead of "waiting"',
             'If that user is the party leader, the "enter" button for the group will return to normal',
@@ -19,7 +20,7 @@ Namespace.Changelog = {
         },
     },
     {
-        version = '10.0.7-37',
+        version = '10.1.0-37',
         bugs = {
             'Attempt to increase stability of giving lead to someone else through either the dialog or automatically',
         },
