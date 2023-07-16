@@ -365,7 +365,7 @@ end
 --- this listener in specific deals with automatic promotion and demotion of players when PLAYER gets lead
 function Private.PromoteAssistantsWhenPlayerBecomesLeaderListener(playerData, _, newRole)
     if newRole ~= Role.Leader or not playerData.units.player then return end
-    if not InActiveBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
+    if not InActiveBattleground() then return end
 
     local demoteUnlisted = Namespace.Database.profile.BattlegroundTools.LeaderTools.demoteUnlisted
     ForEachUnitData(function (data)
@@ -387,7 +387,7 @@ end
 function Private.PromoteNewMemberToAssistantListener(playerData, oldRole, newRole)
     if oldRole or newRole ~= Role.Member or playerData.units.player then return end
 
-    if not InActiveBattleground() or GetGroupType() ~= GroupType.InstanceRaid then return end
+    if not InActiveBattleground() then return end
 
     local leader = GetGroupLeaderData()
     if not leader or not leader.units.player then return end

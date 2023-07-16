@@ -4,10 +4,13 @@ local Addon = Namespace.Addon
 local Module = Addon:NewModule(ModuleName, 'AceEvent-3.0', 'AceTimer-3.0', 'AceComm-3.0')
 local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
 
+local GroupType = Namespace.Utils.GroupType
+local GetGroupType = Namespace.Utils.GetGroupType
 local GetBattlefieldStatus = GetBattlefieldStatus
 local GetInstanceInfo = GetInstanceInfo
 local GetMaxBattlefieldID = GetMaxBattlefieldID
 local GetActiveMatchState = C_PvP.GetActiveMatchState
+local PvPMatchState = Enum.PvPMatchState
 local pairs = pairs
 
 Namespace.Battleground = Public
@@ -18,12 +21,6 @@ local QueueStatus = {
     Active = 'active',
     None = 'none',
     Error = 'error',
-}
-
-local ActiveMatchState = {
-    Nothing = 0,
-    Active = 1,
-    Score = 2,
 }
 
 local Zones = {
@@ -70,7 +67,13 @@ function Public.RegisterQueueStateListener(listenerName, callback)
 end
 
 function Public.InActiveBattleground()
-    return GetActiveMatchState() == ActiveMatchState.Active
+    local state = GetActiveMatchState()
+    if state ~= PvPMatchState.Waiting and state ~= PvPMatchState.StartUp and state ~= PvPMatchState.Engaged then
+        return false
+    end
+
+    local groupType = GetGroupType()
+    return groupType == GroupType.InstanceParty or groupType == GroupType.InstanceRaid
 end
 
 function Private.InitCurrentZoneId()

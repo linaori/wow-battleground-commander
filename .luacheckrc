@@ -26,6 +26,7 @@ globals = {
     'CreateFrame',
     'DemoteAssistant',
     'DoReadyCheck',
+    'Enum',
     'FlashClientIcon',
     'GetBattlefieldPortExpiration',
     'GetBattlefieldStatus',

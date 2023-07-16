@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.1.5-40',
+        bugs = {
+            'Fixed giving/requesting lead, assist, and marks not working inside battlegrounds since 10.1.5',
+        },
+    },
+    {
         version = '10.1.5-39',
         features = {
             'You can now configure which modifier button (Shift, Ctrl, or Alt) re-enables the entry button',
