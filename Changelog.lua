@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.1.7-41',
+        improvements = {
+            'Updated TOC for 10.1.7',
+        },
+    },
+    {
         version = '10.1.5-40',
         bugs = {
             'Fixed giving/requesting lead, assist, and marks not working inside battlegrounds since 10.1.5',
