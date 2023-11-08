@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.2.0-42',
+        improvements = {
+            'Updated TOC for 10.2.0',
+        },
+    },
+    {
         version = '10.1.7-41',
         improvements = {
             'Updated TOC for 10.1.7',
@@ -59,109 +65,109 @@ Namespace.Changelog = {
             'Updated TOC for 10.1',
         },
     },
-    {
-        version = '10.0.7-34',
-        bugs = {
-            'When you request lead it no longer shows you as an additional +1 in the "Leaders" button',
-        },
-    },
-    {
-        version = '10.0.7-33',
-        features = {
-            'Added a new option to give someone lead even if you are currently requesting lead. You can configure this option in the Player Management under "when this user requests lead"',
-        },
-        improvements = {
-            'Added a counter to the "leaders" button in the group info window, to show how many people are requesting lead',
-            'Automatically close the Give Lead window in certain scenarios',
-        },
-    },
-    {
-        version = '10.0.7-32',
-        bugs = {
-            'Hopefully fixed a bug where sometimes mercenary mode was not refreshed properly',
-        },
-        improvements = {
-            'Combined the "request lead" and "auto accept role" checkboxes in a new "Battleground Options" dropdown',
-        },
-    },
-    {
-        version = '10.0.7-31',
-        improvements = {
-            'Tooltip hover in group information now shows if the player wants lead',
-            'Addon version information is now integrated into the frame title',
-            'The settings button moved up, next to the close button',
-            'The window where you can give lead to others will no longer close by itself as you can now manually open it',
-            'The window to give lead is now closed when you press ESC',
-            'Reworked the internal behavior of tracking who wants lead, please report any bugs you encounter',
-        },
-        features = {
-            'Added a button to the Group Information window to open the window that shows who wants lead',
-        },
-    },
-    {
-        version = '10.0.7-30',
-        improvements = {
-            'Improved handling of giving lead automation',
-            'Give Lead window now respects the name display configuration and colors by class',
-        },
-        bugs = {
-            'No longer show the Give Lead window when the people in the list are not in the match at that moment',
-        },
-    },
-    {
-        version = '10.0.7-29',
-        improvements = {
-            'Updated TOC for 10.0.7',
-        },
-    },
-    {
-        version = '10.0.5-28',
-        improvements = {
-            'Added text to show total BGC addon users in group information',
-        },
-    },
-    {
-        version = '10.0.5-27',
-        improvements = {
-            'Changed text color to be less "bad" when you have a different mercenary status than your leader if the leader does not have the addon',
-        },
-    },
-    {
-        version = '10.0.5-26',
-        bugs = {
-            'Fixed trying to give lead to someone when they ask, while not having lead yourself',
-        },
-    },
-    {
-        version = '10.0.5-25',
-        bugs = {
-            'Fixed some functions not working properly for people from the same realm as you',
-            'Reduced the chance of "Unknown" being shown as player name in the group information window',
-        },
-        improvements = {
-            'Improved the group information tooltip, which will now also try to show if the addon is out of date or not by coloring the version',
-        },
-    },
-    {
-        version = '10.0.5-24',
-        features = {
-            'Added the ability to give a custom nick name to players',
-            'Added a setting to configure how names are shown in the group info: Hide realm when same as yours, Always show the realm, and Never show the realm',
-            'The "settings" button in the group information window now opens just the Battleground Commander config instead of all settings',
-        },
-    },
-    {
-        version = '10.0.5-23',
-        bugs = {
-            'Fixed the "accepted automated ready check with message" print showing the incorrect data',
-        },
-    },
-    {
-        version = '10.0.5-22',
-        bugs = {
-            'Fixed a lua error triggering randomly when class color was not known yet',
-        },
-    },
+    --{
+    --    version = '10.0.7-34',
+    --    bugs = {
+    --        'When you request lead it no longer shows you as an additional +1 in the "Leaders" button',
+    --    },
+    --},
+    --{
+    --    version = '10.0.7-33',
+    --    features = {
+    --        'Added a new option to give someone lead even if you are currently requesting lead. You can configure this option in the Player Management under "when this user requests lead"',
+    --    },
+    --    improvements = {
+    --        'Added a counter to the "leaders" button in the group info window, to show how many people are requesting lead',
+    --        'Automatically close the Give Lead window in certain scenarios',
+    --    },
+    --},
+    --{
+    --    version = '10.0.7-32',
+    --    bugs = {
+    --        'Hopefully fixed a bug where sometimes mercenary mode was not refreshed properly',
+    --    },
+    --    improvements = {
+    --        'Combined the "request lead" and "auto accept role" checkboxes in a new "Battleground Options" dropdown',
+    --    },
+    --},
+    --{
+    --    version = '10.0.7-31',
+    --    improvements = {
+    --        'Tooltip hover in group information now shows if the player wants lead',
+    --        'Addon version information is now integrated into the frame title',
+    --        'The settings button moved up, next to the close button',
+    --        'The window where you can give lead to others will no longer close by itself as you can now manually open it',
+    --        'The window to give lead is now closed when you press ESC',
+    --        'Reworked the internal behavior of tracking who wants lead, please report any bugs you encounter',
+    --    },
+    --    features = {
+    --        'Added a button to the Group Information window to open the window that shows who wants lead',
+    --    },
+    --},
+    --{
+    --    version = '10.0.7-30',
+    --    improvements = {
+    --        'Improved handling of giving lead automation',
+    --        'Give Lead window now respects the name display configuration and colors by class',
+    --    },
+    --    bugs = {
+    --        'No longer show the Give Lead window when the people in the list are not in the match at that moment',
+    --    },
+    --},
+    --{
+    --    version = '10.0.7-29',
+    --    improvements = {
+    --        'Updated TOC for 10.0.7',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-28',
+    --    improvements = {
+    --        'Added text to show total BGC addon users in group information',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-27',
+    --    improvements = {
+    --        'Changed text color to be less "bad" when you have a different mercenary status than your leader if the leader does not have the addon',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-26',
+    --    bugs = {
+    --        'Fixed trying to give lead to someone when they ask, while not having lead yourself',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-25',
+    --    bugs = {
+    --        'Fixed some functions not working properly for people from the same realm as you',
+    --        'Reduced the chance of "Unknown" being shown as player name in the group information window',
+    --    },
+    --    improvements = {
+    --        'Improved the group information tooltip, which will now also try to show if the addon is out of date or not by coloring the version',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-24',
+    --    features = {
+    --        'Added the ability to give a custom nick name to players',
+    --        'Added a setting to configure how names are shown in the group info: Hide realm when same as yours, Always show the realm, and Never show the realm',
+    --        'The "settings" button in the group information window now opens just the Battleground Commander config instead of all settings',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-23',
+    --    bugs = {
+    --        'Fixed the "accepted automated ready check with message" print showing the incorrect data',
+    --    },
+    --},
+    --{
+    --    version = '10.0.5-22',
+    --    bugs = {
+    --        'Fixed a lua error triggering randomly when class color was not known yet',
+    --    },
+    --},
     --{
     --    version = '10.0.5-21',
     --    bugs = {
