@@ -66,6 +66,7 @@ function Addon:OnInitialize()
         Information = ACD:AddToBlizOptions(AddonName, Namespace.Meta.nameShort, nil, 'Information'),
         QueueTools = ACD:AddToBlizOptions(AddonName, configurationSetup.args.QueueTools.name, Namespace.Meta.nameShort, 'QueueTools'),
         BattlegroundTools = ACD:AddToBlizOptions(AddonName, configurationSetup.args.BattlegroundTools.name, Namespace.Meta.nameShort, 'BattlegroundTools'),
+        PlayerManagement = ACD:AddToBlizOptions(AddonName, configurationSetup.args.PlayerManagement.name, Namespace.Meta.nameShort, 'PlayerManagement'),
         Profiles = ACD:AddToBlizOptions(AddonName, configurationSetup.args.Profiles.name, Namespace.Meta.nameShort, 'Profiles'),
     }
 
@@ -80,16 +81,19 @@ function Addon:OnInitialize()
     Namespace.Database.RegisterCallback(self, 'OnProfileReset', 'MigrateConfig')
 
     self:MigrateConfig()
-
-    Addon:InitializePlayerConfig()
 end
 
 function Addon:InitializePlayerConfig()
     local configurationSetup = Namespace.Config.GetConfigurationSetup()
 
-    local PlayerManagement = configurationSetup.args.BattlegroundTools.args.PlayerManagement
+    local playerConfigTable = configurationSetup.args.PlayerManagement.args.Players.args
+    for key in pairs(playerConfigTable) do
+        if key ~= 'addPlayerFromGroup' and key ~= 'addPlayerFromRecentGroup' and key ~= 'addPlayerRaw' then
+            playerConfigTable[key] = nil
+        end
+    end
     for playerName, config in pairs(Namespace.BattlegroundTools:GetAllPlayerConfig()) do
-        PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
+        playerConfigTable[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
     end
 
     Namespace.Libs.AceConfigRegistry:NotifyChange(AddonName)
@@ -142,6 +146,8 @@ function Addon:MigrateConfig()
 
         config.WantBattlegroundLead.automaticallyReject = nil
     end
+
+    Addon:InitializePlayerConfig()
 end
 
 function Addon:OpenSettingsPanel()
@@ -153,10 +159,10 @@ _G.BattlegroundCommander_OnAddonCompartmentClick = Addon.OpenSettingsPanel
 function Addon:OpenPlayerConfig(playerName, standaloneFrame)
     local ACD = Namespace.Libs.AceConfigDialog
     if standaloneFrame then
-        ACD:Open(AddonName, nil, 'BattlegroundTools', 'PlayerManagement')
+        ACD:Open(AddonName, nil, 'PlayerManagement', 'Players')
     end
 
-    ACD:SelectGroup(AddonName, 'BattlegroundTools', 'PlayerManagement', playerName)
+    ACD:SelectGroup(AddonName, 'PlayerManagement', 'Players', playerName)
 end
 
 function Addon:ChatCommand(input)

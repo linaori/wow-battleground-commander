@@ -151,7 +151,7 @@ function Namespace.Config.AddPlayerConfig(playerName)
     config = Namespace.BattlegroundTools:CreatePlayerConfig(playerName)
     config.groupLabel = playerData and playerData.classColor:WrapTextInColorCode(playerName) or playerName
 
-    Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
+    Memory.ConfigurationSetup.args.PlayerManagement.args.Players.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
 
     Namespace.Libs.AceConfigRegistry:NotifyChange(AddonName)
 
@@ -723,10 +723,18 @@ function Namespace.Config.GetConfigurationSetup()
                             },
                         },
                     },
-                    PlayerManagement = {
-                        name = L['Player Management'],
+                },
+            },
+            PlayerManagement = {
+                name = L['Player Management'],
+                type = 'group',
+                order = 4,
+                childGroups = 'tab',
+                args = {
+                    Players = {
+                        name = L['Players'],
                         type = 'group',
-                        order = 4,
+                        order = 1,
                         childGroups = 'tree',
                         args = {
                             addPlayerFromGroup = {
@@ -748,7 +756,7 @@ function Namespace.Config.GetConfigurationSetup()
                                         found = found + 1
                                     end)
 
-                                    Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args.addPlayerFromGroup.disabled = found == 0
+                                    Memory.ConfigurationSetup.args.PlayerManagement.args.Players.args.addPlayerFromGroup.disabled = found == 0
 
                                     return names
                                 end,
@@ -775,7 +783,7 @@ function Namespace.Config.GetConfigurationSetup()
                                         found = found + 1
                                     end)
 
-                                    Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args.addPlayerFromRecentGroup.disabled = found == 0
+                                    Memory.ConfigurationSetup.args.PlayerManagement.args.Players.args.addPlayerFromRecentGroup.disabled = found == 0
 
                                     return names
                                 end,
@@ -793,7 +801,103 @@ function Namespace.Config.GetConfigurationSetup()
                                 order = 3,
                             },
                         }
-                    }
+                    },
+                    ExportPlayers = {
+                        name = L['Export'],
+                        type = 'group',
+                        order = 2,
+                        args = {
+                            ExportField = {
+                                name = L['Copy'],
+                                desc = L['This text can be copied and pasted into the text field under "Import"'],
+                                type = 'input',
+                                order = 1,
+                                multiline = 30,
+                                width = 3.5,
+                                get = function ()
+                                    local AceSerializer = Namespace.Libs.AceSerializer
+                                    local data = {}
+                                    for playerName, playerConfig in pairs(Namespace.BattlegroundTools:GetAllPlayerConfig()) do
+                                        data[playerName] = {
+                                            gl = playerConfig.groupLabel:gsub('|c', '[c'):gsub('|r', '[r'),
+                                            glb = playerConfig.giveLeadBehavior,
+                                            mb = playerConfig.markBehavior,
+                                            pta = playerConfig.promoteToAssistant,
+                                            pi = playerConfig.preferredIcon,
+                                        }
+                                    end
+
+                                    local serialized = AceSerializer:Serialize(data)
+                                    if not serialized then return 'serialize failed, please report this bug' end
+
+                                    return serialized
+                                end,
+                                set = function () return end,
+                            },
+                        },
+                    },
+                    ImportPlayers = {
+                        name = L['Import'],
+                        type = 'group',
+                        order = 3,
+                        args = {
+                            ImportField = {
+                                name = L['Paste'],
+                                desc = L['Here you can paste the text from "import". Press "Accept" to import the settings'],
+                                type = 'input',
+                                order = 1,
+                                multiline = 30,
+                                width = 3.5,
+                                get = function () end,
+                                set = function (_, input)
+                                    local AceSerializer = Namespace.Libs.AceSerializer
+                                    local success, data = AceSerializer:Deserialize(input)
+                                    if not success then return end
+
+                                    local type = type
+                                    local Addon = Namespace.Addon
+                                    local BattlegroundTools = Namespace.BattlegroundTools
+                                    local GetPlayerDataByName = Namespace.PlayerData.GetPlayerDataByName
+                                    local created = 0
+                                    local updated = 0
+                                    for playerName, incoming in pairs(data) do
+                                        local config = BattlegroundTools:GetPlayerConfig(playerName)
+                                        if not config then
+                                            config = BattlegroundTools:CreatePlayerConfig(playerName)
+                                            created = created + 1
+                                        else
+                                            updated = updated + 1
+                                        end
+
+                                        local playerData = GetPlayerDataByName(playerName)
+                                        config.groupLabel = playerData and playerData.classColor:WrapTextInColorCode(playerName)
+                                        if not config.groupLabel then
+                                            config.groupLabel = type(incoming.gl) == 'string' and incoming.gl:gsub('%[c', '|c'):gsub('%[r', '|r') or playerName
+                                        end
+
+                                        if type(incoming.glb) == 'number' then
+                                            config.giveLeadBehavior = incoming.glb
+                                        end
+
+                                        if type(incoming.mb) == 'number' then
+                                            config.markBehavior = incoming.mb
+                                        end
+
+                                        if type(incoming.pta) == 'boolean' then
+                                            config.promoteToAssistant = incoming.pta
+                                        end
+
+                                        if type(incoming.pi) == 'number' then
+                                            config.preferredIcon = incoming.pi
+                                        end
+                                    end
+
+                                    Addon:Print(format(L['Imported player config, new: %d updated: %s'], created, updated))
+                                    Addon:InitializePlayerConfig()
+                                end,
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -883,7 +987,7 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                 end,
                 width = 1,
                 func = function ()
-                    Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[config.playerName] = nil
+                    Memory.ConfigurationSetup.args.PlayerManagement.args.Players.args[config.playerName] = nil
                     Namespace.BattlegroundTools:DeletePlayerConfig(config.playerName)
                 end,
                 order = 1,
@@ -936,7 +1040,7 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                     [MarkBehavior.PreferredMark] = L['Preferred icon'],
                 },
                 set = function (_, value)
-                    Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[config.playerName].args.preferredIcon.disabled = value ~= MarkBehavior.PreferredMark
+                    Memory.ConfigurationSetup.args.PlayerManagement.args.Players.args[config.playerName].args.preferredIcon.disabled = value ~= MarkBehavior.PreferredMark
                     Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'markBehavior', value)
                 end,
                 get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'markBehavior') end,

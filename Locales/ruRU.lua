@@ -202,3 +202,11 @@ L['Got feedback, suggestions or questions, or you just want to chat? Join us on 
 L['Modifier button to re-enable the entry button'] = true
 L['This button will make sure that you can enable the entry button on a queue pop whenever you want'] = true
 L['Manually add Player-RealmName'] = true
+L['Imported player config, new: %d updated: %s'] = true
+L['Players'] = true
+L['Export'] = true
+L['Import'] = true
+L['Copy'] = true
+L['Paste'] = true
+L['This text can be copied and pasted into the text field under "Import"'] = true
+L['Here you can paste the text from "import". Press "Accept" to import the settings'] = true

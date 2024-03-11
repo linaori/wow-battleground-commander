@@ -2,6 +2,18 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.2.5-45',
+        features = {
+            'Added the ability export and import player specific configurations',
+        },
+        improvements = {
+            'Player management has moved away from Battleground Tools as tab, and is now accessible on the same option level in the left menu'
+        },
+        bugs = {
+            'Changing profiles will now correctly reload the player list in Player Management'
+        },
+    },
+    {
         version = '10.2.5-44',
         features = {
             'Added the ability to manually add players to player management',
