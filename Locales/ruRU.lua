@@ -201,3 +201,4 @@ L['Entry Window'] = true
 L['Got feedback, suggestions or questions, or you just want to chat? Join us on Discord!'] = true
 L['Modifier button to re-enable the entry button'] = true
 L['This button will make sure that you can enable the entry button on a queue pop whenever you want'] = true
+L['Manually add Player-RealmName'] = true

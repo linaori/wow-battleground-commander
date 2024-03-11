@@ -150,11 +150,12 @@ end
 
 _G.BattlegroundCommander_OnAddonCompartmentClick = Addon.OpenSettingsPanel
 
-function Addon:OpenPlayerConfig(playerName)
-    Namespace.Config.AddPlayerConfig(playerName)
-
+function Addon:OpenPlayerConfig(playerName, standaloneFrame)
     local ACD = Namespace.Libs.AceConfigDialog
-    ACD:Open(AddonName, nil, 'BattlegroundTools', 'PlayerManagement')
+    if standaloneFrame then
+        ACD:Open(AddonName, nil, 'BattlegroundTools', 'PlayerManagement')
+    end
+
     ACD:SelectGroup(AddonName, 'BattlegroundTools', 'PlayerManagement', playerName)
 end
 

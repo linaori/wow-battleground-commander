@@ -138,16 +138,24 @@ function Namespace.Config.GetDefaultConfiguration()
 end
 
 function Namespace.Config.AddPlayerConfig(playerName)
-    local config
-    local playerData = Namespace.PlayerData.GetPlayerDataByName(playerName)
-    if playerData and playerData.classColor and not playerData.units.player then
-        config = Namespace.BattlegroundTools:GetPlayerConfig(playerName) or Namespace.BattlegroundTools:CreatePlayerConfig(playerName)
-        config.groupLabel = playerData.classColor:WrapTextInColorCode(playerName)
-
-        Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
+    if not playerName or not playerName:find('-') then
+        return
     end
 
+    local config = Namespace.BattlegroundTools:GetPlayerConfig(playerName)
+    if config then
+        return Namespace.Addon:OpenPlayerConfig(playerName)
+    end
+
+    local playerData = Namespace.PlayerData.GetPlayerDataByName(playerName)
+    config = Namespace.BattlegroundTools:CreatePlayerConfig(playerName)
+    config.groupLabel = playerData and playerData.classColor:WrapTextInColorCode(playerName) or playerName
+
+    Memory.ConfigurationSetup.args.BattlegroundTools.args.PlayerManagement.args[playerName] = Namespace.Config.CreatePlayerConfigNode(config)
+
     Namespace.Libs.AceConfigRegistry:NotifyChange(AddonName)
+
+    Namespace.Addon:OpenPlayerConfig(playerName)
 end
 
 function Namespace.Config.GetConfigurationSetup()
@@ -774,6 +782,15 @@ function Namespace.Config.GetConfigurationSetup()
                                 get = function () return nil end,
                                 set = addPlayerConfig,
                                 order = 2,
+                            },
+                            addPlayerRaw = {
+                                name = L['Manually add Player-RealmName'],
+                                type = 'input',
+                                multiline = false,
+                                width = 1.2,
+                                get = function () return nil end,
+                                set = addPlayerConfig,
+                                order = 3,
                             },
                         }
                     }

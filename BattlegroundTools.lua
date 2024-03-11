@@ -552,7 +552,10 @@ function Module:OnEnable()
         if event == 'OnShow' then
             options[1] = {
                 text = L['BGC: Configure'],
-                func = function () Addon:OpenPlayerConfig(data.name) end
+                func = function ()
+                    Namespace.Config.AddPlayerConfig(data.name)
+                    Addon:OpenPlayerConfig(data.name, true)
+                end
             }
             return true
         elseif event == 'OnHide' then

@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.2.5-44',
+        features = {
+            'Added the ability to manually add players to player management',
+        },
+    },
+    {
         version = '10.2.5-43',
         improvements = {
             'Updated TOC for 10.2.5',
