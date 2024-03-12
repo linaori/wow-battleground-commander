@@ -870,8 +870,9 @@ function Namespace.Config.GetConfigurationSetup()
                                         end
 
                                         local playerData = GetPlayerDataByName(playerName)
-                                        config.groupLabel = playerData and playerData.classColor:WrapTextInColorCode(playerName)
-                                        if not config.groupLabel then
+                                        config.groupLabel = playerData and playerData.classColor:WrapTextInColorCode(playerName) or config.groupLabel
+
+                                        if not config.groupLabel:match('|c(.+)|r') then
                                             config.groupLabel = type(incoming.gl) == 'string' and incoming.gl:gsub('%[c', '|c'):gsub('%[r', '|r') or playerName
                                         end
 
