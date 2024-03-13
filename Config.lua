@@ -142,6 +142,7 @@ function Namespace.Config.AddPlayerConfig(playerName)
         return
     end
 
+    playerName = playerName:gsub(' ', '')
     local config = Namespace.BattlegroundTools:GetPlayerConfig(playerName)
     if config then
         return Namespace.Addon:OpenPlayerConfig(playerName)

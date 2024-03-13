@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.2.5-46',
+        improvements = {
+            'Remove spaces from the input when manually adding a character, this makes it harder to make accidental mistakes when the realm has a space, or when the input contains a space around the dash sign',
+        },
+    },
+    {
         version = '10.2.5-45',
         features = {
             'Added the ability export and import player specific configurations',
