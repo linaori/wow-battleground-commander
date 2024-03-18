@@ -59,7 +59,6 @@ globals = {
     'tinsert',
     'UISpecialFrames',
     'UnitClass',
-    'UnitDebuff',
     'UnitExists',
     'UnitFactionGroup',
     'UnitFullName',

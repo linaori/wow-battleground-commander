@@ -2,6 +2,15 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '10.2.6-47',
+        improvements = {
+            'Updated TOC for 10.2.6',
+        },
+        bugs = {
+            'Fixed a possible Lua error trying to figure out the deserter debuff',
+        },
+    },
+    {
         version = '10.2.5-46',
         improvements = {
             'Remove spaces from the input when manually adding a character, this makes it harder to make accidental mistakes when the realm has a space, or when the input contains a space around the dash sign',

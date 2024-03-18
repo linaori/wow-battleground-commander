@@ -42,7 +42,7 @@ local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetNumGroupMembers = GetNumGroupMembers
 local GetLFGRoleUpdate = GetLFGRoleUpdate
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
-local UnitDebuff = UnitDebuff
+local GetDebuffDataByIndex = C_UnitAuras.GetDebuffDataByIndex
 local UnitInOtherParty = UnitInOtherParty
 local GetBattlefieldPortExpiration = GetBattlefieldPortExpiration
 local GetTime = GetTime
@@ -194,10 +194,14 @@ function Private.TriggerDeserterUpdate(data)
         return
     end
 
+    if not data.units.primary then
+        return
+    end
+
     for i = 1, DEBUFF_MAX_DISPLAY do
-        local _, _, _, _, _, expirationTime, _, _, _, spellId = UnitDebuff(data.units.primary, i)
-        if spellId == SpellIds.DeserterDebuff then
-            data.deserterExpiry = expirationTime
+        local aura = GetDebuffDataByIndex(data.units.primary, i)
+        if aura and aura.spellId == SpellIds.DeserterDebuff then
+            data.deserterExpiry = aura.expirationTime
 
             return
         end
