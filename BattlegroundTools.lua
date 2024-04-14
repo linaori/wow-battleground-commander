@@ -647,6 +647,8 @@ function Private.CanRequestLead()
 end
 
 function Private.PromoteToLeader(playerData)
+    if not playerData.units.primary then return end
+
     PromoteToLeader(playerData.units.primary)
 
     local mem = Memory.WantBattlegroundLead
