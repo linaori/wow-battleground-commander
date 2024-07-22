@@ -2,6 +2,12 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
+        version = '11.0.0-49',
+        improvements = {
+            'The War Within update for 11.0.0',
+        },
+    },
+    {
         version = '10.2.7-48',
         bugs = {
             'Fixed a possible Lua error when giving lead',
