@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110005
 ## Title: Battleground Commander
 ## Notes: Teamwork is dreamwork
 ## Author: Linaori
