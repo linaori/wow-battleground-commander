@@ -16,6 +16,7 @@ globals = {
 
     'BattlegroundCommanderDatabase',
 
+	'C_Secrets',
     'C_ChatInfo',
     'C_ClassColor',
     'C_PvP',
