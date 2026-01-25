@@ -41,7 +41,6 @@ local CharacterPanelOpenSound = SOUNDKIT.IG_CHARACTER_INFO_OPEN
 local CharacterPanelCloseSound = SOUNDKIT.IG_CHARACTER_INFO_CLOSE
 local GetNumGroupMembers = GetNumGroupMembers
 local GetLFGRoleUpdate = GetLFGRoleUpdate
-local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local GetDebuffDataByIndex = C_UnitAuras.GetDebuffDataByIndex
 local UnitInOtherParty = UnitInOtherParty
 local GetBattlefieldPortExpiration = GetBattlefieldPortExpiration
@@ -114,9 +113,6 @@ local Memory = {
 
     -- the data that should be send next data sync event
     syncDataPayloadBuffer = nil,
-
-    InCombat = false,
-    InGossip = false,
 
     queueExpiryTimer = nil,
     queueTicker = nil,
@@ -396,6 +392,8 @@ function Private.RefreshGroupInfoFrame()
 end
 
 function Private.GetRemainingAuraTime(spellId)
+    if C_Secrets.ShouldAurasBeSecret() then return -1 end
+
     local expirationTime = GetPlayerAuraExpiration(spellId)
 
     return expirationTime and expirationTime - GetTime() or -1
@@ -643,15 +641,13 @@ function Module:OnEnable()
     self:RegisterEvent('READY_CHECK')
     self:RegisterEvent('READY_CHECK_CONFIRM')
     self:RegisterEvent('READY_CHECK_FINISHED')
-    self:RegisterEvent('PLAYER_REGEN_ENABLED')
-    self:RegisterEvent('PLAYER_REGEN_DISABLED')
     self:RegisterEvent('GOSSIP_CLOSED')
-    self:RegisterEvent('GOSSIP_SHOW')
     self:RegisterEvent('LFG_ROLE_CHECK_SHOW')
     self:RegisterEvent('LFG_ROLE_CHECK_ROLE_CHOSEN')
     self:RegisterEvent('LFG_ROLE_CHECK_DECLINED')
     self:RegisterEvent('LFG_ROLE_CHECK_UPDATE')
     self:RegisterEvent('UNIT_CONNECTION')
+    self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
     self:RegisterComm(CommunicationEvent.SyncData, Private.OnSyncData)
     self:RegisterComm(CommunicationEvent.ReadyCheckHeartbeat, Private.OnReadyCheckHeartbeat)
@@ -671,9 +667,6 @@ function Module:OnEnable()
     Namespace.Battleground.RegisterQueueStateListener('notify_queue_resume', Private.DetectQueueResume)
     Namespace.Battleground.RegisterQueueStateListener('ensure_nobody_entered', Private.DetectQueueCancelAfterConfirm)
     Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_group_info', Private.DetectBattlegroundEntryAfterConfirm)
-    Namespace.Battleground.RegisterQueueStateListener('update_mercenary_aura_tracking', Private.UpdateAuraTracking)
-
-    Private.UpdateAuraTracking()
 
     self:RefreshConfig()
 
@@ -941,39 +934,11 @@ function Module:RefreshConfig()
     self:ScheduleSendSyncData()
 end
 
-function Private.UpdateAuraTracking()
-    if not Memory.InGossip and (Memory.InCombat or InActiveBattleground()) then
-        return Module:UnregisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
-    end
-
-    -- only track outside of combat and outside of battlegrounds
-    Module:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
-end
-
-function Module:PLAYER_REGEN_DISABLED()
-    Memory.InCombat = true
-    Private.UpdateAuraTracking()
-end
-
-function Module:PLAYER_REGEN_ENABLED()
-    Memory.InCombat = false
-    Private.UpdateAuraTracking()
-end
-
-function Module:GOSSIP_SHOW()
-    Memory.InGossip = true
-    Private.UpdateAuraTracking()
-end
-
 function Module:GOSSIP_CLOSED()
-    Memory.InGossip = false
-    Private.UpdateAuraTracking()
+    self:ScheduleSendSyncData()
 end
 
-function Module:COMBAT_LOG_EVENT_UNFILTERED()
-    local _, _, _, _, _, _, _, _, _, _, _, spellId = CombatLogGetCurrentEventInfo()
-
-    if spellId ~= SpellIds.MercenaryContractHorde and spellId ~= SpellIds.MercenaryContractAlliance then return end
+function Module:PLAYER_ENTERING_WORLD()
     self:ScheduleSendSyncData()
 end
 

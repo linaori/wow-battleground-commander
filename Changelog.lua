@@ -4,6 +4,15 @@ Namespace.Changelog = {
     {
         version = '11.0.5-51',
         improvements = {
+            'Updated TOC for 12.0.0 and 12.0.1',
+        },
+        bugs = {
+            'Fixed an issue related to unit auras (mercenary/deserter) while secreted',
+        },
+    },
+    {
+        version = '11.0.5-51',
+        improvements = {
             'Updated TOC for 11.0.5',
         },
     },
