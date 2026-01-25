@@ -199,7 +199,7 @@ function Private.DetectBattlegroundExit(previousState, newState)
     Module:TriggerUpdateWantBattlegroundLeadDialogFrame(false)
 end
 
-function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, mapName)
+function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState)
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
 
