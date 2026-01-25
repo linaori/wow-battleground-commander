@@ -107,7 +107,6 @@ function Addon:MigrateConfig()
     end
 
     local config = Namespace.Database.profile.BattlegroundTools
-    config.InstructionFrame.zones[0] = nil
     config.LeaderTools.promoteListed = nil
 
     local BattlegroundTools = Namespace.BattlegroundTools

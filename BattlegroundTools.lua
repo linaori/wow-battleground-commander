@@ -66,16 +66,6 @@ local Memory = {
         ackTimer = nil,
         ackLeader = nil,
     },
-
-    InstructionFrame = nil,
-    RaidWarningLogs = {
-        last = nil,
-        list = {
-            -- {time, message},
-        },
-        size = 0,
-        timer = nil,
-    },
 }
 
 local GiveLeadBehavior = {
@@ -101,174 +91,6 @@ function Private.ApplyFont(textObject, fontConfig)
     textObject:SetShadowOffset(fontConfig.shadowOffset.x, fontConfig.shadowOffset.y)
     textObject:SetJustifyH('LEFT')
     textObject:SetJustifyV(fontConfig.topToBottom and 'TOP' or 'BOTTOM')
-end
-
-function Private.ApplyFrameSettings()
-    local settings = Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings
-    local frame = Memory.InstructionFrame
-    frame:SetBackdrop({
-        bgFile = LSM:Fetch('background', settings.backgroundTexture),
-        edgeFile = LSM:Fetch('border', settings.borderTexture),
-        edgeSize = settings.borderSize,
-        insets = {
-            left = settings.backgroundInset,
-            right = settings.backgroundInset,
-            top = settings.backgroundInset,
-            bottom = settings.backgroundInset,
-        }
-    })
-
-    local bgColor = settings.backgroundColor
-    local borderColor = settings.borderColor
-
-    frame:SetBackdropColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
-    frame:SetBackdropBorderColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
-end
-
-function Module:SetFontSetting(setting, value)
-    local fontConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame.font
-    fontConfig[setting] = value
-
-    Private.ApplyFont(Memory.InstructionFrame.Text, fontConfig)
-end
-
-function Module:GetFontSetting(setting)
-    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.font[setting]
-end
-
-function Module:SetFrameSetting(setting, value)
-    Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings[setting] = value
-    Private.ApplyFrameSettings()
-end
-
-function Module:GetFrameSetting(setting)
-    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings[setting]
-end
-
-function Private.ResetLogs()
-    local logs = Memory.RaidWarningLogs
-    logs.last = nil
-    logs.list = {}
-    logs.size = 0
-end
-
-function Private.AddLog(message)
-    local logs = Memory.RaidWarningLogs
-    if message == logs.last then
-        logs.list[logs.size].time = floor(GetTime())
-        return
-    end
-
-    logs.size = logs.size + 1
-    logs.list[logs.size] = {
-        time = GetTime(),
-        message = ReplaceIconAndGroupExpressions(message),
-    }
-    logs.last = message
-end
-
-function Private.ApplyLogs(textObject)
-    local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
-    local colorHighlight = frameConfig.font.colorHighlight
-    local colorTime = frameConfig.font.colorTime
-    local maxInstructions = frameConfig.settings.maxInstructions
-
-    local count, directionModifier
-    if frameConfig.font.topToBottom then
-        count = 0
-        directionModifier = 1
-    else
-        count = min(maxInstructions, Memory.RaidWarningLogs.size) + 1
-        directionModifier = -1
-    end
-
-    local timePrefix = format('|cff%.2x%.2x%.2x', colorTime.r * 255, colorTime.g * 255, colorTime.b * 255)
-    local now = floor(GetTime())
-    local list = Memory.RaidWarningLogs.list
-    local messages = {}
-    for i = Memory.RaidWarningLogs.size, Memory.RaidWarningLogs.size - maxInstructions + 1, -1 do
-        count = count + directionModifier
-        local log = list[i]
-        if not log then break end
-
-        local diff = TimeDiff(now, log.time)
-        if i == Memory.RaidWarningLogs.size then
-            log = concat({
-                timePrefix,
-                diff.format(),
-                '|r ',
-                format('|cff%.2x%.2x%.2x', colorHighlight.r * 255, colorHighlight.g * 255, colorHighlight.b * 255),
-                log.message,
-                '|r',
-            })
-        else
-            log = concat({ timePrefix, diff.format(), '|r ', log.message })
-        end
-
-        messages[count] = log
-    end
-
-    textObject:SetText(concat(messages, "\n"))
-end
-
-function Private.InitializeInstructionFrame()
-    if Memory.InstructionFrame then return Memory.InstructionFrame end
-
-    local instructionFrame = CreateFrame('Frame', 'bgcInstructionFrame', _G.UIParent, _G.BackdropTemplateMixin and 'BackdropTemplate')
-    instructionFrame:SetFrameStrata('LOW')
-    instructionFrame:SetResizeBounds(100, 50)
-    instructionFrame:SetClampedToScreen(true)
-    instructionFrame:SetMovable(true)
-    instructionFrame:RegisterForDrag('LeftButton')
-    instructionFrame:SetResizable(true)
-
-    local moveOverlay = CreateFrame('Button', nil, instructionFrame)
-    moveOverlay:SetPoint('TOPLEFT')
-    moveOverlay:SetPoint('BOTTOMRIGHT', -16, 0)
-    moveOverlay:SetScript('OnMouseDown', function(self)
-        if not Namespace.Database.profile.BattlegroundTools.InstructionFrame.move then return end
-        self:GetParent():StartMoving()
-    end)
-    moveOverlay:SetScript('OnMouseUp', function(self)
-        local parent = self:GetParent()
-        parent:StopMovingOrSizing()
-
-        local position = Namespace.Database.profile.BattlegroundTools.InstructionFrame.position
-        local anchor, _, _, x, y = parent:GetPoint(1)
-
-        position.anchor, position.x, position.y = anchor, x, y
-    end)
-
-    local resizeButton = CreateFrame('Button', nil, instructionFrame)
-    resizeButton:SetPoint('BOTTOMRIGHT')
-    resizeButton:SetSize(16, 16)
-    resizeButton:SetNormalTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Down]])
-    resizeButton:SetHighlightTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Highlight]])
-    resizeButton:SetPushedTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Up]])
-    resizeButton:SetScript('OnMouseDown', function(self)
-        self:GetParent():StartSizing('BOTTOMRIGHT')
-    end)
-    resizeButton:SetScript('OnMouseUp', function(self)
-        local parent = self:GetParent()
-        parent:StopMovingOrSizing()
-        local size = Namespace.Database.profile.BattlegroundTools.InstructionFrame.size
-        size.width, size.height = parent:GetSize()
-    end)
-
-    local text = instructionFrame:CreateFontString(nil, 'OVERLAY')
-    Private.ApplyFont(text, Namespace.Database.profile.BattlegroundTools.InstructionFrame.font)
-    text:SetPoint('TOPLEFT', 7, -7)
-    text:SetPoint('BOTTOMRIGHT', -17, 7)
-
-    instructionFrame.MoveOverlay = moveOverlay
-    instructionFrame.ResizeButton = resizeButton
-    instructionFrame.Text = text
-
-    Memory.InstructionFrame = instructionFrame
-end
-
-function Module:OnInitialize()
-    Private.InitializeInstructionFrame()
 end
 
 function Module:TriggerUpdateWantBattlegroundLeadDialogFrame(newVisibility)
@@ -323,16 +145,6 @@ function Module:TriggerUpdateWantBattlegroundLeadDialogFrame(newVisibility)
 
     if newVisibility ~= nil then
         dialog:SetShown(newVisibility)
-    end
-end
-
-function Private.TriggerUpdateInstructionFrame()
-    local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
-    local currentZoneId = GetCurrentZoneId()
-    if frameConfig.show and frameConfig.zones[currentZoneId] then
-        Module:ShowInstructionsFrame()
-    else
-        Module:HideInstructionsFrame()
     end
 end
 
@@ -491,11 +303,6 @@ function Private.DetectBattlegroundExit(previousState, newState)
     Memory.WantBattlegroundLead.giveLeadStatus = {}
     Memory.WantBattlegroundLead.ackLeader = nil
 
-    if Namespace.Database.profile.BattlegroundTools.InstructionFrame.settings.clearFrameOnExitBattleground then
-        Private.ResetLogs()
-    end
-
-    Module:HideInstructionsFrame()
     Module:TriggerUpdateWantBattlegroundLeadDialogFrame(false)
 end
 
@@ -503,17 +310,13 @@ function Private.DetectBattlegroundEntryAfterConfirm(previousState, newState, ma
     if previousState.status ~= QueueStatus.Confirm then return end
     if newState.status ~= QueueStatus.Active then return end
 
-    Private.AddLog(format(L['Entered %s'], mapName))
-
     Memory.WantBattlegroundLead.giveLeadStatus = {}
     Memory.WantBattlegroundLead.ackLeader = nil
 
-    Private.TriggerUpdateInstructionFrame()
     Module:RequestRaidLead()
 end
 
 function Module:OnEnable()
-    self:RegisterEvent('CHAT_MSG_RAID_WARNING')
     self:RegisterEvent('PLAYER_ENTERING_WORLD')
 
     Namespace.Database.RegisterCallback(self, 'OnProfileChanged', 'RefreshConfig')
@@ -532,18 +335,10 @@ function Module:OnEnable()
     Namespace.PlayerData.RegisterOnUpdate('mark_players', Private.MarkRaidMembersIfLeadingBattleground)
     Namespace.PlayerData.RegisterOnUpdate('update_player_config_labels', Private.UpdatePlayerConfigLabels)
 
-    Namespace.Battleground.RegisterQueueStateListener('reset_logs', Private.DetectBattlegroundExit)
+    Namespace.Battleground.RegisterQueueStateListener('update_leader_status', Private.DetectBattlegroundExit)
     Namespace.Battleground.RegisterQueueStateListener('clean_pre_bg_raid_lead_info', Private.DetectBattlegroundEntryAfterConfirm)
 
     self:RefreshConfig()
-
-    Private.AddLog(L['Battleground Commander loaded'])
-    if Namespace.Database.profile.BattlegroundTools.InstructionFrame.firstTime then
-        Private.AddLog(L['You can access the configuration via /bgc or through the interface options'])
-        Namespace.Database.profile.BattlegroundTools.InstructionFrame.firstTime = false
-    end
-
-    Private.ApplyLogs(Memory.InstructionFrame.Text)
 
     Namespace.Libs.LibDropDownExtension:RegisterEvent('OnShow OnHide', function (dropdown, event, options)
         local data = dropdown.unit and GetPlayerDataByUnit(dropdown.unit)
@@ -565,78 +360,13 @@ function Module:OnEnable()
 end
 
 function Module:PLAYER_ENTERING_WORLD(_, isLogin, isReload)
-    Private.TriggerUpdateInstructionFrame()
-
     if not isLogin and not isReload then return end
 
     self:RequestRaidLead()
 end
 
-function Module:CHAT_MSG_RAID_WARNING(_, message)
-    Private.AddLog(message)
-end
-
 function Module:RefreshConfig()
-    local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
-
-    Memory.InstructionFrame:SetSize(frameConfig.size.width, frameConfig.size.height)
-    Memory.InstructionFrame:ClearAllPoints()
-    Memory.InstructionFrame:SetPoint(frameConfig.position.anchor, _G.UIParent, frameConfig.position.anchor, frameConfig.position.x, frameConfig.position.y)
-    Memory.InstructionFrame.ResizeButton:SetShown(frameConfig.move)
-
-    Private.TriggerUpdateInstructionFrame()
-
     self:TriggerUpdateWantBattlegroundLeadDialogFrame()
-end
-
-function Module:ShowInstructionsFrame()
-    Private.ApplyFont(Memory.InstructionFrame.Text, Namespace.Database.profile.BattlegroundTools.InstructionFrame.font)
-    Private.ApplyFrameSettings()
-    Memory.InstructionFrame:Show()
-
-    if Memory.InstructionFrame.timer then return end
-    Memory.InstructionFrame.timer = self:ScheduleRepeatingTimer(function ()
-        Private.ApplyLogs(Memory.InstructionFrame.Text)
-        Private.TriggerUpdateInstructionFrame()
-    end, 0.2)
-end
-
-function Module:HideInstructionsFrame()
-    Memory.InstructionFrame:Hide()
-
-    if not Memory.InstructionFrame.timer then return end
-    self:CancelTimer(Memory.InstructionFrame.timer)
-    Memory.InstructionFrame.timer = nil
-end
-
-function Module:SetInstructionFrameState(enableState)
-    local frameConfig = Namespace.Database.profile.BattlegroundTools.InstructionFrame
-    frameConfig.show = enableState
-
-    Private.TriggerUpdateInstructionFrame()
-end
-
-function Module:GetInstructionFrameState()
-    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.show
-end
-
-function Module:SetInstructionFrameMoveState(enableState)
-    Namespace.Database.profile.BattlegroundTools.InstructionFrame.move = enableState
-    Memory.InstructionFrame.ResizeButton:SetShown(enableState)
-end
-
-function Module:GetInstructionFrameMoveState()
-    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.move
-end
-
-function Module:SetZoneId(zoneId, value)
-    Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[zoneId] = value
-
-    Private.TriggerUpdateInstructionFrame()
-end
-
-function Module:GetZoneId(zoneId)
-    return Namespace.Database.profile.BattlegroundTools.InstructionFrame.zones[zoneId]
 end
 
 function Private.CanRequestLead()

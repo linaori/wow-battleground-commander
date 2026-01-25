@@ -2,12 +2,13 @@ local _, Namespace = ...
 
 Namespace.Changelog = {
     {
-        version = '11.0.5-51',
+        version = '12.0.1-1',
         improvements = {
             'Updated TOC for 12.0.0 and 12.0.1',
         },
         bugs = {
             'Fixed an issue related to unit auras (mercenary/deserter) while secreted',
+            'Removed the instructions frame as this feature is no longer possible in Midnight',
         },
     },
     {

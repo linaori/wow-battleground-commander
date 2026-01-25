@@ -179,6 +179,8 @@ function Private.CanDoReadyCheck()
 end
 
 function Private.TriggerDeserterUpdate(data)
+    if C_Secrets.ShouldAurasBeSecret() then return -1 end
+
     if data.deserterExpiry > 0 and data.deserterExpiry <= GetTime() then
         data.deserterExpiry = -1
     end
