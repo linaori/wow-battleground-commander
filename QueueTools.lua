@@ -554,7 +554,7 @@ function Private.OnClickEnterBattleground()
     if not IsLeaderOrAssistant('player') then return end
 
     local config = Namespace.Database.profile.QueueTools.InspectQueue
-    if config.sendMessageOnBattlegroundEntry then
+    if config.sendMessageOnBattlegroundEntry and not C_ChatInfo.InChatMessagingLockdown() then
         local message = concat({RaidIconChatStyle.GreenTriangle, Private.TwoLanguages('Enter'), RaidIconChatStyle.GreenTriangle}, ' ')
         SendChatMessage(Addon:PrependChatTemplate(message), channel)
     end

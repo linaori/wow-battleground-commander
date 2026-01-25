@@ -333,6 +333,8 @@ function Module:WantBattlegroundLead(senderData)
 end
 
 function Private.SendManualChatMessages()
+    if C_ChatInfo.InChatMessagingLockdown() then return end
+
     local mem = Memory.WantBattlegroundLead
     local config = Namespace.Database.profile.BattlegroundTools.WantBattlegroundLead
 

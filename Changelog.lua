@@ -10,6 +10,7 @@ Namespace.Changelog = {
             'Fixed an issue related to unit auras (mercenary/deserter) while secreted',
             'Removed the instructions frame as this feature is no longer possible in Midnight',
             'Removed the auto marking as this feature is no longer possible in Midnight',
+            'Added some checks to not automatically send chat messages when restrictions are in place',
         },
     },
     {
