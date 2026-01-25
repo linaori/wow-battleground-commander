@@ -81,17 +81,6 @@ Namespace.Utils.ColorList = {
     UnknownClass = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
 }
 
-Namespace.Utils.RaidIconChatTexture = {
-    YellowStar = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_1:16:16|t]],
-    OrangeCircle = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_2:16:16|t]],
-    PurpleDiamond = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_3:16:16|t]],
-    GreenTriangle = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_4:16:16|t]],
-    SilverMoon = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_5:16:16|t]],
-    BlueSquare = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_6:16:16|t]],
-    RedCross = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_7:16:16|t]],
-    WhiteSkull = [[|TInterface\TargetingFrame\UI-RaidTargetingIcon_8:16:16|t]],
-}
-
 local ModifierButton = {
     Shift = 'Shift',
     Control = 'Ctrl',
@@ -99,18 +88,6 @@ local ModifierButton = {
 }
 
 Namespace.Utils.ModifierButton = ModifierButton
-
-Namespace.Utils.RaidIconIndex = {
-    NoIcon = 0,
-    YellowStar = 1,
-    OrangeCircle = 2,
-    PurpleDiamond = 3,
-    GreenTriangle = 4,
-    SilverMoon = 5,
-    BlueSquare = 6,
-    RedCross = 7,
-    WhiteSkull = 8,
-}
 
 function Namespace.Utils.IsModifierButtonDown(button)
     return (button == ModifierButton.Shift and IsShiftKeyDown())

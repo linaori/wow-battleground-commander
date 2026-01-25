@@ -106,7 +106,7 @@ local Memory = {
     lastReadyCheckDuration = 0,
     readyCheckButtonTicker = nil,
     readyCheckClearTimeout = nil,
-    readyCheckHeartbeatTimout = nil,
+    readyCheckHeartbeatTimeout = nil,
     disableEntryButtonTicker = nil,
 
     playerTableCache = {},
@@ -746,12 +746,12 @@ end
 function Private.ScheduleReadyCheckHeartbeat(message, delay, preventReadyCheckCallback)
     if delay == nil then delay = 0 end
 
-    if Memory.readyCheckHeartbeatTimout ~= nil then return end
-    Memory.readyCheckHeartbeatTimout = Module:ScheduleTimer(function ()
+    if Memory.readyCheckHeartbeatTimeout ~= nil then return end
+    Memory.readyCheckHeartbeatTimeout = Module:ScheduleTimer(function ()
         if preventReadyCheckCallback and preventReadyCheckCallback() then return end
 
         Private.SendReadyCheckHeartbeat(message)
-        Memory.readyCheckHeartbeatTimout = nil
+        Memory.readyCheckHeartbeatTimeout = nil
     end, delay)
 end
 
@@ -949,7 +949,7 @@ function Module:READY_CHECK(_, initiatedByName, duration)
     Memory.lastReadyCheckDuration = duration
 
     -- occupy the heartbeat timeout so it won't send anything shortly after this ready check
-    Memory.readyCheckHeartbeatTimout = self:ScheduleTimer(function() Memory.readyCheckHeartbeatTimout = nil end, duration)
+    Memory.readyCheckHeartbeatTimeout = self:ScheduleTimer(function() Memory.readyCheckHeartbeatTimeout = nil end, duration)
 
     ForEachUnitData(function(data) data.readyState = ReadyCheckState.Waiting end)
 

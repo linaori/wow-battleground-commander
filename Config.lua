@@ -99,10 +99,6 @@ function Namespace.Config.GetConfigurationSetup()
     if Memory.ConfigurationSetup then return Memory.ConfigurationSetup end
 
     local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
-    local fontFlagList = { [''] = 'None', ['OUTLINE'] = 'Outline', ['OUTLINE, MONOCHROME'] = 'Outline Monochrome' }
-    local LibSharedMediaFonts = Namespace.Libs.LibSharedMedia:HashTable('font')
-    local LibSharedMediaBackgrounds = Namespace.Libs.LibSharedMedia:HashTable('background')
-    local LibSharedMediaBorders = Namespace.Libs.LibSharedMedia:HashTable('border')
 
     local NameFormat = Namespace.QueueTools.NameFormat
 

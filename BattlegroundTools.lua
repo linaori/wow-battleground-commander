@@ -7,7 +7,6 @@ local LibDD = Namespace.Libs.LibDropDown
 
 Namespace.BattlegroundTools = Module
 
-local TimeDiff = Namespace.Utils.TimeDiff
 local Channel = Namespace.Communication.Channel
 local GetGroupLeaderData = Namespace.PlayerData.GetGroupLeaderData
 local GetPlayerDataByUnit = Namespace.PlayerData.GetPlayerDataByUnit
@@ -63,15 +62,6 @@ local GiveLeadBehavior = {
 }
 
 Namespace.BattlegroundTools.GiveLeadBehavior = GiveLeadBehavior
-
-function Private.ApplyFont(textObject, fontConfig)
-    textObject:SetFont(LSM:Fetch('font', fontConfig.family), fontConfig.size, fontConfig.flags)
-    textObject:SetTextColor(fontConfig.color.r, fontConfig.color.g, fontConfig.color.b)
-    textObject:SetShadowColor(fontConfig.shadowColor.r, fontConfig.shadowColor.g, fontConfig.shadowColor.b, fontConfig.shadowColor.a)
-    textObject:SetShadowOffset(fontConfig.shadowOffset.x, fontConfig.shadowOffset.y)
-    textObject:SetJustifyH('LEFT')
-    textObject:SetJustifyV(fontConfig.topToBottom and 'TOP' or 'BOTTOM')
-end
 
 function Module:TriggerUpdateWantBattlegroundLeadDialogFrame(newVisibility)
     local mem = Memory.WantBattlegroundLead
