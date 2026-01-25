@@ -54,7 +54,6 @@ globals = {
     'PromoteToAssistant',
     'PromoteToLeader',
     'SendChatMessage',
-    'SetRaidTarget',
     'Settings',
     'strsplit',
     'tinsert',

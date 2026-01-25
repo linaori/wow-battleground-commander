@@ -8,8 +8,6 @@ local format = string.format
 
 local EntryButtonShowPopTime = Namespace.Utils.EntryButtonShowPopTime
 local EntryButtonTimeFormat = Namespace.Utils.EntryButtonTimeFormat
-local RaidIconIndex = Namespace.Utils.RaidIconIndex
-local RaidIconChatTexture = Namespace.Utils.RaidIconChatTexture
 local ModifierButton = Namespace.Utils.ModifierButton
 
 Namespace.Config = {}
@@ -50,9 +48,7 @@ local Memory = {
                     --     playerNickname = 'Custom nickname',
                     --     groupLabel = 'class color name',
                     --     giveLeadBehavior = GiveLeadBehavior,
-                    --     markBehavior = MarkBehavior,
                     --     promoteToAssistant = boolean,
-                    --     preferredIcon = iconIndex,
                     --     sortOrderIndex = number,
                     -- }
                 },
@@ -65,18 +61,7 @@ local Memory = {
                     sendRaid = true,
                 },
                 LeaderTools = {
-                    leaderIcon = 0,
                     leaderSound = 1,
-                    availableIcons = {
-                        [RaidIconIndex.YellowStar] = false,
-                        [RaidIconIndex.OrangeCircle] = false,
-                        [RaidIconIndex.PurpleDiamond] = false,
-                        [RaidIconIndex.GreenTriangle] = false,
-                        [RaidIconIndex.SilverMoon] = false,
-                        [RaidIconIndex.BlueSquare] = false,
-                        [RaidIconIndex.RedCross] = false,
-                        [RaidIconIndex.WhiteSkull] = false,
-                    },
                     demoteUnlisted = false,
                 },
             }
@@ -428,45 +413,6 @@ function Namespace.Config.GetConfigurationSetup()
                                 get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('demoteUnlisted') end,
                                 order = 2,
                             },
-                            leaderIcon = {
-                                name = L['My raid mark'],
-                                desc = L['Automatically assign the configured raid mark when you become leader.'],
-                                type = 'select',
-                                values = {
-                                    [RaidIconIndex.NoIcon] = L['Do not mark me'],
-                                    [RaidIconIndex.YellowStar] = RaidIconChatTexture.YellowStar,
-                                    [RaidIconIndex.OrangeCircle] = RaidIconChatTexture.OrangeCircle,
-                                    [RaidIconIndex.PurpleDiamond] = RaidIconChatTexture.PurpleDiamond,
-                                    [RaidIconIndex.GreenTriangle] = RaidIconChatTexture.GreenTriangle,
-                                    [RaidIconIndex.SilverMoon] = RaidIconChatTexture.SilverMoon,
-                                    [RaidIconIndex.BlueSquare] = RaidIconChatTexture.BlueSquare,
-                                    [RaidIconIndex.RedCross] = RaidIconChatTexture.RedCross,
-                                    [RaidIconIndex.WhiteSkull] = RaidIconChatTexture.WhiteSkull,
-                                },
-                                set = function (_, input)
-                                    Namespace.BattlegroundTools:SetLeaderToolsSetting('leaderIcon', input)
-                                end,
-                                get = function () return Namespace.BattlegroundTools:GetLeaderToolsSetting('leaderIcon') end,
-                                order = 3,
-                            },
-                            availableIcons = {
-                                name = L['Available icons'],
-                                desc = L['Available icons to automatically mark people with'],
-                                type = 'multiselect',
-                                values = {
-                                    [RaidIconIndex.YellowStar] = RaidIconChatTexture.YellowStar,
-                                    [RaidIconIndex.OrangeCircle] = RaidIconChatTexture.OrangeCircle,
-                                    [RaidIconIndex.PurpleDiamond] = RaidIconChatTexture.PurpleDiamond,
-                                    [RaidIconIndex.GreenTriangle] = RaidIconChatTexture.GreenTriangle,
-                                    [RaidIconIndex.SilverMoon] = RaidIconChatTexture.SilverMoon,
-                                    [RaidIconIndex.BlueSquare] = RaidIconChatTexture.BlueSquare,
-                                    [RaidIconIndex.RedCross] = RaidIconChatTexture.RedCross,
-                                    [RaidIconIndex.WhiteSkull] = RaidIconChatTexture.WhiteSkull,
-                                },
-                                set = function (_, markerIndex, value) Namespace.BattlegroundTools:SetMarkerIndexSetting(markerIndex, value) end,
-                                get = function (_, markerIndex) return Namespace.BattlegroundTools:GetMarkerIndexSetting(markerIndex) end,
-                                order = 4,
-                            },
                         },
                     },
                 },
@@ -567,9 +513,7 @@ function Namespace.Config.GetConfigurationSetup()
                                         data[playerName] = {
                                             gl = playerConfig.groupLabel:gsub('|c', '[c'):gsub('|r', '[r'),
                                             glb = playerConfig.giveLeadBehavior,
-                                            mb = playerConfig.markBehavior,
                                             pta = playerConfig.promoteToAssistant,
-                                            pi = playerConfig.preferredIcon,
                                         }
                                     end
 
@@ -626,16 +570,8 @@ function Namespace.Config.GetConfigurationSetup()
                                             config.giveLeadBehavior = incoming.glb
                                         end
 
-                                        if type(incoming.mb) == 'number' then
-                                            config.markBehavior = incoming.mb
-                                        end
-
                                         if type(incoming.pta) == 'boolean' then
                                             config.promoteToAssistant = incoming.pta
-                                        end
-
-                                        if type(incoming.pi) == 'number' then
-                                            config.preferredIcon = incoming.pi
                                         end
                                     end
 
@@ -710,7 +646,6 @@ end
 function Namespace.Config.CreatePlayerConfigNode(config)
     local L = Namespace.Libs.AceLocale:GetLocale(AddonName)
     local GiveLeadBehavior = Namespace.BattlegroundTools.GiveLeadBehavior
-    local MarkBehavior = Namespace.BattlegroundTools.MarkBehavior
 
     return {
         name = config.groupLabel,
@@ -776,41 +711,6 @@ function Namespace.Config.CreatePlayerConfigNode(config)
                 set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'giveLeadBehavior', value) end,
                 get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'giveLeadBehavior') end,
                 order = 5,
-            },
-            markBehavior = {
-                name = L['Mark this player'],
-                type = 'select',
-                style = 'radio',
-                values = {
-                    [MarkBehavior.NoMark] = L['Do not mark'],
-                    [MarkBehavior.AnyAvailable] = L['Any available icon'],
-                    [MarkBehavior.PreferredMark] = L['Preferred icon'],
-                },
-                set = function (_, value)
-                    Memory.ConfigurationSetup.args.PlayerManagement.args.Players.args[config.playerName].args.preferredIcon.disabled = value ~= MarkBehavior.PreferredMark
-                    Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'markBehavior', value)
-                end,
-                get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'markBehavior') end,
-                order = 6,
-            },
-            preferredIcon = {
-                name = L['Preferred icon'],
-                desc = L['Try to mark with this icon. If this icon is not available, a random icon will be used'],
-                type = 'select',
-                disabled = config.markBehavior ~= MarkBehavior.PreferredMark,
-                values = {
-                    [RaidIconIndex.YellowStar] = RaidIconChatTexture.YellowStar,
-                    [RaidIconIndex.OrangeCircle] = RaidIconChatTexture.OrangeCircle,
-                    [RaidIconIndex.PurpleDiamond] = RaidIconChatTexture.PurpleDiamond,
-                    [RaidIconIndex.GreenTriangle] = RaidIconChatTexture.GreenTriangle,
-                    [RaidIconIndex.SilverMoon] = RaidIconChatTexture.SilverMoon,
-                    [RaidIconIndex.BlueSquare] = RaidIconChatTexture.BlueSquare,
-                    [RaidIconIndex.RedCross] = RaidIconChatTexture.RedCross,
-                    [RaidIconIndex.WhiteSkull] = RaidIconChatTexture.WhiteSkull,
-                },
-                set = function (_, value) Namespace.BattlegroundTools:SetPlayerConfigValue(config.playerName, 'preferredIcon', value) end,
-                get = function () return Namespace.BattlegroundTools:GetPlayerConfigValue(config.playerName, 'preferredIcon') end,
-                order = 7,
             },
         }
     }

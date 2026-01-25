@@ -113,21 +113,9 @@ function Addon:MigrateConfig()
     if config.LeaderTools.automaticAssist then
         for playerName, _ in pairs(config.LeaderTools.automaticAssist) do
             BattlegroundTools:SetPlayerConfigValue(playerName, 'promoteToAssistant', true)
-            if config.LeaderTools.alsoMarkListedAssists then
-                BattlegroundTools:SetPlayerConfigValue(playerName, 'markBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
-            end
         end
 
-        config.LeaderTools.alsoMarkListedAssists = nil
         config.LeaderTools.automaticAssist = nil
-    end
-
-    if config.LeaderTools.automaticIcon then
-        for playerName, _ in pairs(config.LeaderTools.automaticIcon) do
-            BattlegroundTools:SetPlayerConfigValue(playerName, 'markBehavior', BattlegroundTools.MarkBehavior.AnyAvailable)
-        end
-
-        config.LeaderTools.automaticIcon = nil
     end
 
     if config.WantBattlegroundLead.automaticallyAccept then
